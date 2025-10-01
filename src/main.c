@@ -43,6 +43,9 @@ int main() {
             send_uci_command(mt, 0, gid, oid, payload, payload_len);
         } else if (strcmp(command, "get_device_info") == 0) {
             send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_INFO, NULL, 0);
+        } else if (strcmp(command, "device_reset") == 0) {
+            unsigned char payload[] = {UWBS_RESET};
+            send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_RESET, payload, sizeof(payload));
         } else {
             printf("Unknown command: %s\n", command);
         }

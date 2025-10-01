@@ -1,0 +1,51 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "uci.h"
+#include "uci_functions.h"
+
+#define MAX_LINE_LENGTH 256
+#define MAX_PAYLOAD_LENGTH 255
+
+int main() {
+    char line[MAX_LINE_LENGTH];
+
+    printf("UCI Interactive Shell\n");
+    printf("Enter 'quit' to exit.\n");
+
+    while (1) {
+        printf("> ");
+        if (fgets(line, sizeof(line), stdin) == NULL) {
+            break;
+        }
+
+        // Remove trailing newline
+        line[strcspn(line, "\r\n")] = 0;
+
+        if (strcmp(line, "quit") == 0) {
+            break;
+        }
+
+        char* command = strtok(line, " ");
+
+        if (strcmp(command, "send") == 0) {
+            unsigned char mt = (unsigned char)strtol(strtok(NULL, " "), NULL, 16);
+            unsigned char gid = (unsigned char)strtol(strtok(NULL, " "), NULL, 16);
+            unsigned char oid = (unsigned char)strtol(strtok(NULL, " "), NULL, 16);
+            unsigned char payload[MAX_PAYLOAD_LENGTH];
+            int payload_len = 0;
+
+            char* token;
+            while ((token = strtok(NULL, " ")) != NULL) {
+                payload[payload_len++] = (unsigned char)strtol(token, NULL, 16);
+            }
+
+            send_uci_command(mt, 0, gid, oid, payload, payload_len);
+        } else {
+            printf("Unknown command: %s\n", command);
+        }
+    }
+
+    return 0;
+}
+

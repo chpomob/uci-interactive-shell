@@ -49,6 +49,9 @@ int main() {
         } else if (strcmp(command, "session_init") == 0) {
             unsigned char payload[] = {0x01, 0x02, 0x03, 0x04, FIRA_RANGING_SESSION};
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_INIT, payload, sizeof(payload));
+        } else if (strcmp(command, "session_deinit") == 0) {
+            unsigned char payload[] = {0x01, 0x02, 0x03, 0x04};
+            send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_DEINIT, payload, sizeof(payload));
         } else {
             printf("Unknown command: %s\n", command);
         }

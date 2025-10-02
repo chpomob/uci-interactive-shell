@@ -21,7 +21,15 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
 
     // Simulate receiving a response
     printf("Simulating UCI response...\n");
-    // In a real implementation, this would involve reading from a UWB device
+    unsigned char response_packet[sizeof(struct uci_packet_header) + 1];
+    struct uci_packet_header* response_header = (struct uci_packet_header*)response_packet;
+    response_header->mt = RESPONSE;
+    response_header->pbf = COMPLETE;
+    response_header->gid = gid;
+    response_header->oid = oid;
+    response_header->payload_len = 1;
+    response_packet[sizeof(struct uci_packet_header)] = UCI_STATUS_OK;
+    parse_uci_packet(response_packet, sizeof(response_packet));
 }
 
 void handle_core_device_info_rsp(unsigned char* payload, int payload_len) {

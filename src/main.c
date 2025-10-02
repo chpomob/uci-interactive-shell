@@ -55,6 +55,9 @@ int main() {
         } else if (strcmp(command, "session_start") == 0) {
             unsigned char payload[] = {0x01, 0x02, 0x03, 0x04};
             send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_START, payload, sizeof(payload));
+        } else if (strcmp(command, "session_stop") == 0) {
+            unsigned char payload[] = {0x01, 0x02, 0x03, 0x04};
+            send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_STOP, payload, sizeof(payload));
         } else {
             printf("Unknown command: %s\n", command);
         }

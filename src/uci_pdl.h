@@ -1,68 +1,167 @@
 #ifndef UCI_PDL_H
 #define UCI_PDL_H
 
-// Message Type (MT) definitions
-#define COMMAND         0x00
-#define RESPONSE        0x01
-#define NOTIFICATION    0x02
+// Message Type (MT) definitions - aligned with Android UWB spec
+#define DATA            0x00
+#define COMMAND         0x01
+#define RESPONSE        0x02
+#define NOTIFICATION    0x03
 
-// Packet Boundary Flag (PBF) definitions
+// Packet Boundary Flag (PBF) definitions - aligned with Android UWB spec
 #define COMPLETE        0x00
-#define START           0x01
-#define CONT            0x02
-#define END             0x03
+#define NOT_COMPLETE    0x01
 
-// Group ID (GID) definitions
+// Group ID (GID) definitions - aligned with Android UWB spec
 #define CORE            0x00
 #define SESSION_CONFIG  0x01
 #define SESSION_CONTROL 0x02
-#define MAC_CONFIG      0x03
-#define TEST_CONFIG     0x04
+#define DATA_CONTROL    0x03
+#define TEST            0x0d
+#define VENDOR_ANDROID  0x0c
 
-// OID (Opcode ID) definitions for CORE group
-#define CORE_DEVICE_INFO        0x01
-#define CORE_GET_CAPS_INFO      0x02
-#define CORE_DEVICE_RESET       0x03
-#define CORE_SET_CONFIG         0x04
-#define CORE_GET_CONFIG         0x05
-#define CORE_DEVICE_STATUS_NTF  0x06
+// OID (Opcode ID) definitions for CORE group - aligned with Android UWB spec
+#define CORE_DEVICE_RESET         0x00
+#define CORE_DEVICE_STATUS_NTF    0x01
+#define CORE_DEVICE_INFO          0x02
+#define CORE_GET_CAPS_INFO        0x03
+#define CORE_SET_CONFIG           0x04
+#define CORE_GET_CONFIG           0x05
+#define CORE_DEVICE_SUSPEND       0x06
+#define CORE_GENERIC_ERROR_NTF    0x07
+#define CORE_QUERY_UWBS_TIMESTAMP 0x08
 
-// OID (Opcode ID) definitions for Session Config group
-#define SESSION_INIT            0x01
-#define SESSION_DEINIT          0x02
+// OID (Opcode ID) definitions for Session Config group - aligned with Android UWB spec
+#define SESSION_INIT                                  0x00
+#define SESSION_DEINIT                                0x01
+#define SESSION_STATUS_NTF                            0x02
+#define SESSION_SET_APP_CONFIG                        0x03
+#define SESSION_GET_APP_CONFIG                        0x04
+#define SESSION_GET_COUNT                             0x05
+#define SESSION_GET_STATE                             0x06
+#define SESSION_UPDATE_CONTROLLER_MULTICAST_LIST      0x07
+#define SESSION_UPDATE_ACTIVE_ROUNDS_ANCHOR           0x08
+#define SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG           0x09
+#define SESSION_SET_INITIATOR_DT_ANCHOR_RR_RDM_LIST   0x0a
+#define SESSION_QUERY_DATA_SIZE_IN_RANGING            0x0b
 
-// OID (Opcode ID) definitions for Session Control group
-#define SESSION_START           0x01
-#define SESSION_STOP            0x02
+// OID (Opcode ID) definitions for Session Control group - aligned with Android UWB spec
+#define SESSION_START               0x00
+#define SESSION_STOP                0x01
+#define SESSION_RESERVED            0x02
+#define SESSION_GET_RANGING_COUNT   0x03
+#define SESSION_DATA_CREDIT_NTF     0x04
+#define SESSION_DATA_TRANSFER_STATUS_NTF 0x05
 
-// Status definitions
-#define UCI_STATUS_OK           0x00
-#define UCI_STATUS_REJECT       0x01
-#define UCI_STATUS_INVALID_CF   0x02
-#define UCI_STATUS_FAILED       0x03
+// Status definitions - aligned with Android UWB spec
+#define UCI_STATUS_OK                           0x00
+#define UCI_STATUS_REJECTED                     0x01
+#define UCI_STATUS_FAILED                       0x02
+#define UCI_STATUS_SYNTAX_ERROR                 0x03
+#define UCI_STATUS_INVALID_PARAM                0x04
+#define UCI_STATUS_INVALID_RANGE                0x05
+#define UCI_STATUS_INVALID_MSG_SIZE             0x06
+#define UCI_STATUS_UNKNOWN_GID                  0x07
+#define UCI_STATUS_UNKNOWN_OID                  0x08
+#define UCI_STATUS_READ_ONLY                    0x09
+#define UCI_STATUS_COMMAND_RETRY                0x0A
+#define UCI_STATUS_UNKNOWN                      0x0B
+#define UCI_STATUS_NOT_APPLICABLE               0x0C
 
-// Device state definitions
-#define DEVICE_STATE_INIT       0x00
+// UWB Session Specific Status Codes
+#define UCI_STATUS_SESSION_NOT_EXIST            0x11
+#define UCI_STATUS_SESSION_DUPLICATE            0x12
+#define UCI_STATUS_SESSION_ACTIVE               0x13
+#define UCI_STATUS_MAX_SESSIONS_EXCEEDED        0x14
+#define UCI_STATUS_SESSION_NOT_CONFIGURED       0x15
+#define UCI_STATUS_ACTIVE_SESSIONS_ONGOING      0x16
+#define UCI_STATUS_MULTICAST_LIST_FULL          0x17
+#define UCI_STATUS_ADDRESS_NOT_FOUND            0x18
+#define UCI_STATUS_ADDRESS_ALREADY_PRESENT      0x19
+#define UCI_STATUS_ERROR_UWB_INITIATION_TIME_TOO_OLD 0x1A
+#define UCI_STATUS_OK_NEGATIVE_DISTANCE_REPORT  0x1B
+
+// UWB Ranging Session Specific Status Codes
+#define UCI_STATUS_RANGING_TX_FAILED            0x20
+#define UCI_STATUS_RANGING_RX_TIMEOUT           0x21
+#define UCI_STATUS_RANGING_RX_PHY_DEC_FAILED    0x22
+#define UCI_STATUS_RANGING_RX_PHY_TOA_FAILED    0x23
+#define UCI_STATUS_RANGING_RX_PHY_STS_FAILED    0x24
+#define UCI_STATUS_RANGING_RX_MAC_DEC_FAILED    0x25
+#define UCI_STATUS_RANGING_RX_MAC_IE_DEC_FAILED 0x26
+#define UCI_STATUS_RANGING_RX_MAC_IE_MISSING    0x27
+#define UCI_STATUS_ERROR_ROUND_INDEX_NOT_ACTIVATED 0x28
+#define UCI_STATUS_ERROR_NUMBER_OF_ACTIVE_RANGING_ROUNDS_EXCEEDED 0x29
+#define UCI_STATUS_ERROR_DL_TDOA_DEVICE_ADDRESS_NOT_MATCHING_IN_REPLY_TIME_LIST 0x2A
+
+// Device state definitions - aligned with Android UWB spec
 #define DEVICE_STATE_READY      0x01
 #define DEVICE_STATE_ACTIVE     0x02
-#define DEVICE_STATE_ERROR      0x03
+#define DEVICE_STATE_ERROR      0xFF
 
-// Reset type definitions
+// Session state definitions
+#define SESSION_STATE_INIT      0x00
+#define SESSION_STATE_DEINIT    0x01
+#define SESSION_STATE_ACTIVE    0x02
+#define SESSION_STATE_IDLE      0x03
+
+// Reset type definitions - aligned with Android UWB spec
 #define UWBS_RESET              0x00
 
-// Capability TLV types
+// Device configuration IDs - aligned with Android UWB spec
 typedef enum {
-    SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE = 0x01,
-} CapTlvType;
-
-// Device configuration IDs
-typedef enum {
-    DEVICE_STATE = 0x01,
+    DEVICE_STATE = 0x00,
+    LOW_POWER_MODE = 0x01,
 } DeviceConfigId;
 
-// Session types
+// Session types - aligned with Android UWB spec
 typedef enum {
     FIRA_RANGING_SESSION = 0x00,
+    FIRA_RANGING_AND_IN_BAND_DATA_SESSION = 0x01,
+    FIRA_DATA_TRANSFER_SESSION = 0x02,
+    FIRA_RANGING_ONLY_PHASE = 0x03,
+    FIRA_IN_BAND_DATA_PHASE = 0x04,
+    FIRA_RANGING_WITH_DATA_PHASE = 0x05,
 } SessionType;
+
+// Capability TLV types - aligned with Android UWB spec
+typedef enum {
+    SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE = 0x00,
+    SUPPORTED_V1_FIRA_MAC_VERSION_RANGE_V2_MAX_DATA_PAYLOAD_SIZE = 0x01,
+    SUPPORTED_V1_DEVICE_ROLES_V2_FIRA_PHY_VERSION_RANGE = 0x02,
+    SUPPORTED_V1_RANGING_METHOD_V2_FIRA_MAC_VERSION_RANGE = 0x03,
+    SUPPORTED_V1_STS_CONFIG_V2_DEVICE_TYPE = 0x04,
+    SUPPORTED_V1_MULTI_NODE_MODES_V2_DEVICE_ROLES = 0x05,
+    SUPPORTED_V1_RANGING_TIME_STRUCT_V2_RANGING_METHOD = 0x06,
+    SUPPORTED_V1_SCHEDULED_MODE_V2_STS_CONFIG = 0x07,
+    SUPPORTED_V1_HOPPING_MODE_V2_MULTI_NODE_MODE = 0x08,
+    SUPPORTED_V1_BLOCK_STRIDING_V2_RANGING_TIME_STRUCT = 0x09,
+    SUPPORTED_V1_UWB_INITIATION_TIME_V2_SCHEDULE_MODE = 0x0A,
+    SUPPORTED_V1_CHANNELS_V2_HOPPING_MODE = 0x0B,
+    SUPPORTED_V1_RFRAME_CONFIG_V2_BLOCK_STRIDING = 0x0C,
+    SUPPORTED_V1_CC_CONSTRAINT_LENGTH_V2_UWB_INITIATION_TIME = 0x0D,
+    SUPPORTED_V1_BPRF_PARAMETER_SETS_V2_CHANNELS = 0x0E,
+    SUPPORTED_V1_HPRF_PARAMETER_SETS_V2_RFRAME_CONFIG = 0x0F,
+    SUPPORTED_V1_AOA_V2_AOA_SUPPORT = 0x10,
+    SUPPORTED_V1_EXTENDED_MAC_ADDRESS_V2_EXTENDED_MAC_ADDRESS = 0x11,
+    SUPPORTED_V1_MAX_MESSAGE_SIZE_V2_ASSIGNED = 0x12,
+    SUPPORTED_V1_MAX_DATA_PACKET_PAYLOAD_SIZE_V2_SESSION_KEY_LENGTH = 0x13,
+    SUPPORTED_V2_EXTENDED_MAC_ADDRESS = 0x14,
+    SUPPORTED_V2_ASSIGNED = 0x15,
+    SUPPORTED_V2_SESSION_KEY_LENGTH = 0x16,
+    SUPPORTED_V2_DT_ANCHOR_MAX_ACTIVE_RR = 0x17,
+    SUPPORTED_V2_DT_TAG_MAX_ACTIVE_RR = 0x18,
+    SUPPORTED_V2_DT_TAG_BLOCK_SHIPPING = 0x19,
+    SUPPORTED_V2_PSDU_LENGTH_SUPPORT = 0x1A,
+} CapTlvType;
+
+// Reason codes for notifications
+typedef enum {
+    STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS = 0x00,
+    MAX_RANGING_ROUND_RETRY_COUNT_REACHED = 0x01,
+    MAX_NUMBER_OF_MEASUREMENTS_REACHED = 0x02,
+    SESSION_SUSPENDED_DUE_TO_INBAND_SIGNAL = 0x03,
+    SESSION_RESUMED_DUE_TO_INBAND_SIGNAL = 0x04,
+    SESSION_STOPPED_DUE_TO_INBAND_SIGNAL = 0x05,
+} ReasonCode;
 
 #endif // UCI_PDL_H

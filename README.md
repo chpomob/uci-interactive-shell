@@ -56,3 +56,13 @@ The UCI protocol is a communication interface used for Ultra-Wideband (UWB) devi
 - `src/uci.h` - UCI data structures
 - `src/uci_functions.h` - Function declarations
 - `src/uci_pdl.h` - UCI protocol definitions and constants
+
+## UCI Protocol Analysis
+
+For a comprehensive analysis of the UCI protocol based on the Android Open Source Project implementation, see:
+- `uci_analysis/UCI_PROTOCOL_ANALYSIS.md` - Detailed comparison with Android UWB implementation
+- `uci_analysis/SUMMARY.md` - Deep dive summary of protocol elements
+- `uci_analysis/uci_packet_generator.py` - Python script to generate proper UCI packets
+- `uci_analysis/uwb/` - Full Android UWB repository for reference
+
+The Android repository provides the complete UCI specification in Protocol Definition Language (PDL) format in `uci_analysis/uwb/src/rust/uwb_uci_packets/uci_packets.pdl`

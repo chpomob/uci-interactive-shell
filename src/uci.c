@@ -5,14 +5,12 @@
 
 void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid, unsigned char* payload, int payload_len) {
     struct uci_packet_header header;
-    header.mt = mt;
-    header.pbf = pbf;
-    header.gid = gid;
-    header.oid = oid;
-    header.payload_len = payload_len;
+    set_header_values(&header, mt, pbf, gid, oid, payload_len);
 
     printf("Sending UCI packet:\n");
-    printf("  Header: %02X %02X %02X\n", *(unsigned char*)&header, header.oid, header.payload_len);
+    // Print the raw bytes as they would appear on the wire
+    unsigned char* header_bytes = (unsigned char*)&header;
+    printf("  Header: %02X %02X %02X %02X\n", header_bytes[0], header_bytes[1], header_bytes[2], header_bytes[3]);
     printf("  Payload: ");
     for (int i = 0; i < payload_len; i++) {
         printf("%02X ", payload[i]);
@@ -23,13 +21,8 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     printf("Simulating UCI response...\n");
     unsigned char response_packet[sizeof(struct uci_packet_header) + 255]; // Increased size to handle all possible payloads
     struct uci_packet_header* response_header = (struct uci_packet_header*)response_packet;
-    response_header->mt = RESPONSE;
-    response_header->pbf = COMPLETE;
-    response_header->gid = gid;
-    response_header->oid = oid;
-    response_header->payload_len = 1;
-    response_packet[sizeof(struct uci_packet_header)] = UCI_STATUS_OK;
-
+    set_header_values(response_header, RESPONSE, COMPLETE, gid, oid, 0); // Initialize with 0, will be updated below
+    
     if (gid == CORE && oid == CORE_GET_CAPS_INFO) {
         // Simulate a CORE_GET_CAPS_INFO_RSP
         unsigned char caps_rsp_payload[] = {UCI_STATUS_OK, 0x01, SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE, 0x02, 0x01, 0x00};
@@ -46,9 +39,11 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         memcpy(response_packet + sizeof(struct uci_packet_header), get_config_rsp_payload, sizeof(get_config_rsp_payload));
         response_header->payload_len = sizeof(get_config_rsp_payload);
     } else {
+        unsigned char status = UCI_STATUS_OK;
+        memcpy(response_packet + sizeof(struct uci_packet_header), &status, 1);
         response_header->payload_len = 1;
-        response_packet[sizeof(struct uci_packet_header)] = UCI_STATUS_OK;
     }
+    
     parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
 }
 
@@ -178,10 +173,10 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
     struct uci_packet_header* header = (struct uci_packet_header*)packet;
 
     printf("Received UCI packet:\n");
-    printf("  MT: 0x%01X\n", header->mt);
-    printf("  PBF: 0x%01X\n", header->pbf);
-    printf("  GID: 0x%01X\n", header->gid);
-    printf("  OID: 0x%02X\n", header->oid);
+    printf("  MT: 0x%01X\n", get_mt(header));
+    printf("  PBF: 0x%01X\n", get_pbf(header));
+    printf("  GID: 0x%01X\n", get_gid(header));
+    printf("  Opcode: 0x%02X\n", get_opcode(header));
     printf("  Payload Length: %d\n", header->payload_len);
 
     if (header->payload_len > 0) {
@@ -192,15 +187,15 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
         printf("\n");
     }
 
-    if (header->mt == RESPONSE && header->gid == CORE && header->oid == CORE_DEVICE_INFO) {
+    if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_DEVICE_INFO) {
         handle_core_device_info_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
-    } else if (header->mt == NOTIFICATION && header->gid == CORE && header->oid == CORE_DEVICE_STATUS_NTF) {
+    } else if (get_mt(header) == NOTIFICATION && get_gid(header) == CORE && get_opcode(header) == CORE_DEVICE_STATUS_NTF) {
         handle_core_device_status_ntf(packet + sizeof(struct uci_packet_header), header->payload_len);
-    } else if (header->mt == RESPONSE && header->gid == CORE && header->oid == CORE_GET_CAPS_INFO) {
+    } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_GET_CAPS_INFO) {
         handle_core_get_caps_info_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
-    } else if (header->mt == RESPONSE && header->gid == CORE && header->oid == CORE_SET_CONFIG) {
+    } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_SET_CONFIG) {
         handle_core_set_config_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
-    } else if (header->mt == RESPONSE && header->gid == CORE && header->oid == CORE_GET_CONFIG) {
+    } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_GET_CONFIG) {
         handle_core_get_config_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
     }
 }

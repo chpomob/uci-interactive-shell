@@ -393,4 +393,10 @@ enum RfTestConfigTlvType {
     STS_DETECT_BITMAP = 0x09,
 };
 
+struct DeviceConfigTlv {
+    DeviceConfigId cfg_id;
+    unsigned char len;
+    unsigned char v[];
+};
+
 #endif // UCI_PDL_H

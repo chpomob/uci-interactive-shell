@@ -59,16 +59,6 @@ void handle_core_device_info_rsp(unsigned char* payload, int payload_len) {
     printf("  PHY Version: 0x%04X\n", phy_version);
 }
 
-void handle_core_device_status_ntf(unsigned char* payload, int payload_len) {
-    if (payload_len < 1) {
-        printf("Error: CORE_DEVICE_STATUS_NTF payload too short.\n");
-        return;
-    }
-
-    unsigned char device_state = payload[0];
-    printf("  Device State: 0x%02X\n", device_state);
-}
-
 void handle_core_get_caps_info_rsp(unsigned char* payload, int payload_len) {
     if (payload_len < 2) { // status (1) + num_tlvs (1)
         printf("Error: CORE_GET_CAPS_INFO_RSP payload too short.\n");
@@ -92,6 +82,63 @@ void handle_core_get_caps_info_rsp(unsigned char* payload, int payload_len) {
         offset += 2;
         if (offset + tlv_len > payload_len) {
             printf("Error: Incomplete TLV value in CORE_GET_CAPS_INFO_RSP payload.\n");
+            return;
+        }
+        for (int j = 0; j < tlv_len; j++) {
+            printf("%02X ", payload[offset + j]);
+        }
+        printf("\n");
+        offset += tlv_len;
+    }
+}
+
+void handle_core_set_config_rsp(unsigned char* payload, int payload_len) {
+    if (payload_len < 2) { // status (1) + num_cfg_status (1)
+        printf("Error: CORE_SET_CONFIG_RSP payload too short.\n");
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned char num_cfg_status = payload[1];
+    printf("  Status: 0x%02X\n", status);
+    printf("  Number of Config Status: %d\n", num_cfg_status);
+
+    int offset = 2;
+    for (int i = 0; i < num_cfg_status; i++) {
+        if (offset + 2 > payload_len) {
+            printf("Error: Incomplete Config Status in CORE_SET_CONFIG_RSP payload.\n");
+            return;
+        }
+        DeviceConfigId cfg_id = (DeviceConfigId)payload[offset];
+        unsigned char cfg_status = payload[offset + 1];
+        printf("    Config ID: 0x%02X, Status: 0x%02X\n", cfg_id, cfg_status);
+        offset += 2;
+    }
+}
+
+void handle_core_get_config_rsp(unsigned char* payload, int payload_len) {
+    if (payload_len < 2) { // status (1) + num_tlvs (1)
+        printf("Error: CORE_GET_CONFIG_RSP payload too short.\n");
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned char num_tlvs = payload[1];
+    printf("  Status: 0x%02X\n", status);
+    printf("  Number of TLVs: %d\n", num_tlvs);
+
+    int offset = 2;
+    for (int i = 0; i < num_tlvs; i++) {
+        if (offset + 2 > payload_len) {
+            printf("Error: Incomplete TLV in CORE_GET_CONFIG_RSP payload.\n");
+            return;
+        }
+        DeviceConfigId cfg_id = (DeviceConfigId)payload[offset];
+        unsigned char tlv_len = payload[offset + 1];
+        printf("    Config ID: 0x%02X, Length: %d, Value: ", cfg_id, tlv_len);
+        offset += 2;
+        if (offset + tlv_len > payload_len) {
+            printf("Error: Incomplete TLV value in CORE_GET_CONFIG_RSP payload.\n");
             return;
         }
         for (int j = 0; j < tlv_len; j++) {
@@ -131,6 +178,10 @@ void parse_uci_packet(unsigned char* packet, int packet_len) {
         handle_core_device_status_ntf(packet + sizeof(struct uci_packet_header), header->payload_len);
     } else if (header->mt == RESPONSE && header->gid == CORE && header->oid == CORE_GET_CAPS_INFO) {
         handle_core_get_caps_info_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
+    } else if (header->mt == RESPONSE && header->gid == CORE && header->oid == CORE_SET_CONFIG) {
+        handle_core_set_config_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
+    } else if (header->mt == RESPONSE && header->gid == CORE && header->oid == CORE_GET_CONFIG) {
+        handle_core_get_config_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
     }
 }
 

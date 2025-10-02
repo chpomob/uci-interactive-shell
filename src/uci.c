@@ -567,6 +567,7 @@ int get_session_config(int session_idx, unsigned char cfg_id, unsigned char* val
     return 0;
 }
 
+// Notification handlers
 void handle_core_device_status_ntf(unsigned char* payload, int payload_len) {
     if (payload_len < 1) {
         printf("Error: CORE_DEVICE_STATUS_NTF payload too short.\n");
@@ -574,7 +575,125 @@ void handle_core_device_status_ntf(unsigned char* payload, int payload_len) {
     }
 
     unsigned char device_state = payload[0];
-    printf("  Device State: 0x%02X\n", device_state);
+    printf("  Device State: 0x%02X", device_state);
+    switch(device_state) {
+        case DEVICE_STATE_READY: printf(" (READY)"); break;
+        case DEVICE_STATE_ACTIVE: printf(" (ACTIVE)"); break;
+        case 0xFF: printf(" (ERROR)"); break;
+        default: printf(" (UNKNOWN)"); break;
+    }
+    printf("\n");
+}
+
+void handle_core_generic_error_ntf(unsigned char* payload, int payload_len) {
+    if (payload_len < 1) {
+        printf("Error: CORE_GENERIC_ERROR_NTF payload too short.\n");
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    printf("  Generic Error Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)"); break;
+        case UCI_STATUS_SYNTAX_ERROR: printf(" (SYNTAX_ERROR)"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)"); break;
+        default: printf(" (UNKNOWN)"); break;
+    }
+    printf("\n");
+}
+
+void handle_generic_notification(unsigned char gid, unsigned char opcode, unsigned char* payload, int payload_len) {
+    printf("  [Generic Notification - GID: 0x%02X, OID: 0x%02X]\n", gid, opcode);
+    printf("  Payload: ");
+    for (int i = 0; i < payload_len; i++) {
+        printf("%02X ", payload[i]);
+    }
+    printf("\n");
+}
+
+// Session Configuration Notifications
+void handle_session_config_ntf(unsigned char opcode, unsigned char* payload, int payload_len) {
+    if (opcode == SESSION_STATUS_NTF) {
+        if (payload_len < 6) { // session_id(4) + session_state(1) + reason_code(1)
+            printf("  Error: SESSION_STATUS_NTF payload too short.\n");
+            return;
+        }
+        
+        unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned char session_state = payload[4];
+        unsigned char reason_code = payload[5];
+        
+        printf("  Session Token: 0x%08X\n", session_token);
+        printf("  Session State: 0x%02X", session_state);
+        switch(session_state) {
+            case SESSION_STATE_INIT: printf(" (INIT)"); break;
+            case SESSION_STATE_DEINIT: printf(" (DEINIT)"); break;
+            case SESSION_STATE_ACTIVE: printf(" (ACTIVE)"); break;
+            case SESSION_STATE_IDLE: printf(" (IDLE)"); break;
+            default: printf(" (UNKNOWN)"); break;
+        }
+        printf("\n");
+        printf("  Reason Code: 0x%02X", reason_code);
+        switch(reason_code) {
+            case STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS: printf(" (SESSION_MANAGEMENT_COMMAND)"); break;
+            case MAX_RANGING_ROUND_RETRY_COUNT_REACHED: printf(" (MAX_RETRY_COUNT_REACHED)"); break;
+            case MAX_NUMBER_OF_MEASUREMENTS_REACHED: printf(" (MAX_MEASUREMENTS_REACHED)"); break;
+            case SESSION_SUSPENDED_DUE_TO_INBAND_SIGNAL: printf(" (SUSPENDED_INBAND_SIGNAL)"); break;
+            case SESSION_RESUMED_DUE_TO_INBAND_SIGNAL: printf(" (RESUMED_INBAND_SIGNAL)"); break;
+            case SESSION_STOPPED_DUE_TO_INBAND_SIGNAL: printf(" (STOPPED_INBAND_SIGNAL)"); break;
+            default: printf(" (UNKNOWN_REASON)"); break;
+        }
+        printf("\n");
+    } else {
+        handle_generic_notification(SESSION_CONFIG, opcode, payload, payload_len);
+    }
+}
+
+// Session Control Notifications
+void handle_session_control_ntf(unsigned char opcode, unsigned char* payload, int payload_len) {
+    if (opcode == SESSION_DATA_CREDIT_NTF) {
+        if (payload_len < 5) { // session_token(4) + credit_availability(1)
+            printf("  Error: SESSION_DATA_CREDIT_NTF payload too short.\n");
+            return;
+        }
+        
+        unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned char credit_availability = payload[4];
+        
+        printf("  Session Token: 0x%08X\n", session_token);
+        printf("  Credit Availability: %s\n", credit_availability ? "AVAILABLE" : "NOT_AVAILABLE");
+    } else if (opcode == SESSION_DATA_TRANSFER_STATUS_NTF) {
+        if (payload_len < 6) { // session_token(4) + uci_seq_num(2) + status(1) + tx_count(1)
+            printf("  Error: SESSION_DATA_TRANSFER_STATUS_NTF payload too short.\n");
+            return;
+        }
+        
+        unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned short uci_sequence_number = (payload[4] << 8) | payload[5];
+        unsigned char status = payload[6];
+        unsigned char tx_count = payload[7];
+        
+        printf("  Session Token: 0x%08X\n", session_token);
+        printf("  UCI Sequence Number: %d\n", uci_sequence_number);
+        printf("  Status: 0x%02X", status);
+        switch(status) {
+            case UCI_DATA_TRANSFER_STATUS_REPETITION_OK: printf(" (REPETITION_OK)"); break;
+            case UCI_DATA_TRANSFER_STATUS_OK: printf(" (OK)"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER: printf(" (ERROR_DATA_TRANSFER)"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_NO_CREDIT_AVAILABLE: printf(" (ERROR_NO_CREDIT_AVAILABLE)"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_REJECTED: printf(" (ERROR_REJECTED)"); break;
+            case UCI_DATA_TRANSFER_STATUS_SESSION_TYPE_NOT_SUPPORTED: printf(" (SESSION_TYPE_NOT_SUPPORTED)"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER_IS_ONGOING: printf(" (ERROR_DATA_TRANSFER_ONGOING)"); break;
+            case UCI_DATA_TRANSFER_STATUS_INVALID_FORMAT: printf(" (INVALID_FORMAT)"); break;
+            default: printf(" (UNKNOWN)"); break;
+        }
+        printf("\n");
+        printf("  TX Count: %d\n", tx_count);
+    } else {
+        handle_generic_notification(SESSION_CONTROL, opcode, payload, payload_len);
+    }
 }
 
 void parse_uci_packet(unsigned char* packet, size_t packet_len) {
@@ -602,14 +721,27 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
 
     if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_DEVICE_INFO) {
         handle_core_device_info_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
-    } else if (get_mt(header) == NOTIFICATION && get_gid(header) == CORE && get_opcode(header) == CORE_DEVICE_STATUS_NTF) {
-        handle_core_device_status_ntf(packet + sizeof(struct uci_packet_header), header->payload_len);
+    } else if (get_mt(header) == NOTIFICATION && get_gid(header) == CORE) {
+        if (get_opcode(header) == CORE_DEVICE_STATUS_NTF) {
+            handle_core_device_status_ntf(packet + sizeof(struct uci_packet_header), header->payload_len);
+        } else if (get_opcode(header) == CORE_GENERIC_ERROR_NTF) {
+            handle_core_generic_error_ntf(packet + sizeof(struct uci_packet_header), header->payload_len);
+        } else {
+            handle_generic_notification(get_gid(header), get_opcode(header), packet + sizeof(struct uci_packet_header), header->payload_len);
+        }
     } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_GET_CAPS_INFO) {
         handle_core_get_caps_info_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
     } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_SET_CONFIG) {
         handle_core_set_config_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
     } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_GET_CONFIG) {
         handle_core_get_config_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
+    } else if (get_mt(header) == NOTIFICATION && get_gid(header) == SESSION_CONFIG) {
+        handle_session_config_ntf(get_opcode(header), packet + sizeof(struct uci_packet_header), header->payload_len);
+    } else if (get_mt(header) == NOTIFICATION && get_gid(header) == SESSION_CONTROL) {
+        handle_session_control_ntf(get_opcode(header), packet + sizeof(struct uci_packet_header), header->payload_len);
+    } else if (get_mt(header) == NOTIFICATION) {
+        // Handle other notification types generically if not specifically handled
+        handle_generic_notification(get_gid(header), get_opcode(header), packet + sizeof(struct uci_packet_header), header->payload_len);
     }
 }
 

@@ -64,10 +64,6 @@ int main() {
         } else {
             printf("Unknown command: %s\n", command);
         }
-
-        // Simulate receiving a response
-        unsigned char dummy_response_packet[] = {0x40, 0x02, 0x07, UCI_STATUS_OK, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00};
-        parse_uci_packet(dummy_response_packet, sizeof(dummy_response_packet));
     }
 
     return 0;

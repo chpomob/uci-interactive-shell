@@ -16,6 +16,23 @@ struct uci_packet_header {
     unsigned char payload_len;  // Payload length
 };
 
+// UCI Session context structure for tracking session state
+#define MAX_SESSIONS 10
+#define MAX_SESSION_CONFIGS 20
+
+struct uci_session {
+    unsigned int session_id;
+    SessionType session_type;
+    unsigned char session_state;  // Using unsigned char to avoid direct dependency
+    unsigned char is_allocated;  // 1 if session slot is in use, 0 otherwise
+    unsigned char config_values[255];  // Store configuration values
+    unsigned char config_lengths[255]; // Store configuration lengths
+    int num_configs;            // Number of stored configurations
+};
+
+// Global session storage
+extern struct uci_session uci_sessions[MAX_SESSIONS];
+
 // Helper functions to properly set up the header
 static inline void set_header_values(struct uci_packet_header *header, 
                                     unsigned char message_type, 

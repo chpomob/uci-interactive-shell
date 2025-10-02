@@ -80,6 +80,17 @@ int main() {
         } else if (strcmp(command, "session_stop") == 0) {
             unsigned char payload[] = {0x01, 0x02, 0x03, 0x04};
             send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_STOP, payload, sizeof(payload));
+        } else if (strcmp(command, "get_session_state") == 0) {
+            unsigned char payload[] = {0x01, 0x02, 0x03, 0x04};  // Session ID
+            send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_STATE, payload, sizeof(payload));
+        } else if (strcmp(command, "set_app_config") == 0) {
+            // Set device type (0x00) to responder (0x01) with 1 byte value
+            unsigned char payload[] = {0x01, 0x02, 0x03, 0x04, 0x01, 0x00, 0x01, 0x01};  // session_id + num_tlvs + cfg_id + len + value
+            send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_SET_APP_CONFIG, payload, sizeof(payload));
+        } else if (strcmp(command, "get_app_config") == 0) {
+            // Get device type configuration
+            unsigned char payload[] = {0x01, 0x02, 0x03, 0x04, 0x01, 0x00};  // session_id + num_tlvs + cfg_id
+            send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_APP_CONFIG, payload, sizeof(payload));
         } else {
             printf("Unknown command: %s\n", command);
         }

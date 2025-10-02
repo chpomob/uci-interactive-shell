@@ -54,11 +54,20 @@ int main() {
         } else if (strcmp(command, "get_caps_info") == 0) {
             send_uci_command(COMMAND, 0, CORE, CORE_GET_CAPS_INFO, NULL, 0);
         } else if (strcmp(command, "set_config") == 0) {
-            unsigned char payload[] = {DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE};
+            unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE}; // num_tlvs(1), cfg_id, length, value
             send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
         } else if (strcmp(command, "get_config") == 0) {
-            unsigned char payload[] = {0x01, DEVICE_STATE};
+            unsigned char payload[] = {0x01, DEVICE_STATE}; // num_tlvs(1), cfg_id
             send_uci_command(COMMAND, 0, CORE, CORE_GET_CONFIG, payload, sizeof(payload));
+        } else if (strcmp(command, "get_device_state") == 0) {
+            unsigned char payload[] = {0x01, DEVICE_STATE}; // num_tlvs(1), cfg_id
+            send_uci_command(COMMAND, 0, CORE, CORE_GET_CONFIG, payload, sizeof(payload));
+        } else if (strcmp(command, "set_device_active") == 0) {
+            unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE}; // num_tlvs(1), cfg_id, length, value
+            send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
+        } else if (strcmp(command, "set_device_ready") == 0) {
+            unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_READY}; // num_tlvs(1), cfg_id, length, value
+            send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
         } else if (strcmp(command, "session_init") == 0) {
             unsigned char payload[] = {0x01, 0x02, 0x03, 0x04, FIRA_RANGING_SESSION};
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_INIT, payload, sizeof(payload));

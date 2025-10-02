@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "uci.h"
 #include "uci_functions.h"
 
@@ -40,15 +41,82 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         memcpy(response_packet + sizeof(struct uci_packet_header), caps_rsp_payload, sizeof(caps_rsp_payload));
         response_header->payload_len = sizeof(caps_rsp_payload);
     } else if (gid == CORE && oid == CORE_SET_CONFIG) {
-        // Simulate a CORE_SET_CONFIG_RSP
-        unsigned char set_config_rsp_payload[] = {UCI_STATUS_OK, 0x01, DEVICE_STATE, UCI_STATUS_OK};
-        memcpy(response_packet + sizeof(struct uci_packet_header), set_config_rsp_payload, sizeof(set_config_rsp_payload));
-        response_header->payload_len = sizeof(set_config_rsp_payload);
+        // Simulate a CORE_SET_CONFIG_RSP with correct TLV format
+        // Response format: [status][num_cfg_status][cfg_id_1][status_1]...
+        unsigned char num_tlvs = payload[0]; // First byte is number of TLVs
+        int response_size = 2 + (num_tlvs * 2); // status + num_cfg_status + (cfg_id + status) * num_tlvs
+        unsigned char* set_config_rsp_payload = malloc(response_size);
+        if (set_config_rsp_payload) {
+            set_config_rsp_payload[0] = UCI_STATUS_OK; // status
+            set_config_rsp_payload[1] = num_tlvs;      // num_cfg_status
+            
+            // For each config TLV in the request, send back its status
+            for (int i = 0; i < num_tlvs; i++) {
+                // Calculate offset to the cfg_id in the request payload
+                // Format is: [num_tlvs][cfg_id_1][len_1][val_1...][cfg_id_2][len_2][val_2...]...
+                int offset = 1; // Start after num_tlvs byte
+                for (int j = 0; j < i; j++) {
+                    offset += 2; // cfg_id + len
+                    // Add the value length to offset
+                    offset += payload[1 + 2*j + 1]; // payload[1] is first length, [1+2*j+1] is j-th length
+                }
+                DeviceConfigId cfg_id = (DeviceConfigId)payload[offset];
+                set_config_rsp_payload[2 + i*2] = cfg_id;           // cfg_id
+                set_config_rsp_payload[2 + i*2 + 1] = UCI_STATUS_OK; // status (success for all)
+            }
+            
+            memcpy(response_packet + sizeof(struct uci_packet_header), set_config_rsp_payload, response_size);
+            response_header->payload_len = response_size;
+            free(set_config_rsp_payload);
+        } else {
+            // Fallback to simple response if malloc fails
+            unsigned char fallback_payload[] = {UCI_STATUS_OK, 0x01, DEVICE_STATE, UCI_STATUS_OK};
+            memcpy(response_packet + sizeof(struct uci_packet_header), fallback_payload, sizeof(fallback_payload));
+            response_header->payload_len = sizeof(fallback_payload);
+        }
     } else if (gid == CORE && oid == CORE_GET_CONFIG) {
-        // Simulate a CORE_GET_CONFIG_RSP
-        unsigned char get_config_rsp_payload[] = {UCI_STATUS_OK, 0x01, DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE};
-        memcpy(response_packet + sizeof(struct uci_packet_header), get_config_rsp_payload, sizeof(get_config_rsp_payload));
-        response_header->payload_len = sizeof(get_config_rsp_payload);
+        // Simulate a CORE_GET_CONFIG_RSP with correct TLV format
+        // Response format: [status][num_tlvs][cfg_id_1][len_1][val_1...][cfg_id_2][len_2][val_2...]...
+        unsigned char num_req_cfgs = payload[0]; // First byte is number of requested config IDs
+        int total_response_size = 2; // status + num_tlvs
+        
+        // Calculate response size (simplified - assuming each config returns 1 byte value)
+        for (int i = 0; i < num_req_cfgs; i++) {
+            total_response_size += 3; // cfg_id(1) + len(1) + value(1)
+        }
+        
+        unsigned char* get_config_rsp_payload = malloc(total_response_size);
+        if (get_config_rsp_payload) {
+            get_config_rsp_payload[0] = UCI_STATUS_OK; // status
+            get_config_rsp_payload[1] = num_req_cfgs;  // num_tlvs
+            
+            int response_offset = 2;
+            for (int i = 0; i < num_req_cfgs; i++) {
+                DeviceConfigId cfg_id = (DeviceConfigId)payload[1 + i]; // cfg_ids start at byte 1
+                get_config_rsp_payload[response_offset] = cfg_id;        // cfg_id
+                get_config_rsp_payload[response_offset + 1] = 1;         // length (1 byte for this example)
+                
+                // Set value based on config ID
+                if (cfg_id == DEVICE_STATE) {
+                    get_config_rsp_payload[response_offset + 2] = DEVICE_STATE_ACTIVE; // return active state
+                } else if (cfg_id == LOW_POWER_MODE) {
+                    get_config_rsp_payload[response_offset + 2] = 0; // return OFF
+                } else {
+                    get_config_rsp_payload[response_offset + 2] = 0; // default value
+                }
+                
+                response_offset += 3; // cfg_id + len + value
+            }
+            
+            memcpy(response_packet + sizeof(struct uci_packet_header), get_config_rsp_payload, total_response_size);
+            response_header->payload_len = total_response_size;
+            free(get_config_rsp_payload);
+        } else {
+            // Fallback to simple response if malloc fails
+            unsigned char fallback_payload[] = {UCI_STATUS_OK, 0x01, DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE};
+            memcpy(response_packet + sizeof(struct uci_packet_header), fallback_payload, sizeof(fallback_payload));
+            response_header->payload_len = sizeof(fallback_payload);
+        }
     } else if (gid == CORE && oid == CORE_DEVICE_RESET) {
         // Simulate a CORE_DEVICE_RESET_RSP
         unsigned char reset_rsp_payload[] = {UCI_STATUS_OK};
@@ -179,6 +247,25 @@ void handle_core_set_config_rsp(unsigned char* payload, int payload_len) {
     }
 }
 
+// Helper function to print device config ID name
+const char* get_device_config_name(DeviceConfigId cfg_id) {
+    switch(cfg_id) {
+        case DEVICE_STATE: return "DEVICE_STATE";
+        case LOW_POWER_MODE: return "LOW_POWER_MODE";
+        default: return "UNKNOWN";
+    }
+}
+
+// Helper function to interpret and print device state value
+void print_device_state_value(unsigned char value) {
+    switch(value) {
+        case DEVICE_STATE_READY: printf("(READY)"); break;
+        case DEVICE_STATE_ACTIVE: printf("(ACTIVE)"); break;
+        case DEVICE_STATE_ERROR: printf("(ERROR)"); break;
+        default: printf("(UNKNOWN: 0x%02X)", value); break;
+    }
+}
+
 void handle_core_get_config_rsp(unsigned char* payload, int payload_len) {
     if (payload_len < 2) { // status (1) + num_tlvs (1)
         printf("Error: CORE_GET_CONFIG_RSP payload too short.\n");
@@ -205,9 +292,7 @@ void handle_core_get_config_rsp(unsigned char* payload, int payload_len) {
         }
         
         printf("    Config ID: 0x%02X (%s), Length: %d, Value: ", cfg_id, 
-               cfg_id == DEVICE_STATE ? "DEVICE_STATE" : 
-               cfg_id == LOW_POWER_MODE ? "LOW_POWER_MODE" : "UNKNOWN", 
-               tlv_len);
+               get_device_config_name(cfg_id), tlv_len);
         
         for (int j = 0; j < tlv_len; j++) {
             printf("%02X ", payload[offset + j]);
@@ -215,16 +300,7 @@ void handle_core_get_config_rsp(unsigned char* payload, int payload_len) {
         
         // Interpret the value based on config ID
         if (cfg_id == DEVICE_STATE && tlv_len == 1) {
-            unsigned char device_state = payload[offset];
-            if (device_state == DEVICE_STATE_READY) {
-                printf("(READY)");
-            } else if (device_state == DEVICE_STATE_ACTIVE) {
-                printf("(ACTIVE)");
-            } else if (device_state == DEVICE_STATE_ERROR) {
-                printf("(ERROR)");
-            } else {
-                printf("(UNKNOWN_STATE)");
-            }
+            print_device_state_value(payload[offset]);
         } else if (cfg_id == LOW_POWER_MODE && tlv_len == 1) {
             unsigned char lpm_state = payload[offset];
             printf("(LPM: %s)", lpm_state ? "ON" : "OFF");

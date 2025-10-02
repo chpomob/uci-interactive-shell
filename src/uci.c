@@ -24,6 +24,23 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     // In a real implementation, this would involve reading from a UWB device
 }
 
+void handle_core_device_info_rsp(unsigned char* payload, int payload_len) {
+    if (payload_len < 7) { // status (1) + uci_version (2) + mac_version (2) + phy_version (2)
+        printf("Error: CORE_DEVICE_INFO_RSP payload too short.\n");
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned short uci_version = (payload[1] << 8) | payload[2];
+    unsigned short mac_version = (payload[3] << 8) | payload[4];
+    unsigned short phy_version = (payload[5] << 8) | payload[6];
+
+    printf("  Status: 0x%02X\n", status);
+    printf("  UCI Version: 0x%04X\n", uci_version);
+    printf("  MAC Version: 0x%04X\n", mac_version);
+    printf("  PHY Version: 0x%04X\n", phy_version);
+}
+
 void parse_uci_packet(unsigned char* packet, int packet_len) {
     if (packet_len < sizeof(struct uci_packet_header)) {
         printf("Error: UCI packet too short to contain a header.\n");
@@ -45,6 +62,10 @@ void parse_uci_packet(unsigned char* packet, int packet_len) {
             printf("%02X ", packet[sizeof(struct uci_packet_header) + i]);
         }
         printf("\n");
+    }
+
+    if (header->mt == RESPONSE && header->gid == CORE && header->oid == CORE_DEVICE_INFO) {
+        handle_core_device_info_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
     }
 }
 

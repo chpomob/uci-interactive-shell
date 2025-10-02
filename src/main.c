@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h> // For sleep
+
 #include "uci.h"
 #include "uci_functions.h"
 
@@ -64,6 +66,11 @@ int main() {
         } else {
             printf("Unknown command: %s\n", command);
         }
+
+        // Simulate a periodic notification
+        sleep(1);
+        unsigned char periodic_notification_packet[] = {0x60, 0x01, 0x01, DEVICE_STATE_ACTIVE};
+        parse_uci_packet(periodic_notification_packet, sizeof(periodic_notification_packet));
     }
 
     return 0;

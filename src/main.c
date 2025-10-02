@@ -173,6 +173,122 @@ int main() {
             parse_uci_packet(ntf_packet3, sizeof(struct uci_packet_header) + 5);
             
             printf("\n=== Session Flow Demonstration Complete ===\n");
+        } else if (strcmp(command, "simulate_ranging") == 0) {
+            printf("=== Simulating UWB Ranging Notification ===\n");
+            
+            // Create a simulated two-way ranging measurement for a nearby device
+            unsigned char ranging_ntf_payload[] = {
+                // Header fields (24 bytes total)
+                0x00, 0x00, 0x00, 0x01,  // Sequence number: 1
+                0x01, 0x02, 0x03, 0x04,  // Session token: 0x01020304
+                0x01,                    // RCR indicator
+                0x00, 0x00, 0x00, 0x64,  // Current ranging interval: 100ms
+                0x01,                    // Ranging measurement type: TWO_WAY (0x01)
+                0x00,                    // Reserved
+                0x00,                    // MAC address indicator: SHORT_ADDRESS (0x00)
+                0x00, 0x00, 0x00, 0x00,  // HUS primary session ID: 0x00000000
+                
+                // Two-Way measurement data
+                0x01,                    // Number of measurements: 1
+                
+                // First measurement (SHORT ADDRESS)
+                0x12, 0x34,              // MAC Address: 0x1234
+                0x00,                    // Status: OK
+                0x00,                    // NLOS: NO
+                0x00, 0x64,              // Distance: 100 cm (1 meter)
+                0x00, 0x14,              // AoA Azimuth: 20 degrees
+                0x08,                    // AoA Azimuth FoM: 8 (medium confidence)
+                0x00, 0x05,              // AoA Elevation: 5 degrees
+                0x07,                    // AoA Elevation FoM: 7 (high confidence)
+                0x00, 0x10,              // Destination AoA Azimuth: 16 degrees
+                0x06,                    // Destination AoA Azimuth FoM: 6 (medium-high confidence)
+                0x00, 0x03,              // Destination AoA Elevation: 3 degrees
+                0x09,                    // Destination AoA Elevation FoM: 9 (very high confidence)
+                0x02,                    // Slot Index: 2
+                0xE0                     // RSSI: -32 dBm (strong signal)
+            };
+            
+            unsigned char notification_packet[sizeof(struct uci_packet_header) + sizeof(ranging_ntf_payload)];
+            struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
+            set_header_values(ntf_header, NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_INFO_NTF, sizeof(ranging_ntf_payload));
+            memcpy(notification_packet + sizeof(struct uci_packet_header), ranging_ntf_payload, sizeof(ranging_ntf_payload));
+            parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + sizeof(ranging_ntf_payload));
+            
+            printf("=== Ranging Simulation Complete ===\n");
+        } else if (strcmp(command, "simulate_multi_target_ranging") == 0) {
+            printf("=== Simulating Multi-Target UWB Ranging Notification ===\n");
+            
+            // Create a simulated two-way ranging measurement for multiple devices
+            unsigned char multi_ranging_ntf_payload[] = {
+                // Header fields (24 bytes total)
+                0x00, 0x00, 0x00, 0x02,  // Sequence number: 2
+                0x01, 0x02, 0x03, 0x04,  // Session token: 0x01020304
+                0x01,                    // RCR indicator
+                0x00, 0x00, 0x00, 0x64,  // Current ranging interval: 100ms
+                0x01,                    // Ranging measurement type: TWO_WAY (0x01)
+                0x00,                    // Reserved
+                0x00,                    // MAC address indicator: SHORT_ADDRESS (0x00)
+                0x00, 0x00, 0x00, 0x00,  // HUS primary session ID: 0x00000000
+                
+                // Two-Way measurement data
+                0x03,                    // Number of measurements: 3
+                
+                // First measurement
+                0x12, 0x34,              // MAC Address: 0x1234
+                0x00,                    // Status: OK
+                0x00,                    // NLOS: NO
+                0x00, 0x64,              // Distance: 100 cm (1 meter)
+                0x00, 0x14,              // AoA Azimuth: 20 degrees
+                0x08,                    // AoA Azimuth FoM: 8
+                0x00, 0x05,              // AoA Elevation: 5 degrees
+                0x07,                    // AoA Elevation FoM: 7
+                0x00, 0x10,              // Destination AoA Azimuth: 16 degrees
+                0x06,                    // Destination AoA Azimuth FoM: 6
+                0x00, 0x03,              // Destination AoA Elevation: 3 degrees
+                0x09,                    // Destination AoA Elevation FoM: 9
+                0x02,                    // Slot Index: 2
+                0xE0,                    // RSSI: -32 dBm
+                
+                // Second measurement
+                0x56, 0x78,              // MAC Address: 0x5678
+                0x00,                    // Status: OK
+                0x01,                    // NLOS: YES
+                0x01, 0x90,              // Distance: 400 cm (4 meters)
+                0x00, 0xA0,              // AoA Azimuth: 160 degrees
+                0x04,                    // AoA Azimuth FoM: 4 (low confidence)
+                0x00, 0x0A,              // AoA Elevation: 10 degrees
+                0x05,                    // AoA Elevation FoM: 5 (medium-low confidence)
+                0x00, 0x95,              // Destination AoA Azimuth: 149 degrees
+                0x03,                    // Destination AoA Azimuth FoM: 3 (low confidence)
+                0x00, 0x07,              // Destination AoA Elevation: 7 degrees
+                0x04,                    // Destination AoA Elevation FoM: 4 (low confidence)
+                0x05,                    // Slot Index: 5
+                0xD0,                    // RSSI: -48 dBm (weaker signal)
+                
+                // Third measurement
+                0x9A, 0xBC,              // MAC Address: 0x9ABC
+                0x00,                    // Status: OK
+                0x00,                    // NLOS: NO
+                0x02, 0x58,              // Distance: 600 cm (6 meters)
+                0x01, 0x04,              // AoA Azimuth: 260 degrees
+                0x09,                    // AoA Azimuth FoM: 9 (very high confidence)
+                0x00, 0xF6,              // AoA Elevation: -10 degrees
+                0x08,                    // AoA Elevation FoM: 8 (high confidence)
+                0x00, 0xFA,              // Destination AoA Azimuth: 250 degrees
+                0x07,                    // Destination AoA Azimuth FoM: 7 (high confidence)
+                0x00, 0x05,              // Destination AoA Elevation: 5 degrees
+                0x06,                    // Destination AoA Elevation FoM: 6 (medium-high confidence)
+                0x08,                    // Slot Index: 8
+                0xC0                     // RSSI: -64 dBm (weak signal)
+            };
+            
+            unsigned char notification_packet[sizeof(struct uci_packet_header) + sizeof(multi_ranging_ntf_payload)];
+            struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
+            set_header_values(ntf_header, NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_INFO_NTF, sizeof(multi_ranging_ntf_payload));
+            memcpy(notification_packet + sizeof(struct uci_packet_header), multi_ranging_ntf_payload, sizeof(multi_ranging_ntf_payload));
+            parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + sizeof(multi_ranging_ntf_payload));
+            
+            printf("=== Multi-Target Ranging Simulation Complete ===\n");
         } else {
             printf("Unknown command: %s\n", command);
         }

@@ -51,6 +51,9 @@
 #define SESSION_GET_RANGING_COUNT   0x03
 #define SESSION_DATA_CREDIT_NTF     0x04
 #define SESSION_DATA_TRANSFER_STATUS_NTF 0x05
+#define SESSION_INFO_NTF            0x00  // Session info/ranging notification
+
+// Session types - aligned with Android UWB spec
 
 // Status definitions - aligned with Android UWB spec
 #define UCI_STATUS_OK                           0x00

@@ -691,8 +691,221 @@ void handle_session_control_ntf(unsigned char opcode, unsigned char* payload, in
         }
         printf("\n");
         printf("  TX Count: %d\n", tx_count);
+    } else if (opcode == SESSION_INFO_NTF) {
+        // Handle ranging/session info notifications - the core UWB functionality
+        handle_session_info_ntf(payload, payload_len);
     } else {
         handle_generic_notification(SESSION_CONTROL, opcode, payload, payload_len);
+    }
+}
+
+// Ranging/Session Info Notification Handler
+void handle_session_info_ntf(unsigned char* payload, int payload_len) {
+    if (payload_len < 12) { // Minimum required fields: seq_num(4) + session_token(4) + rcr_indicator(1) + current_ranging_interval(4) + ranging_measurement_type(1) + mac_address_indicator(1) + hus_primary_session_id(4)
+        printf("  Error: SESSION_INFO_NTF payload too short. Need at least 12 bytes, got %d.\n", payload_len);
+        return;
+    }
+    
+    // Parse header fields
+    unsigned int sequence_number = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+    unsigned int session_token = (payload[4] << 24) | (payload[5] << 16) | (payload[6] << 8) | payload[7];
+    unsigned char rcr_indicator = payload[8];
+    unsigned int current_ranging_interval = (payload[9] << 24) | (payload[10] << 16) | (payload[11] << 8) | payload[12];
+    unsigned char ranging_measurement_type = payload[13];
+    unsigned char mac_address_indicator = payload[15]; // Skip reserved byte at position 14
+    unsigned int hus_primary_session_id = (payload[16] << 24) | (payload[17] << 16) | (payload[18] << 8) | payload[19];
+    
+    printf("  Sequence Number: %u\n", sequence_number);
+    printf("  Session Token: 0x%08X\n", session_token);
+    printf("  RCR Indicator: 0x%02X\n", rcr_indicator);
+    printf("  Current Ranging Interval: %u ms\n", current_ranging_interval);
+    printf("  Ranging Measurement Type: 0x%02X", ranging_measurement_type);
+    switch(ranging_measurement_type) {
+        case 0x00: printf(" (ONE_WAY)"); break;
+        case 0x01: printf(" (TWO_WAY)"); break;
+        case 0x02: printf(" (DL_TDOA)"); break;
+        case 0x03: printf(" (OWR_AOA)"); break;
+        default: printf(" (UNKNOWN)"); break;
+    }
+    printf("\n");
+    printf("  MAC Address Indicator: %s\n", mac_address_indicator ? "EXTENDED_ADDRESS" : "SHORT_ADDRESS");
+    printf("  HUS Primary Session ID: 0x%08X\n", hus_primary_session_id);
+    
+    // Parse ranging measurements
+    int offset = 20; // Header size (20 bytes)
+    if (offset >= payload_len) {
+        printf("  No ranging measurements in notification (offset=%d, payload_len=%d).\n", offset, payload_len);
+        return;
+    }
+    
+    printf("  Ranging Measurements (offset=%d, payload_len=%d):\n", offset, payload_len);
+    
+    if (ranging_measurement_type == 0x01) { // TWO_WAY
+        unsigned char num_measurements = payload[offset];
+        offset += 1;
+        printf("    Number of Two-Way Measurements: %d\n", num_measurements);
+        
+        for (int i = 0; i < num_measurements && offset < payload_len; i++) {
+            if (offset + 20 > payload_len) { // Size for SHORT_ADDRESS two-way measurement = 20 bytes
+                printf("    Warning: Incomplete measurement data at index %d (need offset+%d=%d but have %d)\n", 
+                       i, 20, offset + 20, payload_len);
+                break;
+            }
+            
+            printf("    Measurement %d:\n", i+1);
+            
+            if (mac_address_indicator == 0) { // SHORT_ADDRESS
+                if (offset + 20 > payload_len) {
+                    printf("      Error: Insufficient data for SHORT_ADDRESS measurement\n");
+                    break;
+                }
+                
+                unsigned short mac_address = (payload[offset] << 8) | payload[offset + 1];
+                unsigned char status = payload[offset + 2];
+                unsigned char nlos = payload[offset + 3];
+                unsigned short distance = (payload[offset + 4] << 8) | payload[offset + 5];
+                unsigned short aoa_azimuth = (payload[offset + 6] << 8) | payload[offset + 7];
+                unsigned char aoa_azimuth_fom = payload[offset + 8];
+                unsigned short aoa_elevation = (payload[offset + 9] << 8) | payload[offset + 10];
+                unsigned char aoa_elevation_fom = payload[offset + 11];
+                unsigned short aoa_destination_azimuth = (payload[offset + 12] << 8) | payload[offset + 13];
+                unsigned char aoa_destination_azimuth_fom = payload[offset + 14];
+                unsigned short aoa_destination_elevation = (payload[offset + 15] << 8) | payload[offset + 16];
+                unsigned char aoa_destination_elevation_fom = payload[offset + 17];
+                unsigned char slot_index = payload[offset + 18];
+                unsigned char rssi = payload[offset + 19];
+                
+                printf("      MAC Address: 0x%04X\n", mac_address);
+                printf("      Status: 0x%02X", status);
+                if (status == 0x00) printf(" (OK)");
+                printf("\n");
+                printf("      NLOS: %s\n", nlos ? "YES" : "NO");
+                printf("      Distance: %u cm\n", distance);
+                printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
+                printf("      AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
+                printf("      Destination AoA Azimuth: %u degrees (FoM: %u)\n", aoa_destination_azimuth, aoa_destination_azimuth_fom);
+                printf("      Destination AoA Elevation: %u degrees (FoM: %u)\n", aoa_destination_elevation, aoa_destination_elevation_fom);
+                printf("      Slot Index: %u\n", slot_index);
+                printf("      RSSI: %d dBm\n", (signed char)rssi);
+                
+                offset += 20; // Move to next measurement
+            } else { // EXTENDED_ADDRESS
+                if (offset + 26 > payload_len) {
+                    printf("      Error: Insufficient data for EXTENDED_ADDRESS measurement\n");
+                    break;
+                }
+                
+                unsigned long long mac_address = ((unsigned long long)payload[offset] << 56) |
+                                                  ((unsigned long long)payload[offset + 1] << 48) |
+                                                  ((unsigned long long)payload[offset + 2] << 40) |
+                                                  ((unsigned long long)payload[offset + 3] << 32) |
+                                                  ((unsigned long long)payload[offset + 4] << 24) |
+                                                  ((unsigned long long)payload[offset + 5] << 16) |
+                                                  ((unsigned long long)payload[offset + 6] << 8) |
+                                                  (unsigned long long)payload[offset + 7];
+                unsigned char status = payload[offset + 8];
+                unsigned char nlos = payload[offset + 9];
+                unsigned short distance = (payload[offset + 10] << 8) | payload[offset + 11];
+                unsigned short aoa_azimuth = (payload[offset + 12] << 8) | payload[offset + 13];
+                unsigned char aoa_azimuth_fom = payload[offset + 14];
+                unsigned short aoa_elevation = (payload[offset + 15] << 8) | payload[offset + 16];
+                unsigned char aoa_elevation_fom = payload[offset + 17];
+                unsigned short aoa_destination_azimuth = (payload[offset + 18] << 8) | payload[offset + 19];
+                unsigned char aoa_destination_azimuth_fom = payload[offset + 20];
+                unsigned short aoa_destination_elevation = (payload[offset + 21] << 8) | payload[offset + 22];
+                unsigned char aoa_destination_elevation_fom = payload[offset + 23];
+                unsigned char slot_index = payload[offset + 24];
+                unsigned char rssi = payload[offset + 25];
+                
+                printf("      MAC Address: 0x%016llX\n", mac_address);
+                printf("      Status: 0x%02X", status);
+                if (status == 0x00) printf(" (OK)");
+                printf("\n");
+                printf("      NLOS: %s\n", nlos ? "YES" : "NO");
+                printf("      Distance: %u cm\n", distance);
+                printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
+                printf("      AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
+                printf("      Destination AoA Azimuth: %u degrees (FoM: %u)\n", aoa_destination_azimuth, aoa_destination_azimuth_fom);
+                printf("      Destination AoA Elevation: %u degrees (FoM: %u)\n", aoa_destination_elevation, aoa_destination_elevation_fom);
+                printf("      Slot Index: %u\n", slot_index);
+                printf("      RSSI: %d dBm\n", (signed char)rssi);
+                
+                offset += 26; // Move to next measurement
+            }
+        }
+    } else if (ranging_measurement_type == 0x03) { // OWR_AOA
+        unsigned char num_measurements = payload[offset];
+        offset += 1;
+        printf("    Number of OWR-AoA Measurements: %d\n", num_measurements);
+        
+        for (int i = 0; i < num_measurements && offset < payload_len; i++) {
+            printf("    OWR-AoA Measurement %d:\n", i+1);
+            
+            if (mac_address_indicator == 0) { // SHORT_ADDRESS
+                if (offset + 13 > payload_len) {
+                    printf("      Error: Insufficient data for SHORT_ADDRESS OWR-AoA measurement\n");
+                    break;
+                }
+                
+                unsigned short mac_address = (payload[offset] << 8) | payload[offset + 1];
+                unsigned char status = payload[offset + 2];
+                unsigned char nlos = payload[offset + 3];
+                unsigned char frame_sequence_number = payload[offset + 4];
+                unsigned short block_index = (payload[offset + 5] << 8) | payload[offset + 6];
+                unsigned short aoa_azimuth = (payload[offset + 7] << 8) | payload[offset + 8];
+                unsigned char aoa_azimuth_fom = payload[offset + 9];
+                unsigned short aoa_elevation = (payload[offset + 10] << 8) | payload[offset + 11];
+                unsigned char aoa_elevation_fom = payload[offset + 12];
+                
+                printf("      MAC Address: 0x%04X\n", mac_address);
+                printf("      Status: 0x%02X", status);
+                if (status == 0x00) printf(" (OK)");
+                printf("\n");
+                printf("      NLOS: %s\n", nlos ? "YES" : "NO");
+                printf("      Frame Sequence Number: %u\n", frame_sequence_number);
+                printf("      Block Index: %u\n", block_index);
+                printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
+                printf("      AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
+                
+                offset += 13; // Move to next measurement
+            } else { // EXTENDED_ADDRESS
+                if (offset + 19 > payload_len) {
+                    printf("      Error: Insufficient data for EXTENDED_ADDRESS OWR-AoA measurement\n");
+                    break;
+                }
+                
+                unsigned long long mac_address = ((unsigned long long)payload[offset] << 56) |
+                                                  ((unsigned long long)payload[offset + 1] << 48) |
+                                                  ((unsigned long long)payload[offset + 2] << 40) |
+                                                  ((unsigned long long)payload[offset + 3] << 32) |
+                                                  ((unsigned long long)payload[offset + 4] << 24) |
+                                                  ((unsigned long long)payload[offset + 5] << 16) |
+                                                  ((unsigned long long)payload[offset + 6] << 8) |
+                                                  (unsigned long long)payload[offset + 7];
+                unsigned char status = payload[offset + 8];
+                unsigned char nlos = payload[offset + 9];
+                unsigned char frame_sequence_number = payload[offset + 10];
+                unsigned short block_index = (payload[offset + 11] << 8) | payload[offset + 12];
+                unsigned short aoa_azimuth = (payload[offset + 13] << 8) | payload[offset + 14];
+                unsigned char aoa_azimuth_fom = payload[offset + 15];
+                unsigned short aoa_elevation = (payload[offset + 16] << 8) | payload[offset + 17];
+                unsigned char aoa_elevation_fom = payload[offset + 18];
+                
+                printf("      MAC Address: 0x%016llX\n", mac_address);
+                printf("      Status: 0x%02X", status);
+                if (status == 0x00) printf(" (OK)");
+                printf("\n");
+                printf("      NLOS: %s\n", nlos ? "YES" : "NO");
+                printf("      Frame Sequence Number: %u\n", frame_sequence_number);
+                printf("      Block Index: %u\n", block_index);
+                printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
+                printf("      AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
+                
+                offset += 19; // Move to next measurement
+            }
+        }
+    } else {
+        printf("    Unsupported ranging measurement type: 0x%02X\n", ranging_measurement_type);
     }
 }
 

@@ -63,7 +63,7 @@ int main() {
         }
 
         // Simulate receiving a response
-        unsigned char dummy_response_packet[] = {0x40, 0x02, 0x04, 0x01, 0x02, 0x03, 0x04};
+        unsigned char dummy_response_packet[] = {0x40, 0x02, 0x07, UCI_STATUS_OK, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00};
         parse_uci_packet(dummy_response_packet, sizeof(dummy_response_packet));
     }
 

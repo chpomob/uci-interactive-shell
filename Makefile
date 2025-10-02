@@ -13,8 +13,8 @@ all: $(TARGET)
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)
 
-src/main.o: src/main.c src/uci.h src/uci_functions.h src/uci_pdl.h
-src/uci.o: src/uci.c src/uci.h src/uci_functions.h src/uci_pdl.h
+src/main.o: src/main.c src/uci.h src/uci_functions.h
+src/uci.o: src/uci.c src/uci.h src/uci_functions.h
 
 clean:
 	rm -f $(OBJ) $(TARGET)

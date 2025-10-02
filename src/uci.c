@@ -21,7 +21,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
 
     // Simulate receiving a response
     printf("Simulating UCI response...\n");
-    unsigned char response_packet[sizeof(struct uci_packet_header) + 1];
+    unsigned char response_packet[sizeof(struct uci_packet_header) + 255]; // Increased size to handle all possible payloads
     struct uci_packet_header* response_header = (struct uci_packet_header*)response_packet;
     response_header->mt = RESPONSE;
     response_header->pbf = COMPLETE;
@@ -159,7 +159,17 @@ void handle_core_get_config_rsp(unsigned char* payload, int payload_len) {
     }
 }
 
-void parse_uci_packet(unsigned char* packet, int packet_len) {
+void handle_core_device_status_ntf(unsigned char* payload, int payload_len) {
+    if (payload_len < 1) {
+        printf("Error: CORE_DEVICE_STATUS_NTF payload too short.\n");
+        return;
+    }
+
+    unsigned char device_state = payload[0];
+    printf("  Device State: 0x%02X\n", device_state);
+}
+
+void parse_uci_packet(unsigned char* packet, size_t packet_len) {
     if (packet_len < sizeof(struct uci_packet_header)) {
         printf("Error: UCI packet too short to contain a header.\n");
         return;

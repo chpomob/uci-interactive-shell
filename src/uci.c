@@ -17,5 +17,9 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         printf("%02X ", payload[i]);
     }
     printf("\n");
+
+    // Simulate receiving a response
+    printf("Simulating UCI response...\n");
+    // In a real implementation, this would involve reading from a UWB device
 }
 

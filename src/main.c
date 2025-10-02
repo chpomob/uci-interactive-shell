@@ -51,6 +51,8 @@ int main() {
             // Simulate receiving a notification
             unsigned char dummy_notification_packet[] = {0x60, 0x01, 0x01, DEVICE_STATE_READY};
             parse_uci_packet(dummy_notification_packet, sizeof(dummy_notification_packet));
+        } else if (strcmp(command, "get_caps_info") == 0) {
+            send_uci_command(COMMAND, 0, CORE, CORE_GET_CAPS_INFO, NULL, 0);
         } else if (strcmp(command, "session_init") == 0) {
             unsigned char payload[] = {0x01, 0x02, 0x03, 0x04, FIRA_RANGING_SESSION};
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_INIT, payload, sizeof(payload));

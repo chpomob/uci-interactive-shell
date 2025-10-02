@@ -46,6 +46,9 @@ int main() {
         } else if (strcmp(command, "device_reset") == 0) {
             unsigned char payload[] = {UWBS_RESET};
             send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_RESET, payload, sizeof(payload));
+            // Simulate receiving a notification
+            unsigned char dummy_notification_packet[] = {0x60, 0x01, 0x01, DEVICE_STATE_READY};
+            parse_uci_packet(dummy_notification_packet, sizeof(dummy_notification_packet));
         } else if (strcmp(command, "session_init") == 0) {
             unsigned char payload[] = {0x01, 0x02, 0x03, 0x04, FIRA_RANGING_SESSION};
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_INIT, payload, sizeof(payload));

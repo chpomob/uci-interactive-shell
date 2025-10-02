@@ -35,6 +35,16 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         unsigned char caps_rsp_payload[] = {UCI_STATUS_OK, 0x01, SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE, 0x02, 0x01, 0x00};
         memcpy(response_packet + sizeof(struct uci_packet_header), caps_rsp_payload, sizeof(caps_rsp_payload));
         response_header->payload_len = sizeof(caps_rsp_payload);
+    } else if (gid == CORE && oid == CORE_SET_CONFIG) {
+        // Simulate a CORE_SET_CONFIG_RSP
+        unsigned char set_config_rsp_payload[] = {UCI_STATUS_OK, 0x01, DEVICE_STATE, UCI_STATUS_OK};
+        memcpy(response_packet + sizeof(struct uci_packet_header), set_config_rsp_payload, sizeof(set_config_rsp_payload));
+        response_header->payload_len = sizeof(set_config_rsp_payload);
+    } else if (gid == CORE && oid == CORE_GET_CONFIG) {
+        // Simulate a CORE_GET_CONFIG_RSP
+        unsigned char get_config_rsp_payload[] = {UCI_STATUS_OK, 0x01, DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE};
+        memcpy(response_packet + sizeof(struct uci_packet_header), get_config_rsp_payload, sizeof(get_config_rsp_payload));
+        response_header->payload_len = sizeof(get_config_rsp_payload);
     } else {
         response_header->payload_len = 1;
         response_packet[sizeof(struct uci_packet_header)] = UCI_STATUS_OK;

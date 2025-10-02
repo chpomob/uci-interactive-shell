@@ -41,6 +41,16 @@ void handle_core_device_info_rsp(unsigned char* payload, int payload_len) {
     printf("  PHY Version: 0x%04X\n", phy_version);
 }
 
+void handle_core_device_status_ntf(unsigned char* payload, int payload_len) {
+    if (payload_len < 1) {
+        printf("Error: CORE_DEVICE_STATUS_NTF payload too short.\n");
+        return;
+    }
+
+    unsigned char device_state = payload[0];
+    printf("  Device State: 0x%02X\n", device_state);
+}
+
 void parse_uci_packet(unsigned char* packet, int packet_len) {
     if (packet_len < sizeof(struct uci_packet_header)) {
         printf("Error: UCI packet too short to contain a header.\n");
@@ -66,6 +76,8 @@ void parse_uci_packet(unsigned char* packet, int packet_len) {
 
     if (header->mt == RESPONSE && header->gid == CORE && header->oid == CORE_DEVICE_INFO) {
         handle_core_device_info_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
+    } else if (header->mt == NOTIFICATION && header->gid == CORE && header->oid == CORE_DEVICE_STATUS_NTF) {
+        handle_core_device_status_ntf(packet + sizeof(struct uci_packet_header), header->payload_len);
     }
 }
 

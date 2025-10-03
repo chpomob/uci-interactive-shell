@@ -49,7 +49,7 @@ echo "set_device_ready" | timeout 2s ./uci-shell
 
 echo ""
 echo "9. Testing session_deinit command:"
-echo "session_deinit" | timeout 2s ./uci-shell
+echo "session_deinit 1" | timeout 2s ./uci-shell
 
 echo ""
 echo "10. Testing session_start command:"

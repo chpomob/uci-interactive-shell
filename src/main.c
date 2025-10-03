@@ -504,16 +504,37 @@ int main() {
                 continue;
             }
         } else if (strcmp(command, "simulate_session_status") == 0) {
-            // Simulate a session status notification
+            char* session_id_str = strtok(NULL, " ");
+            char* state_str = strtok(NULL, " ");
+            char* reason_str = strtok(NULL, " ");
+            if (!session_id_str || !state_str || !reason_str) {
+                printf("Usage: simulate_session_status <session_id> <state> <reason>\n");
+                printf("  Example: simulate_session_status 1 active mgmt_cmd\n");
+                continue;
+            }
+
+            unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
+            unsigned char session_state;
+            unsigned char reason_code;
+
+            if (strcmp(state_str, "init") == 0) session_state = SESSION_STATE_INIT;
+            else if (strcmp(state_str, "deinit") == 0) session_state = SESSION_STATE_DEINIT;
+            else if (strcmp(state_str, "active") == 0) session_state = SESSION_STATE_ACTIVE;
+            else if (strcmp(state_str, "idle") == 0) session_state = SESSION_STATE_IDLE;
+            else { printf("Invalid state\n"); continue; }
+
+            if (strcmp(reason_str, "mgmt_cmd") == 0) reason_code = STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS;
+            else { printf("Invalid reason\n"); continue; }
+
             unsigned char notification_packet[sizeof(struct uci_packet_header) + 6];
             struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
             set_header_values(ntf_header, NOTIFICATION, COMPLETE, SESSION_CONFIG, SESSION_STATUS_NTF, 6);
-            notification_packet[sizeof(struct uci_packet_header)] = 0x01;
-            notification_packet[sizeof(struct uci_packet_header) + 1] = 0x02;
-            notification_packet[sizeof(struct uci_packet_header) + 2] = 0x03;
-            notification_packet[sizeof(struct uci_packet_header) + 3] = 0x04;
-            notification_packet[sizeof(struct uci_packet_header) + 4] = SESSION_STATE_ACTIVE;
-            notification_packet[sizeof(struct uci_packet_header) + 5] = STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS;
+            notification_packet[sizeof(struct uci_packet_header)] = (session_id >> 24) & 0xFF;
+            notification_packet[sizeof(struct uci_packet_header) + 1] = (session_id >> 16) & 0xFF;
+            notification_packet[sizeof(struct uci_packet_header) + 2] = (session_id >> 8) & 0xFF;
+            notification_packet[sizeof(struct uci_packet_header) + 3] = session_id & 0xFF;
+            notification_packet[sizeof(struct uci_packet_header) + 4] = session_state;
+            notification_packet[sizeof(struct uci_packet_header) + 5] = reason_code;
             parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + 6);
         } else if (strcmp(command, "simulate_data_credit") == 0) {
             // Simulate a data credit notification

@@ -84,4 +84,8 @@ echo "16. Testing complete command:"
 echo "complete sess" | timeout 2s ./uci-shell
 
 echo ""
+echo "17. Testing simulate_session_status command:"
+echo "simulate_session_status 1 active mgmt_cmd" | timeout 2s ./uci-shell
+
+echo ""
 echo "All tests completed."

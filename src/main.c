@@ -5,15 +5,32 @@
 
 #include "uci.h"
 #include "uci_functions.h"
+#include "uci_hw.h"
+#include "uci_hw_interface.h"
+#include "uci_hw_chardev.h"
 
 #define MAX_LINE_LENGTH 256
 #define MAX_PAYLOAD_LENGTH 255
+
+// Global flag to track if hardware mode is enabled
+static int g_hardware_mode = 0;
+
+// Global character device interface for UWB communication
+static uci_hw_chardev_t g_uwb_chardev;
 
 int main() {
     char line[MAX_LINE_LENGTH];
 
     printf("UCI Interactive Shell\n");
     printf("Enter 'quit' to exit.\n");
+    printf("Commands: send, get_device_info, device_reset, get_caps_info, set_config, get_config,\n");
+    printf("          get_device_state, set_device_active, set_device_ready,\n");
+    printf("          session_init, session_deinit, session_start, session_stop, get_session_state,\n");
+    printf("          set_app_config, get_app_config,\n");
+    printf("          simulate_notification, simulate_session_status, simulate_data_credit,\n");
+    printf("          simulate_ranging, simulate_multi_target_ranging, demo_session_flow,\n");
+    printf("          hw_init <device_path> - Initialize hardware mode\n");
+    printf("          hw_send <mt> <gid> <oid> [payload_bytes...] - Send command in hardware mode\n");
 
     while (1) {
         printf("> ");
@@ -30,19 +47,195 @@ int main() {
 
         char* command = strtok(line, " ");
 
-        if (strcmp(command, "send") == 0) {
-            unsigned char mt = (unsigned char)strtol(strtok(NULL, " "), NULL, 16);
-            unsigned char gid = (unsigned char)strtol(strtok(NULL, " "), NULL, 16);
-            unsigned char oid = (unsigned char)strtol(strtok(NULL, " "), NULL, 16);
+        if (strcmp(command, "hw_init") == 0) {
+            char* device_path = strtok(NULL, " ");
+            if (!device_path) {
+                printf("Usage: hw_init <device_path>\n");
+                continue;
+            }
+            
+            // Initialize both the legacy hardware interface and the new character device interface
+            if (uci_hw_interface_init(device_path) == 0) {
+                g_hardware_mode = 1;
+                printf("Hardware mode initialized successfully with device: %s\n", device_path);
+                
+                // Also initialize the character device interface
+                if (uci_hw_chardev_init(&g_uwb_chardev, device_path) == 0) {
+                    if (uci_hw_chardev_open(&g_uwb_chardev) == 0) {
+                        printf("Character device interface initialized successfully\n");
+                    } else {
+                        printf("Warning: Failed to open character device interface\n");
+                    }
+                } else {
+                    printf("Warning: Failed to initialize character device interface\n");
+                }
+            } else {
+                printf("Failed to initialize hardware mode\n");
+            }
+        } else if (strcmp(command, "hw_send") == 0 && g_hardware_mode) {
+            if (!uci_hw_interface_is_connected()) {
+                printf("Hardware not connected. Use 'hw_init <device_path>' first.\n");
+                continue;
+            }
+            
+            char* mt_str = strtok(NULL, " ");
+            char* pbf_str = strtok(NULL, " ");
+            char* gid_str = strtok(NULL, " ");
+            char* oid_str = strtok(NULL, " ");
+            
+            if (!mt_str || !pbf_str || !gid_str || !oid_str) {
+                printf("Usage: hw_send <mt> <pbf> <gid> <oid> [payload_bytes...]\n");
+                printf("  Example: hw_send 01 00 00 02 (send CORE_DEVICE_INFO command)\n");
+                printf("  MT: 01=COMMAND, 02=RESPONSE, 03=NOTIFICATION\n");
+                printf("  PBF: 00=COMPLETE, 01=START, 02=CONT, 03=END\n");
+                printf("  GID: 00=CORE, 01=SESSION_CONFIG, 02=SESSION_CONTROL\n");
+                printf("  OID: Command opcode (depends on GID)\n");
+                continue;
+            }
+            
+            unsigned char mt = (unsigned char)strtol(mt_str, NULL, 16);
+            unsigned char pbf = (unsigned char)strtol(pbf_str, NULL, 16);
+            unsigned char gid = (unsigned char)strtol(gid_str, NULL, 16);
+            unsigned char oid = (unsigned char)strtol(oid_str, NULL, 16);
+            
             unsigned char payload[MAX_PAYLOAD_LENGTH];
             int payload_len = 0;
-
+            
             char* token;
-            while ((token = strtok(NULL, " ")) != NULL) {
+            while ((token = strtok(NULL, " ")) != NULL && payload_len < MAX_PAYLOAD_LENGTH) {
                 payload[payload_len++] = (unsigned char)strtol(token, NULL, 16);
             }
-
-            send_uci_command(mt, 0, gid, oid, payload, payload_len);
+            
+            // Send command to hardware
+            if (uci_hw_interface_send_command(mt, pbf, gid, oid, payload, payload_len) == 0) {
+                printf("Command sent to hardware successfully\n");
+                
+                // Try to receive response (with timeout)
+                unsigned char response_buffer[1024];
+                int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
+                if (response_len > 0) {
+                    printf("Received %d bytes from hardware:\n", response_len);
+                    printf("  ");
+                    for (int i = 0; i < response_len; i++) {
+                        printf("%02X ", response_buffer[i]);
+                    }
+                    printf("\n");
+                    
+                    // Parse and display the response
+                    parse_uci_packet(response_buffer, response_len);
+                } else if (response_len == 0) {
+                    printf("No response received from hardware (timeout)\n");
+                } else {
+                    printf("Error receiving response from hardware\n");
+                }
+            } else {
+                printf("Failed to send command to hardware\n");
+            }
+        } else if (strcmp(command, "hw_send_raw") == 0 && g_hardware_mode) {
+            if (!uci_hw_interface_is_connected()) {
+                printf("Hardware not connected. Use 'hw_init <device_path>' first.\n");
+                continue;
+            }
+            
+            char* hex_bytes_str = strtok(NULL, " ");
+            if (!hex_bytes_str) {
+                printf("Usage: hw_send_raw <hex_bytes...>\n");
+                printf("  Example: hw_send_raw 20 08 00 00 (send CORE_DEVICE_INFO command)\n");
+                printf("  Format: [GID|PBF|MT][Opcode|R][Reserved][Length][Payload...]\n");
+                continue;
+            }
+            
+            // Parse hex bytes
+            unsigned char packet[256];
+            int packet_len = 0;
+            
+            char* token = hex_bytes_str;
+            do {
+                if (packet_len >= (int)sizeof(packet)) {
+                    printf("Error: Packet too long (max %zu bytes)\n", sizeof(packet));
+                    break;
+                }
+                packet[packet_len++] = (unsigned char)strtol(token, NULL, 16);
+            } while ((token = strtok(NULL, " ")) != NULL);
+            
+            if (packet_len == 0) {
+                printf("Error: No bytes provided\n");
+                continue;
+            }
+            
+            printf("Sending raw UCI packet to hardware (%d bytes):\n  ", packet_len);
+            for (int i = 0; i < packet_len; i++) {
+                printf("%02X ", packet[i]);
+            }
+            printf("\n");
+            
+            // Send packet to hardware using character device interface
+            int send_result = uci_hw_chardev_send(&g_uwb_chardev, packet, packet_len);
+            if (send_result < 0) {
+                printf("Failed to send raw UCI packet to hardware\n");
+                continue;
+            }
+            
+            printf("Raw UCI packet sent successfully\n");
+            
+            // Try to receive response (with timeout)
+            unsigned char response_buffer[1024];
+            int response_len = uci_hw_chardev_receive(&g_uwb_chardev, response_buffer, sizeof(response_buffer), 1000);
+            if (response_len > 0) {
+                printf("Received %d bytes from hardware:\n  ", response_len);
+                for (int i = 0; i < response_len; i++) {
+                    printf("%02X ", response_buffer[i]);
+                }
+                printf("\n");
+                
+                // Parse and display the response
+                parse_uci_packet(response_buffer, response_len);
+            } else if (response_len == 0) {
+                printf("No response received from hardware (timeout)\n");
+            } else {
+                printf("Error receiving response from hardware\n");
+            }
+        } else if (strcmp(command, "hw_info") == 0) {
+            if (!g_hardware_mode) {
+                printf("Hardware mode not initialized. Use 'hw_init <device_path>' first.\n");
+            } else {
+                printf("=== UCI Hardware Information ===\n");
+                printf("Device: %s\n", uci_hw_interface_get_device_path());
+                printf("Mode: %s\n", g_hardware_mode ? "ENABLED" : "DISABLED");
+                printf("Connected: %s\n", uci_hw_interface_is_connected() ? "YES" : "NO");
+                printf("===============================\n");
+            }
+        } else if (strcmp(command, "hw_connect") == 0) {
+            char* device_path = strtok(NULL, " ");
+            if (!device_path) {
+                printf("Usage: hw_connect <device_path>\n");
+                printf("  Example: hw_connect /dev/ttyUSB0\n");
+                continue;
+            }
+            
+            // Enable verbose mode for hardware communication
+            uci_hw_chardev_set_verbose(&g_uwb_chardev, 1);
+            uci_hw_interface_set_verbose(1);
+            
+            // Initialize hardware interface with the specified device
+            if (uci_hw_interface_init(device_path) == 0) {
+                g_hardware_mode = 1;
+                printf("Hardware mode initialized successfully with device: %s\n", device_path);
+                
+                // Also initialize the character device interface
+                if (uci_hw_chardev_init(&g_uwb_chardev, device_path) == 0) {
+                    if (uci_hw_chardev_open(&g_uwb_chardev) == 0) {
+                        printf("Character device interface initialized successfully\n");
+                        printf("Ready to communicate with real UWB hardware at %s!\n", device_path);
+                    } else {
+                        printf("Warning: Failed to open character device interface\n");
+                    }
+                } else {
+                    printf("Warning: Failed to initialize character device interface\n");
+                }
+            } else {
+                printf("Failed to initialize hardware mode with device: %s\n", device_path);
+            }
         } else if (strcmp(command, "get_device_info") == 0) {
             send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_INFO, NULL, 0);
         } else if (strcmp(command, "device_reset") == 0) {

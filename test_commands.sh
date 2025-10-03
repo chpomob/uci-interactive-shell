@@ -60,4 +60,8 @@ echo "12. Testing get_session_state command:"
 echo "get_session_state" | timeout 2s ./uci-shell
 
 echo ""
+echo "13. Testing device_suspend command:"
+echo "device_suspend" | timeout 2s ./uci-shell
+
+echo ""
 echo "All tests completed."

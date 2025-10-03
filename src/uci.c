@@ -214,6 +214,10 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         
         // Reset all sessions when device is reset
         init_uci_sessions();
+    } else if (gid == CORE && oid == CORE_DEVICE_SUSPEND) {
+        unsigned char suspend_rsp_payload[] = {UCI_STATUS_OK};
+        memcpy(response_packet + sizeof(struct uci_packet_header), suspend_rsp_payload, sizeof(suspend_rsp_payload));
+        response_header->payload_len = sizeof(suspend_rsp_payload);
     } else if (gid == SESSION_CONFIG && oid == SESSION_INIT) {
         // Extract session ID from payload (first 4 bytes)
         unsigned int session_id = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
@@ -431,6 +435,20 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     }
     
     parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
+}
+
+void handle_core_device_suspend_rsp(unsigned char* payload, int payload_len) {
+    if (payload_len < 1) {
+        printf("Error: CORE_DEVICE_SUSPEND_RSP payload too short.\n");
+        return;
+    }
+    unsigned char status = payload[0];
+    printf("  Status: 0x%02X (%s)\n", status, status == UCI_STATUS_OK ? "OK" : "ERROR");
+    if (status == UCI_STATUS_OK) {
+        printf("  Device suspended successfully.\n");
+    } else {
+        printf("  Device suspend failed.\n");
+    }
 }
 
 void handle_core_device_info_rsp(unsigned char* payload, int payload_len) {
@@ -1028,6 +1046,8 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
 
     if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_DEVICE_INFO) {
         handle_core_device_info_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
+    } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_DEVICE_SUSPEND) {
+        handle_core_device_suspend_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
     } else if (get_mt(header) == NOTIFICATION && get_gid(header) == CORE) {
         if (get_opcode(header) == CORE_DEVICE_STATUS_NTF) {
             handle_core_device_status_ntf(packet + sizeof(struct uci_packet_header), header->payload_len);

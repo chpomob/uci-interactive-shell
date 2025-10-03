@@ -25,7 +25,7 @@ int main() {
     printf("UCI Interactive Shell\n");
     printf("Enter 'quit' to exit.\n");
     printf("Commands: send, get_device_info, device_reset, get_caps_info, set_config, get_config,\n");
-    printf("          get_device_state, set_device_active, set_device_ready,\n");
+    printf("          get_device_state, set_device_active, set_device_ready, device_suspend,\n");
     printf("          session_init, session_deinit, session_start, session_stop, get_session_state,\n");
     printf("          set_app_config, get_app_config,\n");
     printf("          simulate_notification, simulate_session_status, simulate_data_credit,\n");
@@ -256,6 +256,9 @@ int main() {
         } else if (strcmp(command, "set_device_ready") == 0) {
             unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_READY}; // num_tlvs(1), cfg_id, length, value
             send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
+        } else if (strcmp(command, "device_suspend") == 0) {
+            unsigned char payload[] = {0x00}; // Wakeup source
+            send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, payload, sizeof(payload));
         } else if (strcmp(command, "session_init") == 0) {
             unsigned char payload[] = {0x01, 0x02, 0x03, 0x04, FIRA_RANGING_SESSION};
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_INIT, payload, sizeof(payload));

@@ -61,7 +61,7 @@ echo "session_stop 1" | timeout 2s ./uci-shell
 
 echo ""
 echo "12. Testing get_session_state command:"
-echo "get_session_state" | timeout 2s ./uci-shell
+echo "get_session_state 1" | timeout 2s ./uci-shell
 
 echo ""
 echo "13. Testing device_suspend command:"

@@ -36,4 +36,12 @@ echo "6. Testing get_device_state command:"
 echo "get_device_state" | timeout 2s ./uci-shell
 
 echo ""
+echo "7. Testing set_device_active command:"
+echo "set_device_active" | timeout 2s ./uci-shell
+
+echo ""
+echo "8. Testing set_device_ready command:"
+echo "set_device_ready" | timeout 2s ./uci-shell
+
+echo ""
 echo "All tests completed."

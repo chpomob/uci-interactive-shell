@@ -447,12 +447,35 @@ int main() {
             payload[4] = num_configs;
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_APP_CONFIG, payload, 5 + num_configs);
         } else if (strcmp(command, "simulate_notification") == 0) {
-            // Simulate a device status notification
-            unsigned char notification_packet[sizeof(struct uci_packet_header) + 1];
-            struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
-            set_header_values(ntf_header, NOTIFICATION, COMPLETE, CORE, CORE_DEVICE_STATUS_NTF, 1);
-            notification_packet[sizeof(struct uci_packet_header)] = DEVICE_STATE_ACTIVE;
-            parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + 1);
+            char* type_str = strtok(NULL, " ");
+            char* value_str = strtok(NULL, " ");
+            if (!type_str || !value_str) {
+                printf("Usage: simulate_notification <type> <value>\n");
+                printf("  Example: simulate_notification device_status active\n");
+                continue;
+            }
+
+            if (strcmp(type_str, "device_status") == 0) {
+                unsigned char device_state;
+                if (strcmp(value_str, "active") == 0) {
+                    device_state = DEVICE_STATE_ACTIVE;
+                } else if (strcmp(value_str, "ready") == 0) {
+                    device_state = DEVICE_STATE_READY;
+                } else if (strcmp(value_str, "error") == 0) {
+                    device_state = DEVICE_STATE_ERROR;
+                } else {
+                    printf("Invalid value for device_status. Use 'active', 'ready', or 'error'.\n");
+                    continue;
+                }
+                unsigned char notification_packet[sizeof(struct uci_packet_header) + 1];
+                struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
+                set_header_values(ntf_header, NOTIFICATION, COMPLETE, CORE, CORE_DEVICE_STATUS_NTF, 1);
+                notification_packet[sizeof(struct uci_packet_header)] = device_state;
+                parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + 1);
+            } else {
+                printf("Unknown notification type: %s\n", type_str);
+                continue;
+            }
         } else if (strcmp(command, "simulate_session_status") == 0) {
             // Simulate a session status notification
             unsigned char notification_packet[sizeof(struct uci_packet_header) + 6];

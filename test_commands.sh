@@ -76,4 +76,8 @@ echo "14. Testing device_suspend command:"
 echo "device_suspend" | timeout 2s ./uci-shell
 
 echo ""
+echo "15. Testing simulate_notification command:"
+echo "simulate_notification device_status active" | timeout 2s ./uci-shell
+
+echo ""
 echo "All tests completed."

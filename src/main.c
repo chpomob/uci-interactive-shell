@@ -298,7 +298,30 @@ int main() {
             unsigned char payload[] = {0x00}; // Wakeup source
             send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, payload, sizeof(payload));
         } else if (strcmp(command, "session_init") == 0) {
-            unsigned char payload[] = {0x01, 0x02, 0x03, 0x04, FIRA_RANGING_SESSION};
+            char* session_id_str = strtok(NULL, " ");
+            char* session_type_str = strtok(NULL, " ");
+            if (!session_id_str || !session_type_str) {
+                printf("Usage: session_init <session_id> <session_type>\n");
+                printf("  Example: session_init 1 fira_ranging\n");
+                continue;
+            }
+
+            unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
+            SessionType session_type;
+
+            if (strcmp(session_type_str, "fira_ranging") == 0) {
+                session_type = FIRA_RANGING_SESSION;
+            } else {
+                printf("Unknown session_type: %s. Use 'fira_ranging'.\n", session_type_str);
+                continue;
+            }
+
+            unsigned char payload[5];
+            payload[0] = (session_id >> 24) & 0xFF;
+            payload[1] = (session_id >> 16) & 0xFF;
+            payload[2] = (session_id >> 8) & 0xFF;
+            payload[3] = session_id & 0xFF;
+            payload[4] = session_type;
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_INIT, payload, sizeof(payload));
         } else if (strcmp(command, "session_deinit") == 0) {
             unsigned char payload[] = {0x01, 0x02, 0x03, 0x04};

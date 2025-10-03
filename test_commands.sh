@@ -20,8 +20,8 @@ echo "2. Testing get_caps_info command:"
 echo "get_caps_info" | timeout 2s ./uci-shell
 
 echo ""
-echo "3. Testing session_init command:"
-echo "session_init" | timeout 2s ./uci-shell
+echo "3. Testing session_init command (user-friendly):"
+echo "session_init 1 fira_ranging" | timeout 2s ./uci-shell
 
 echo ""
 echo "4. Testing set_config command (user-friendly):"

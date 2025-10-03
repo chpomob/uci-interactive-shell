@@ -31,6 +31,11 @@ int main() {
     printf("          simulate_ranging, simulate_multi_target_ranging, demo_session_flow,\n");
     printf("          hw_init <device_path> - Initialize hardware mode\n");
     printf("          hw_send <mt> <gid> <oid> [payload_bytes...] - Send command in hardware mode\n");
+    printf("\n");
+    printf("For complete documentation, see:\n");
+    printf("  - README.md - Project overview and usage\n");
+    printf("  - FINAL_SUMMARY.md - Complete feature summary and technical details\n");
+    printf("  - uci_analysis/ - Detailed UCI protocol analysis based on Android UWB specification\n");
 
     while (1) {
         printf("> ");

@@ -548,6 +548,21 @@ void print_device_state_value(unsigned char value) {
     }
 }
 
+
+void handle_core_device_reset_rsp(unsigned char* payload, int payload_len) {
+    if (payload_len < 1) {
+        printf("Error: CORE_DEVICE_RESET_RSP payload too short.\n");
+        return;
+    }
+    unsigned char status = payload[0];
+    printf("  Status: 0x%02X (%s)\n", status, status == UCI_STATUS_OK ? "OK" : "ERROR");
+    if (status == UCI_STATUS_OK) {
+        printf("  Device reset successfully.\n");
+    } else {
+        printf("  Device reset failed.\n");
+    }
+}
+
 void handle_core_get_config_rsp(unsigned char* payload, int payload_len) {
     if (payload_len < 2) { // status (1) + num_tlvs (1)
         printf("Error: CORE_GET_CONFIG_RSP payload too short.\n");
@@ -1025,6 +1040,8 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
         handle_core_get_caps_info_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
     } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_SET_CONFIG) {
         handle_core_set_config_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
+    } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_DEVICE_RESET) {
+        handle_core_device_reset_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
     } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_GET_CONFIG) {
         handle_core_get_config_rsp(packet + sizeof(struct uci_packet_header), header->payload_len);
     } else if (get_mt(header) == NOTIFICATION && get_gid(header) == SESSION_CONFIG) {

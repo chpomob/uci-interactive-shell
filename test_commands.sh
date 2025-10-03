@@ -28,4 +28,8 @@ echo "4. Testing set_config command:"
 echo "set_config" | timeout 2s ./uci-shell
 
 echo ""
+echo "5. Testing device_reset command:"
+echo "device_reset" | timeout 2s ./uci-shell
+
+echo ""
 echo "All tests completed."

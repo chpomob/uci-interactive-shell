@@ -64,7 +64,11 @@ echo "12. Testing get_session_state command:"
 echo "get_session_state 1" | timeout 2s ./uci-shell
 
 echo ""
-echo "13. Testing device_suspend command:"
+echo "13. Testing set_app_config command:"
+echo "set_app_config 1 device_type responder" | timeout 2s ./uci-shell
+
+echo ""
+echo "14. Testing device_suspend command:"
 echo "device_suspend" | timeout 2s ./uci-shell
 
 echo ""

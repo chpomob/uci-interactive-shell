@@ -376,8 +376,43 @@ int main() {
             payload[3] = session_id & 0xFF;
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_STATE, payload, sizeof(payload));
         } else if (strcmp(command, "set_app_config") == 0) {
-            // Set device type (0x00) to responder (0x01) with 1 byte value
-            unsigned char payload[] = {0x01, 0x02, 0x03, 0x04, 0x01, 0x00, 0x01, 0x01};  // session_id + num_tlvs + cfg_id + len + value
+            char* session_id_str = strtok(NULL, " ");
+            char* config_name = strtok(NULL, " ");
+            char* value_str = strtok(NULL, " ");
+            if (!session_id_str || !config_name || !value_str) {
+                printf("Usage: set_app_config <session_id> <config_name> <value>\n");
+                printf("  Example: set_app_config 1 device_type responder\n");
+                continue;
+            }
+
+            unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
+            AppConfigTlvType cfg_id;
+            unsigned char value;
+
+            if (strcmp(config_name, "device_type") == 0) {
+                cfg_id = DEVICE_TYPE;
+                if (strcmp(value_str, "responder") == 0) {
+                    value = 0x01;
+                } else if (strcmp(value_str, "initiator") == 0) {
+                    value = 0x02;
+                } else {
+                    printf("Invalid value for device_type. Use 'responder' or 'initiator'.\n");
+                    continue;
+                }
+            } else {
+                printf("Unknown config_name: %s\n", config_name);
+                continue;
+            }
+
+            unsigned char payload[8];
+            payload[0] = (session_id >> 24) & 0xFF;
+            payload[1] = (session_id >> 16) & 0xFF;
+            payload[2] = (session_id >> 8) & 0xFF;
+            payload[3] = session_id & 0xFF;
+            payload[4] = 1; // Number of TLVs
+            payload[5] = cfg_id;
+            payload[6] = 1; // Length
+            payload[7] = value;
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_SET_APP_CONFIG, payload, sizeof(payload));
         } else if (strcmp(command, "get_app_config") == 0) {
             // Get device type configuration

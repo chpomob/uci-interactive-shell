@@ -80,4 +80,8 @@ echo "15. Testing simulate_notification command:"
 echo "simulate_notification device_status active" | timeout 2s ./uci-shell
 
 echo ""
+echo "16. Testing complete command:"
+echo "complete sess" | timeout 2s ./uci-shell
+
+echo ""
 echo "All tests completed."

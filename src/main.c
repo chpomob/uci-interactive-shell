@@ -30,6 +30,7 @@ int main() {
     printf("          set_app_config, get_app_config,\n");
     printf("          simulate_notification, simulate_session_status, simulate_data_credit,\n");
     printf("          simulate_ranging, simulate_multi_target_ranging, demo_session_flow,\n");
+    printf("          complete <prefix> - Autocomplete a command\n");
     printf("          hw_init <device_path> - Initialize hardware mode\n");
     printf("          hw_send <mt> <gid> <oid> [payload_bytes...] - Send command in hardware mode\n");
     printf("\n");
@@ -53,7 +54,33 @@ int main() {
 
         char* command = strtok(line, " ");
 
-        if (strcmp(command, "hw_init") == 0) {
+        const char* commands[] = {
+            "quit", "hw_init", "hw_send", "hw_send_raw", "hw_info", "hw_connect",
+            "get_device_info", "device_reset", "get_caps_info", "set_config", "get_config",
+            "get_device_state", "set_device_active", "set_device_ready", "device_suspend",
+            "session_init", "session_deinit", "session_start", "session_stop", "get_session_state",
+            "set_app_config", "get_app_config", "simulate_notification", "simulate_session_status",
+            "simulate_data_credit", "simulate_ranging", "simulate_multi_target_ranging", "demo_session_flow",
+            "complete"
+        };
+        int num_commands = sizeof(commands) / sizeof(commands[0]);
+
+        if (strcmp(command, "complete") == 0) {
+            char* prefix = strtok(NULL, " ");
+            if (prefix) {
+                int first = 1;
+                for (int i = 0; i < num_commands; i++) {
+                    if (strncmp(prefix, commands[i], strlen(prefix)) == 0) {
+                        if (!first) {
+                            printf(" ");
+                        }
+                        printf("%s", commands[i]);
+                        first = 0;
+                    }
+                }
+                printf("\n");
+            }
+        } else if (strcmp(command, "hw_init") == 0) {
             char* device_path = strtok(NULL, " ");
             if (!device_path) {
                 printf("Usage: hw_init <device_path>\n");

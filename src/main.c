@@ -242,7 +242,45 @@ int main() {
         } else if (strcmp(command, "get_caps_info") == 0) {
             send_uci_command(COMMAND, 0, CORE, CORE_GET_CAPS_INFO, NULL, 0);
         } else if (strcmp(command, "set_config") == 0) {
-            unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE}; // num_tlvs(1), cfg_id, length, value
+            char* config_name = strtok(NULL, " ");
+            char* value_name = strtok(NULL, " ");
+            if (!config_name || !value_name) {
+                printf("Usage: set_config <config_name> <value>\n");
+                printf("  Examples:\n");
+                printf("    set_config device_state active\n");
+                printf("    set_config low_power_mode off\n");
+                continue;
+            }
+
+            DeviceConfigId cfg_id;
+            unsigned char value;
+
+            if (strcmp(config_name, "device_state") == 0) {
+                cfg_id = DEVICE_STATE;
+                if (strcmp(value_name, "active") == 0) {
+                    value = DEVICE_STATE_ACTIVE;
+                } else if (strcmp(value_name, "ready") == 0) {
+                    value = DEVICE_STATE_READY;
+                } else {
+                    printf("Invalid value for device_state. Use 'active' or 'ready'.\n");
+                    continue;
+                }
+            } else if (strcmp(config_name, "low_power_mode") == 0) {
+                cfg_id = LOW_POWER_MODE;
+                if (strcmp(value_name, "on") == 0) {
+                    value = 1;
+                } else if (strcmp(value_name, "off") == 0) {
+                    value = 0;
+                } else {
+                    printf("Invalid value for low_power_mode. Use 'on' or 'off'.\n");
+                    continue;
+                }
+            } else {
+                printf("Unknown config_name: %s\n", config_name);
+                continue;
+            }
+
+            unsigned char payload[] = {0x01, cfg_id, 0x01, value};
             send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
         } else if (strcmp(command, "get_config") == 0) {
             unsigned char payload[] = {0x01, DEVICE_STATE}; // num_tlvs(1), cfg_id

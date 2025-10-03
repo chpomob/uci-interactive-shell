@@ -68,6 +68,10 @@ echo "13. Testing set_app_config command:"
 echo "set_app_config 1 device_type responder" | timeout 2s ./uci-shell
 
 echo ""
+echo "13.1. Testing get_app_config command:"
+echo "get_app_config 1 device_type" | timeout 2s ./uci-shell
+
+echo ""
 echo "14. Testing device_suspend command:"
 echo "device_suspend" | timeout 2s ./uci-shell
 

@@ -415,9 +415,37 @@ int main() {
             payload[7] = value;
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_SET_APP_CONFIG, payload, sizeof(payload));
         } else if (strcmp(command, "get_app_config") == 0) {
-            // Get device type configuration
-            unsigned char payload[] = {0x01, 0x02, 0x03, 0x04, 0x01, 0x00};  // session_id + num_tlvs + cfg_id
-            send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_APP_CONFIG, payload, sizeof(payload));
+            char* session_id_str = strtok(NULL, " ");
+            if (!session_id_str) {
+                printf("Usage: get_app_config <session_id> <config_name_1> [config_name_2]...\n");
+                continue;
+            }
+            unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
+
+            unsigned char payload[MAX_PAYLOAD_LENGTH];
+            payload[0] = (session_id >> 24) & 0xFF;
+            payload[1] = (session_id >> 16) & 0xFF;
+            payload[2] = (session_id >> 8) & 0xFF;
+            payload[3] = session_id & 0xFF;
+
+            int num_configs = 0;
+            char* config_name;
+            while ((config_name = strtok(NULL, " ")) != NULL) {
+                if (strcmp(config_name, "device_type") == 0) {
+                    payload[5 + num_configs] = DEVICE_TYPE;
+                    num_configs++;
+                } else {
+                    printf("Unknown config_name: %s\n", config_name);
+                }
+            }
+
+            if (num_configs == 0) {
+                printf("No valid config names provided.\n");
+                continue;
+            }
+
+            payload[4] = num_configs;
+            send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_APP_CONFIG, payload, 5 + num_configs);
         } else if (strcmp(command, "simulate_notification") == 0) {
             // Simulate a device status notification
             unsigned char notification_packet[sizeof(struct uci_packet_header) + 1];

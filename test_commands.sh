@@ -53,7 +53,7 @@ echo "session_deinit 1" | timeout 2s ./uci-shell
 
 echo ""
 echo "10. Testing session_start command:"
-echo "session_start" | timeout 2s ./uci-shell
+echo "session_start 1" | timeout 2s ./uci-shell
 
 echo ""
 echo "11. Testing session_stop command:"

@@ -337,7 +337,17 @@ int main() {
             payload[3] = session_id & 0xFF;
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_DEINIT, payload, sizeof(payload));
         } else if (strcmp(command, "session_start") == 0) {
-            unsigned char payload[] = {0x01, 0x02, 0x03, 0x04};
+            char* session_id_str = strtok(NULL, " ");
+            if (!session_id_str) {
+                printf("Usage: session_start <session_id>\n");
+                continue;
+            }
+            unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
+            unsigned char payload[4];
+            payload[0] = (session_id >> 24) & 0xFF;
+            payload[1] = (session_id >> 16) & 0xFF;
+            payload[2] = (session_id >> 8) & 0xFF;
+            payload[3] = session_id & 0xFF;
             send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_START, payload, sizeof(payload));
         } else if (strcmp(command, "session_stop") == 0) {
             unsigned char payload[] = {0x01, 0x02, 0x03, 0x04};

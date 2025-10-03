@@ -57,7 +57,7 @@ echo "session_start 1" | timeout 2s ./uci-shell
 
 echo ""
 echo "11. Testing session_stop command:"
-echo "session_stop" | timeout 2s ./uci-shell
+echo "session_stop 1" | timeout 2s ./uci-shell
 
 echo ""
 echo "12. Testing get_session_state command:"

@@ -1,5 +1,5 @@
 #include "uci_hw_interface.h"
-#include "uci_hw.h"
+#include "uci_hw_chardev.h"
 #include "uci.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,16 +7,15 @@
 #include <unistd.h>
 
 // Global variables for hardware interface
-static int g_hw_fd = -1;
+static uci_hw_chardev_t g_uwb_chardev;
 static int g_hw_initialized = 0;
-static int g_hw_connected = 0;
 static int g_verbose_mode = 0;
 static char g_device_path[256] = "/dev/ttyUSB0";  // Default device path
 
 // Enable verbose mode for hardware interface
 void uci_hw_interface_set_verbose(int verbose) {
     g_verbose_mode = verbose ? 1 : 0;
-    uci_hw_set_verbose(g_verbose_mode); // Also set verbose mode for underlying hardware
+    uci_hw_chardev_set_verbose(&g_uwb_chardev, g_verbose_mode);
 }
 
 // Initialize hardware interface
@@ -33,34 +32,41 @@ int uci_hw_interface_init(const char* device_path) {
     strncpy(g_device_path, device_path, sizeof(g_device_path) - 1);
     g_device_path[sizeof(g_device_path) - 1] = '\0'; // Ensure null termination
     
-    // Enable hardware mode
-    uci_hw_enable_hardware_mode();
-    uci_hw_set_verbose(g_verbose_mode); // Enable verbose output for debugging
-    
-    // Open the device
-    g_hw_fd = uci_hw_open(device_path);
-    if (g_hw_fd < 0) {
+    // Initialize the character device interface
+    if (uci_hw_chardev_init(&g_uwb_chardev, device_path) == 0) {
+        if (uci_hw_chardev_open(&g_uwb_chardev) == 0) {
+            if (g_verbose_mode) {
+                printf("Character device interface initialized successfully\n");
+            }
+            g_hw_initialized = 1;
+            return 0;
+        } else {
+            if (g_verbose_mode) {
+                printf("Failed to open character device interface\n");
+            }
+            return -1;
+        }
+    } else {
         if (g_verbose_mode) {
-            printf("Failed to open UCI device: %s\n", device_path);
+            printf("Failed to initialize character device interface\n");
+        }
+        return -1;
+    }
+}
+
+// Send UCI command to hardware device
+int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid, 
+                                 unsigned char* payload, int payload_len) {
+    if (!g_hw_initialized) {
+        if (g_verbose_mode) {
+            printf("Hardware interface not initialized\n");
         }
         return -1;
     }
     
-    g_hw_initialized = 1;
-    g_hw_connected = 1;
-    
-    if (g_verbose_mode) {
-        printf("UCI hardware interface initialized successfully\n");
-    }
-    return 0;
-}
-
-// Send command to hardware device
-int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid, 
-                                 unsigned char* payload, int payload_len) {
-    if (!g_hw_initialized || !g_hw_connected) {
+    if (!uci_hw_chardev_is_connected(&g_uwb_chardev)) {
         if (g_verbose_mode) {
-            printf("Hardware interface not initialized or not connected\n");
+            printf("Hardware device not connected\n");
         }
         return -1;
     }
@@ -84,8 +90,22 @@ int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned 
         memcpy(packet + sizeof(struct uci_packet_header), payload, payload_len);
     }
     
-    // Send packet to hardware
-    int result = uci_hw_send(g_hw_fd, packet, packet_size);
+    if (g_verbose_mode) {
+        printf("Sending UCI packet to hardware (%s):\n", g_device_path);
+        printf("  Header: %02X %02X %02X %02X\n", 
+               ((unsigned char*)header)[0], ((unsigned char*)header)[1], 
+               ((unsigned char*)header)[2], ((unsigned char*)header)[3]);
+        if (payload_len > 0) {
+            printf("  Payload: ");
+            for (int i = 0; i < payload_len; i++) {
+                printf("%02X ", payload[i]);
+            }
+            printf("\n");
+        }
+    }
+    
+    // Send packet to hardware using character device interface
+    int result = uci_hw_chardev_send(&g_uwb_chardev, packet, packet_size);
     
     free(packet);
     
@@ -99,11 +119,18 @@ int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned 
     return 0;
 }
 
-// Receive response from hardware device
+// Receive UCI response from hardware device with timeout
 int uci_hw_interface_receive_response(unsigned char* buffer, size_t buffer_size, int timeout_ms) {
-    if (!g_hw_initialized || !g_hw_connected) {
+    if (!g_hw_initialized) {
         if (g_verbose_mode) {
-            printf("Hardware interface not initialized or not connected\n");
+            printf("Hardware interface not initialized\n");
+        }
+        return -1;
+    }
+    
+    if (!uci_hw_chardev_is_connected(&g_uwb_chardev)) {
+        if (g_verbose_mode) {
+            printf("Hardware device not connected\n");
         }
         return -1;
     }
@@ -115,8 +142,8 @@ int uci_hw_interface_receive_response(unsigned char* buffer, size_t buffer_size,
         return -1;
     }
     
-    // Receive data from hardware
-    int bytes_received = uci_hw_receive(g_hw_fd, buffer, buffer_size, timeout_ms);
+    // Receive data from hardware using character device interface
+    int bytes_received = uci_hw_chardev_receive(&g_uwb_chardev, buffer, buffer_size, timeout_ms);
     
     if (bytes_received < 0) {
         if (g_verbose_mode) {
@@ -125,12 +152,15 @@ int uci_hw_interface_receive_response(unsigned char* buffer, size_t buffer_size,
         return -1;
     }
     
+    if (g_verbose_mode && bytes_received > 0) {
+        printf("Received %d bytes from UCI hardware (%s):\n  ", bytes_received, g_device_path);
+        for (int i = 0; i < bytes_received; i++) {
+            printf("%02X ", buffer[i]);
+        }
+        printf("\n");
+    }
+    
     return bytes_received;
-}
-
-// Get device path
-const char* uci_hw_interface_get_device_path(void) {
-    return g_device_path;
 }
 
 // Cleanup hardware interface
@@ -139,16 +169,17 @@ void uci_hw_interface_cleanup(void) {
         if (g_verbose_mode) {
             printf("Cleaning up UCI hardware interface\n");
         }
-        if (g_hw_fd >= 0) {
-            uci_hw_close(g_hw_fd);
-            g_hw_fd = -1;
-        }
+        uci_hw_chardev_close(&g_uwb_chardev);
         g_hw_initialized = 0;
-        g_hw_connected = 0;
     }
 }
 
 // Check if hardware is connected
 int uci_hw_interface_is_connected(void) {
-    return g_hw_connected;
+    return g_hw_initialized && uci_hw_chardev_is_connected(&g_uwb_chardev);
+}
+
+// Get device path
+const char* uci_hw_interface_get_device_path(void) {
+    return g_device_path;
 }

@@ -4,6 +4,30 @@
 #include "uci.h"
 #include "uci_functions.h"
 
+// Global flag for hardware mode
+static int g_hardware_mode = 0;
+static char g_hardware_device_path[256] = "/dev/ttyUSB0";  // Default device path
+
+// Function to enable hardware mode
+void uci_enable_hardware_mode(const char* device_path) {
+    g_hardware_mode = 1;
+    if (device_path && strlen(device_path) < sizeof(g_hardware_device_path)) {
+        strcpy(g_hardware_device_path, device_path);
+    }
+    printf("Hardware mode enabled with device: %s\n", g_hardware_device_path);
+}
+
+// Function to disable hardware mode
+void uci_disable_hardware_mode() {
+    g_hardware_mode = 0;
+    printf("Hardware mode disabled\n");
+}
+
+// Function to check if hardware mode is enabled
+int uci_is_hardware_mode_enabled() {
+    return g_hardware_mode;
+}
+
 // Global session storage
 struct uci_session uci_sessions[MAX_SESSIONS];
 
@@ -13,6 +37,61 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     if (!initialized) {
         init_uci_sessions();
         initialized = 1;
+    }
+    
+    // Check if we're in hardware mode
+    if (g_hardware_mode) {
+        printf("[HARDWARE MODE] ");
+        
+        // Create the complete UCI packet
+        int total_packet_size = sizeof(struct uci_packet_header) + payload_len;
+        unsigned char* packet = malloc(total_packet_size);
+        if (!packet) {
+            printf("Error: Failed to allocate memory for UCI packet.\n");
+            return;
+        }
+        
+        // Set up header
+        struct uci_packet_header* header = (struct uci_packet_header*)packet;
+        set_header_values(header, mt, pbf, gid, oid, payload_len);
+        
+        // Copy payload if present
+        if (payload && payload_len > 0) {
+            memcpy(packet + sizeof(struct uci_packet_header), payload, payload_len);
+        }
+        
+        printf("Sending UCI packet to hardware (%s):\n", g_hardware_device_path);
+        // Print the raw bytes as they would appear on the wire
+        unsigned char* header_bytes = (unsigned char*)header;
+        printf("  Header: %02X %02X %02X %02X\n", header_bytes[0], header_bytes[1], header_bytes[2], header_bytes[3]);
+        if (payload_len > 0) {
+            printf("  Payload: ");
+            for (int i = 0; i < payload_len; i++) {
+                printf("%02X ", payload[i]);
+            }
+            printf("\n");
+        }
+        
+        // In a real implementation, we would send the packet to the hardware device
+        // For now, we'll just print that we would send it to the hardware
+        printf("  -> Would send to hardware device %s\n", g_hardware_device_path);
+        
+        // Then we would receive a response from the hardware
+        // For now, we'll simulate receiving a minimal response
+        printf("  <- Simulating response from hardware device\n");
+        
+        // Clean up
+        free(packet);
+        
+        // Create a minimal response for now
+        unsigned char response_packet[sizeof(struct uci_packet_header) + 10];
+        struct uci_packet_header* response_header = (struct uci_packet_header*)response_packet;
+        set_header_values(response_header, RESPONSE, COMPLETE, gid, oid, 1);
+        response_packet[sizeof(struct uci_packet_header)] = UCI_STATUS_OK;
+        response_header->payload_len = 1;
+        
+        parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
+        return;
     }
 
     struct uci_packet_header header;

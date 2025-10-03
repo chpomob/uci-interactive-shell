@@ -53,35 +53,24 @@ int uci_hw_chardev_open(uci_hw_chardev_t* hw) {
         printf("Opening UCI character device: %s\n", hw->device_path);
     }
     
-    // Open the device file
+    // Open the device file for read/write, non-blocking
     hw->fd = open(hw->device_path, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (hw->fd < 0) {
-        perror("Failed to open UCI character device");
+        if (hw->verbose) {
+            perror("Failed to open UCI character device");
+        }
         return -1;
     }
     
-    // Configure the device for raw binary communication
+    // Configure the device for raw binary communication if it's a terminal device
     struct termios tty;
-    if (tcgetattr(hw->fd, &tty) != 0) {
+    if (tcgetattr(hw->fd, &tty) == 0) {
         if (hw->verbose) {
-            perror("tcgetattr failed");
+            printf("Configuring terminal device settings for raw binary communication\n");
         }
-        // Continue anyway as this might not be a terminal device
-    } else {
-        // Save current settings
-        struct termios orig_tty = tty;
         
         // Set raw mode (no processing of input/output)
-#ifndef _GNU_SOURCE
-        // Manual implementation of cfmakeraw for systems without it
-        tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-        tty.c_oflag &= ~OPOST;
-        tty.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-        tty.c_cflag &= ~(CSIZE | PARENB);
-        tty.c_cflag |= CS8;
-#else
         cfmakeraw(&tty);
-#endif
         
         // Set speed to 115200 baud (typical for UWB devices)
         cfsetispeed(&tty, B115200);
@@ -93,19 +82,21 @@ int uci_hw_chardev_open(uci_hw_chardev_t* hw) {
         tty.c_cflag &= ~CSIZE;   // Clear data bits
         tty.c_cflag |= CS8;      // 8 data bits
         
-        // No flow control (check if CRTSCTS is defined)
-#ifndef CRTSCTS
-#define CRTSCTS 020000000000
-#endif
+        // No flow control
+#ifdef CRTSCTS
         tty.c_cflag &= ~CRTSCTS;
+#endif
         
         // Apply settings
         if (tcsetattr(hw->fd, TCSANOW, &tty) != 0) {
             if (hw->verbose) {
                 perror("tcsetattr failed");
             }
-            // Restore original settings
-            tcsetattr(hw->fd, TCSANOW, &orig_tty);
+            // Continue anyway
+        }
+    } else {
+        if (hw->verbose) {
+            printf("Device is not a terminal, skipping terminal configuration\n");
         }
     }
     
@@ -161,7 +152,9 @@ int uci_hw_chardev_send(uci_hw_chardev_t* hw, const unsigned char* data, size_t 
     
     ssize_t bytes_written = write(hw->fd, data, length);
     if (bytes_written < 0) {
-        perror("Failed to write to UCI device");
+        if (hw->verbose) {
+            perror("Failed to write to UCI device");
+        }
         return -1;
     }
     
@@ -176,67 +169,6 @@ int uci_hw_chardev_send(uci_hw_chardev_t* hw, const unsigned char* data, size_t 
     tcdrain(hw->fd);
     
     return (int)bytes_written;
-}
-
-// Receive UCI packet from character device with timeout
-
-// Receive UCI packet from character device with timeout
-
-// Set verbose mode
-
-// Check if device is connected
-
-// Get device path
-const char* uci_hw_chardev_get_device_path(uci_hw_chardev_t* hw) {
-    if (!hw) {
-        return NULL;
-    }
-    return hw->device_path;
-}
-
-// Send UCI command and receive response
-int uci_hw_chardev_send_command_and_receive_response(uci_hw_chardev_t* hw, 
-                                                    const unsigned char* command_data, 
-                                                    size_t command_length,
-                                                    unsigned char* response_buffer, 
-                                                    size_t response_buffer_size, 
-                                                    int timeout_ms) {
-    if (!hw || !command_data || command_length == 0 || !response_buffer || response_buffer_size == 0) {
-        fprintf(stderr, "Error: Invalid parameters for uci_hw_chardev_send_command_and_receive_response\n");
-        return -1;
-    }
-    
-    if (!hw->is_open || hw->fd < 0) {
-        fprintf(stderr, "Error: Device not open for communication\n");
-        return -1;
-    }
-    
-    // Send the command
-    int send_result = uci_hw_chardev_send(hw, command_data, command_length);
-    if (send_result < 0) {
-        if (hw->verbose) {
-            fprintf(stderr, "Failed to send UCI command\n");
-        }
-        return -1;
-    }
-    
-    // Receive the response with timeout
-    int receive_result = uci_hw_chardev_receive(hw, response_buffer, response_buffer_size, timeout_ms);
-    if (receive_result < 0) {
-        if (hw->verbose) {
-            fprintf(stderr, "Failed to receive UCI response\n");
-        }
-        return -1;
-    }
-    
-    if (receive_result == 0) {
-        if (hw->verbose) {
-            fprintf(stderr, "Timeout waiting for UCI response\n");
-        }
-        return 0; // Timeout
-    }
-    
-    return receive_result; // Return number of bytes received
 }
 
 // Receive UCI packet from character device with timeout
@@ -292,7 +224,7 @@ int uci_hw_chardev_receive(uci_hw_chardev_t* hw, unsigned char* buffer, size_t b
     
     if (hw->verbose && bytes_read > 0) {
         printf("Received %zd bytes from UCI device (%s):\n  ", bytes_read, hw->device_path);
-        for (size_t i = 0; i < (size_t)bytes_read; i++) {
+        for (ssize_t i = 0; i < bytes_read; i++) {
             printf("%02X ", buffer[i]);
         }
         printf("\n");
@@ -314,4 +246,12 @@ int uci_hw_chardev_is_connected(uci_hw_chardev_t* hw) {
         return 0;
     }
     return hw->is_open && hw->fd >= 0;
+}
+
+// Get device path
+const char* uci_hw_chardev_get_device_path(uci_hw_chardev_t* hw) {
+    if (!hw) {
+        return NULL;
+    }
+    return hw->device_path;
 }

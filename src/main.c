@@ -12,8 +12,9 @@
 #define MAX_LINE_LENGTH 256
 #define MAX_PAYLOAD_LENGTH 255
 
-// Global flag to track if hardware mode is enabled
-static int g_hardware_mode = 0;
+// Global variables for hardware mode
+static int g_hardware_mode = 0;  // Flag to track if hardware mode is enabled
+static uci_hw_chardev_t g_uwb_chardev;  // Character device interface for UWB communication
 
 // Global character device interface for UWB communication
 static uci_hw_chardev_t g_uwb_chardev;
@@ -79,7 +80,7 @@ int main() {
             }
         } else if (strcmp(command, "hw_send") == 0 && g_hardware_mode) {
             if (!uci_hw_interface_is_connected()) {
-                printf("Hardware not connected. Use 'hw_init <device_path>' first.\n");
+                printf("Hardware not connected. Use 'hw_connect <device_path>' first.\n");
                 continue;
             }
             
@@ -111,7 +112,7 @@ int main() {
                 payload[payload_len++] = (unsigned char)strtol(token, NULL, 16);
             }
             
-            // Send command to hardware
+            // Send command to hardware using the character device interface
             if (uci_hw_interface_send_command(mt, pbf, gid, oid, payload, payload_len) == 0) {
                 printf("Command sent to hardware successfully\n");
                 
@@ -226,18 +227,7 @@ int main() {
             if (uci_hw_interface_init(device_path) == 0) {
                 g_hardware_mode = 1;
                 printf("Hardware mode initialized successfully with device: %s\n", device_path);
-                
-                // Also initialize the character device interface
-                if (uci_hw_chardev_init(&g_uwb_chardev, device_path) == 0) {
-                    if (uci_hw_chardev_open(&g_uwb_chardev) == 0) {
-                        printf("Character device interface initialized successfully\n");
-                        printf("Ready to communicate with real UWB hardware at %s!\n", device_path);
-                    } else {
-                        printf("Warning: Failed to open character device interface\n");
-                    }
-                } else {
-                    printf("Warning: Failed to initialize character device interface\n");
-                }
+                printf("Ready to communicate with real UWB hardware!\n");
             } else {
                 printf("Failed to initialize hardware mode with device: %s\n", device_path);
             }

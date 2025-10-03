@@ -2,6 +2,7 @@
 #define UCI_HW_CHARDEV_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 // Character device UCI hardware interface
 typedef struct {
@@ -34,13 +35,5 @@ int uci_hw_chardev_is_connected(uci_hw_chardev_t* hw);
 
 // Get device path
 const char* uci_hw_chardev_get_device_path(uci_hw_chardev_t* hw);
-
-// Send UCI command and receive response
-int uci_hw_chardev_send_command_and_receive_response(uci_hw_chardev_t* hw, 
-                                                    const unsigned char* command_data, 
-                                                    size_t command_length,
-                                                    unsigned char* response_buffer, 
-                                                    size_t response_buffer_size, 
-                                                    int timeout_ms);
 
 #endif // UCI_HW_CHARDEV_H

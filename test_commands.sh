@@ -44,4 +44,20 @@ echo "8. Testing set_device_ready command:"
 echo "set_device_ready" | timeout 2s ./uci-shell
 
 echo ""
+echo "9. Testing session_deinit command:"
+echo "session_deinit" | timeout 2s ./uci-shell
+
+echo ""
+echo "10. Testing session_start command:"
+echo "session_start" | timeout 2s ./uci-shell
+
+echo ""
+echo "11. Testing session_stop command:"
+echo "session_stop" | timeout 2s ./uci-shell
+
+echo ""
+echo "12. Testing get_session_state command:"
+echo "get_session_state" | timeout 2s ./uci-shell
+
+echo ""
 echo "All tests completed."

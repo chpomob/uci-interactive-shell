@@ -5,6 +5,11 @@
 #include "../include/uci_functions.h"
 
 #define MAX_RESPONSE_PAYLOAD_LEN 255
+#define ANDROID_GET_POWER_STATS 0x00
+#define ANDROID_SET_COUNTRY_CODE 0x01
+#define ANDROID_FIRA_RANGE_DIAGNOSTICS 0x02
+#define ANDROID_RADAR_SET_APP_CONFIG 0x11
+#define ANDROID_RADAR_GET_APP_CONFIG 0x12
 
 // Global flag for hardware mode
 static int g_hardware_mode = 0;
@@ -557,6 +562,29 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
 
         memcpy(response_packet + sizeof(struct uci_packet_header), get_app_cfg_rsp, response_len);
         response_header->payload_len = response_len;
+    } else if (gid == VENDOR_ANDROID) {
+        if (oid == ANDROID_GET_POWER_STATS) {
+            unsigned char power_stats_rsp[17] = {0};
+            power_stats_rsp[0] = UCI_STATUS_OK;
+            memcpy(response_packet + sizeof(struct uci_packet_header), power_stats_rsp, sizeof(power_stats_rsp));
+            response_header->payload_len = sizeof(power_stats_rsp);
+        } else if (oid == ANDROID_SET_COUNTRY_CODE) {
+            unsigned char set_country_rsp[] = {UCI_STATUS_OK};
+            memcpy(response_packet + sizeof(struct uci_packet_header), set_country_rsp, sizeof(set_country_rsp));
+            response_header->payload_len = sizeof(set_country_rsp);
+        } else if (oid == ANDROID_RADAR_SET_APP_CONFIG) {
+            unsigned char set_radar_rsp[] = {UCI_STATUS_OK, 0x00};
+            memcpy(response_packet + sizeof(struct uci_packet_header), set_radar_rsp, sizeof(set_radar_rsp));
+            response_header->payload_len = sizeof(set_radar_rsp);
+        } else if (oid == ANDROID_RADAR_GET_APP_CONFIG) {
+            unsigned char get_radar_rsp[] = {UCI_STATUS_OK, 0x00};
+            memcpy(response_packet + sizeof(struct uci_packet_header), get_radar_rsp, sizeof(get_radar_rsp));
+            response_header->payload_len = sizeof(get_radar_rsp);
+        } else {
+            unsigned char status = UCI_STATUS_OK;
+            memcpy(response_packet + sizeof(struct uci_packet_header), &status, 1);
+            response_header->payload_len = 1;
+        }
     } else {
         unsigned char status = UCI_STATUS_OK;
         memcpy(response_packet + sizeof(struct uci_packet_header), &status, 1);

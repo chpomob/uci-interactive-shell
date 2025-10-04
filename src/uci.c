@@ -196,12 +196,14 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     } else if (gid == CORE && oid == CORE_SET_CONFIG) {
         unsigned char cfg_ids[MAX_RESPONSE_PAYLOAD_LEN] = {0};
         unsigned char processed_tlvs = 0;
+        unsigned char status = UCI_STATUS_OK;
 
         if (payload && payload_len > 0) {
             unsigned char declared_tlvs = payload[0];
             int offset = 1;
             for (unsigned char i = 0; i < declared_tlvs; i++) {
                 if (offset + 2 > payload_len) {
+                    status = UCI_STATUS_INVALID_PARAM;
                     break; // Not enough bytes for cfg_id + length
                 }
 
@@ -210,6 +212,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
                 offset += 2;
 
                 if (offset + cfg_len > payload_len) {
+                    status = UCI_STATUS_INVALID_PARAM;
                     break; // Truncated value
                 }
 
@@ -220,11 +223,16 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
 
                 offset += cfg_len;
             }
+            if (processed_tlvs != declared_tlvs) {
+                status = UCI_STATUS_INVALID_PARAM;
+            }
+        } else {
+            status = UCI_STATUS_INVALID_PARAM;
         }
 
         unsigned char response_len = (unsigned char)(2 + (processed_tlvs * 2));
         unsigned char set_config_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
-        set_config_rsp_payload[0] = UCI_STATUS_OK;
+        set_config_rsp_payload[0] = status;
         set_config_rsp_payload[1] = processed_tlvs;
         for (unsigned char i = 0; i < processed_tlvs; i++) {
             set_config_rsp_payload[2 + (i * 2)] = cfg_ids[i];
@@ -432,12 +440,15 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
         int session_idx = find_session_by_token_or_id(identifier);
         unsigned short ranging_count = 0;
+        unsigned char status = UCI_STATUS_OK;
         if (session_idx >= 0) {
             ranging_count = uci_sessions[session_idx].ranging_count;
+        } else {
+            status = UCI_STATUS_INVALID_PARAM;
         }
 
         unsigned char ranging_rsp_payload[] = {
-            UCI_STATUS_OK,
+            status,
             (unsigned char)((ranging_count >> 8) & 0xFF),
             (unsigned char)(ranging_count & 0xFF)
         };
@@ -452,11 +463,21 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned char query_rsp_payload[] = {UCI_STATUS_OK, 0x02, 0x00};
+        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        int session_idx = find_session_by_token_or_id(identifier);
+        unsigned short max_data_size = 0x0200;
+        unsigned char status = (session_idx >= 0) ? UCI_STATUS_OK : UCI_STATUS_INVALID_PARAM;
+
+        unsigned char query_rsp_payload[] = {
+            status,
+            (unsigned char)((max_data_size >> 8) & 0xFF),
+            (unsigned char)(max_data_size & 0xFF)
+        };
         memcpy(response_packet + sizeof(struct uci_packet_header), query_rsp_payload, sizeof(query_rsp_payload));
         response_header->payload_len = sizeof(query_rsp_payload);
     } else if (gid == SESSION_CONFIG && oid == SESSION_UPDATE_CONTROLLER_MULTICAST_LIST) {
-        unsigned char multicast_rsp_payload[] = {UCI_STATUS_OK};
+        unsigned char status = (payload && payload_len >= 5) ? UCI_STATUS_OK : UCI_STATUS_INVALID_PARAM;
+        unsigned char multicast_rsp_payload[] = {status};
         memcpy(response_packet + sizeof(struct uci_packet_header), multicast_rsp_payload, sizeof(multicast_rsp_payload));
         response_header->payload_len = sizeof(multicast_rsp_payload);
     } else if (gid == SESSION_CONFIG && oid == SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG) {
@@ -503,8 +524,11 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         }
 
         unsigned char status = UCI_STATUS_OK;
-        if (!payload || payload_len < 5 || processed_tlvs != declared_tlvs) {
+        if (!payload || payload_len < 5 || processed_tlvs != declared_tlvs || session_idx < 0) {
             status = UCI_STATUS_INVALID_PARAM;
+            if (session_idx < 0) {
+                processed_tlvs = 0;
+            }
         }
 
         unsigned char response_len = (unsigned char)(2 + (processed_tlvs * 2));
@@ -541,9 +565,13 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             cfg_count = declared_cfgs;
         }
 
+        if (session_idx < 0) {
+            cfg_count = 0;
+        }
+
         unsigned char get_app_cfg_rsp[MAX_RESPONSE_PAYLOAD_LEN] = {0};
         unsigned char response_len = (unsigned char)(2 + (cfg_count * 3));
-        get_app_cfg_rsp[0] = (cfg_count > 0) ? UCI_STATUS_OK : UCI_STATUS_INVALID_PARAM;
+        get_app_cfg_rsp[0] = (cfg_count > 0 && session_idx >= 0) ? UCI_STATUS_OK : UCI_STATUS_INVALID_PARAM;
         get_app_cfg_rsp[1] = cfg_count;
 
         int response_offset = 2;

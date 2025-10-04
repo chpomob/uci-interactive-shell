@@ -9,8 +9,12 @@
 void init_uci_sessions();
 int find_free_session_slot();
 int find_session_by_id(unsigned int session_id);
+int find_session_by_handle(unsigned int session_handle);
+int find_session_by_token_or_id(unsigned int identifier);
+int get_allocated_session_count();
 void store_session_config(int session_idx, unsigned char cfg_id, unsigned char* value, unsigned char len);
 int get_session_config(int session_idx, unsigned char cfg_id, unsigned char* value, unsigned char* len);
+void increment_session_ranging_count(int session_idx);
 
 // Notification handler function declarations
 void handle_session_info_ntf(unsigned char* payload, int payload_len);

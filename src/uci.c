@@ -10,6 +10,7 @@
 static int g_hardware_mode = 0;
 static char g_hardware_device_path[256] = "/dev/ttyUSB0";  // Default device path
 static unsigned long long g_fake_timestamp = 0;
+static unsigned int g_session_handle_counter = 1;
 
 // Function to enable hardware mode
 void uci_enable_hardware_mode(const char* device_path) {
@@ -284,27 +285,32 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
 
         unsigned int session_id = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
         SessionType session_type = (SessionType)payload[4];
-        
-        // Find an available slot for the session
+
         int session_idx = find_free_session_slot();
         if (session_idx < 0) {
-            // No free slots available - return error
             unsigned char session_init_error_rsp[] = {UCI_STATUS_MAX_SESSIONS_EXCEEDED};
             memcpy(response_packet + sizeof(struct uci_packet_header), session_init_error_rsp, sizeof(session_init_error_rsp));
             response_header->payload_len = sizeof(session_init_error_rsp);
         } else {
-            // Initialize the session
+            unsigned int session_handle = g_session_handle_counter++;
+            if (session_handle == 0) {
+                session_handle = g_session_handle_counter++;
+            }
+
             uci_sessions[session_idx].session_id = session_id;
             uci_sessions[session_idx].session_type = session_type;
             uci_sessions[session_idx].session_state = SESSION_STATE_INIT;
             uci_sessions[session_idx].is_allocated = 1;
             uci_sessions[session_idx].num_configs = 0;
-            
-            // For FIRA v2.0, return SESSION_INIT_RSP with session handle
+            uci_sessions[session_idx].session_handle = session_handle;
+            uci_sessions[session_idx].ranging_count = 0;
+
             unsigned char session_init_rsp_payload[] = {
-                UCI_STATUS_OK, 
-                (session_idx & 0xFF), ((session_idx >> 8) & 0xFF), 
-                ((session_idx >> 16) & 0xFF), ((session_idx >> 24) & 0xFF)  // Session handle (4 bytes)
+                UCI_STATUS_OK,
+                (unsigned char)((session_handle >> 24) & 0xFF),
+                (unsigned char)((session_handle >> 16) & 0xFF),
+                (unsigned char)((session_handle >> 8) & 0xFF),
+                (unsigned char)(session_handle & 0xFF)
             };
             memcpy(response_packet + sizeof(struct uci_packet_header), session_init_rsp_payload, sizeof(session_init_rsp_payload));
             response_header->payload_len = sizeof(session_init_rsp_payload);
@@ -318,16 +324,21 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned int session_id = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
-        
-        int session_idx = find_session_by_id(session_id);
+        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+
+        int session_idx = find_session_by_token_or_id(identifier);
         if (session_idx >= 0) {
-            // Mark session as deinitialized
             uci_sessions[session_idx].session_state = SESSION_STATE_DEINIT;
             uci_sessions[session_idx].is_allocated = 0;
+            uci_sessions[session_idx].session_id = 0;
+            uci_sessions[session_idx].session_type = 0;
+            uci_sessions[session_idx].session_handle = 0;
+            uci_sessions[session_idx].ranging_count = 0;
+            uci_sessions[session_idx].num_configs = 0;
+            memset(uci_sessions[session_idx].config_values, 0, sizeof(uci_sessions[session_idx].config_values));
+            memset(uci_sessions[session_idx].config_lengths, 0, sizeof(uci_sessions[session_idx].config_lengths));
         }
-        
-        // Return response
+
         unsigned char session_deinit_rsp_payload[] = {UCI_STATUS_OK};
         memcpy(response_packet + sizeof(struct uci_packet_header), session_deinit_rsp_payload, sizeof(session_deinit_rsp_payload));
         response_header->payload_len = sizeof(session_deinit_rsp_payload);
@@ -340,15 +351,14 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned int session_id = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
-        
-        int session_idx = find_session_by_id(session_id);
+        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+
+        int session_idx = find_session_by_token_or_id(identifier);
         if (session_idx >= 0) {
-            // Update session state to active
             uci_sessions[session_idx].session_state = SESSION_STATE_ACTIVE;
+            uci_sessions[session_idx].ranging_count = 0;
         }
-        
-        // Return response
+
         unsigned char session_start_rsp_payload[] = {UCI_STATUS_OK};
         memcpy(response_packet + sizeof(struct uci_packet_header), session_start_rsp_payload, sizeof(session_start_rsp_payload));
         response_header->payload_len = sizeof(session_start_rsp_payload);
@@ -361,15 +371,14 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned int session_id = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
-        
-        int session_idx = find_session_by_id(session_id);
+        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+
+        int session_idx = find_session_by_token_or_id(identifier);
         if (session_idx >= 0) {
-            // Update session state to idle
             uci_sessions[session_idx].session_state = SESSION_STATE_IDLE;
+            increment_session_ranging_count(session_idx);
         }
-        
-        // Return response
+
         unsigned char session_stop_rsp_payload[] = {UCI_STATUS_OK};
         memcpy(response_packet + sizeof(struct uci_packet_header), session_stop_rsp_payload, sizeof(session_stop_rsp_payload));
         response_header->payload_len = sizeof(session_stop_rsp_payload);
@@ -382,9 +391,9 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned int session_id = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
-        
-        int session_idx = find_session_by_id(session_id);
+        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+
+        int session_idx = find_session_by_token_or_id(identifier);
         unsigned char session_state;
         if (session_idx >= 0) {
             session_state = uci_sessions[session_idx].session_state;
@@ -396,17 +405,65 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         unsigned char get_state_rsp_payload[] = {UCI_STATUS_OK, session_state};
         memcpy(response_packet + sizeof(struct uci_packet_header), get_state_rsp_payload, sizeof(get_state_rsp_payload));
         response_header->payload_len = sizeof(get_state_rsp_payload);
+    } else if (gid == SESSION_CONFIG && oid == SESSION_GET_COUNT) {
+        unsigned char session_count = (unsigned char)get_allocated_session_count();
+        unsigned char get_count_rsp_payload[] = {UCI_STATUS_OK, session_count};
+        memcpy(response_packet + sizeof(struct uci_packet_header), get_count_rsp_payload, sizeof(get_count_rsp_payload));
+        response_header->payload_len = sizeof(get_count_rsp_payload);
+    } else if (gid == SESSION_CONTROL && oid == SESSION_GET_RANGING_COUNT) {
+        if (!payload || payload_len < 4) {
+            unsigned char get_ranging_error_rsp[] = {UCI_STATUS_INVALID_PARAM};
+            memcpy(response_packet + sizeof(struct uci_packet_header), get_ranging_error_rsp, sizeof(get_ranging_error_rsp));
+            response_header->payload_len = sizeof(get_ranging_error_rsp);
+            parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
+            return;
+        }
+
+        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        int session_idx = find_session_by_token_or_id(identifier);
+        unsigned short ranging_count = 0;
+        if (session_idx >= 0) {
+            ranging_count = uci_sessions[session_idx].ranging_count;
+        }
+
+        unsigned char ranging_rsp_payload[] = {
+            UCI_STATUS_OK,
+            (unsigned char)((ranging_count >> 8) & 0xFF),
+            (unsigned char)(ranging_count & 0xFF)
+        };
+        memcpy(response_packet + sizeof(struct uci_packet_header), ranging_rsp_payload, sizeof(ranging_rsp_payload));
+        response_header->payload_len = sizeof(ranging_rsp_payload);
+    } else if (gid == SESSION_CONFIG && oid == SESSION_QUERY_DATA_SIZE_IN_RANGING) {
+        if (!payload || payload_len < 4) {
+            unsigned char query_data_error_rsp[] = {UCI_STATUS_INVALID_PARAM};
+            memcpy(response_packet + sizeof(struct uci_packet_header), query_data_error_rsp, sizeof(query_data_error_rsp));
+            response_header->payload_len = sizeof(query_data_error_rsp);
+            parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
+            return;
+        }
+
+        unsigned char query_rsp_payload[] = {UCI_STATUS_OK, 0x02, 0x00};
+        memcpy(response_packet + sizeof(struct uci_packet_header), query_rsp_payload, sizeof(query_rsp_payload));
+        response_header->payload_len = sizeof(query_rsp_payload);
+    } else if (gid == SESSION_CONFIG && oid == SESSION_UPDATE_CONTROLLER_MULTICAST_LIST) {
+        unsigned char multicast_rsp_payload[] = {UCI_STATUS_OK};
+        memcpy(response_packet + sizeof(struct uci_packet_header), multicast_rsp_payload, sizeof(multicast_rsp_payload));
+        response_header->payload_len = sizeof(multicast_rsp_payload);
+    } else if (gid == SESSION_CONFIG && oid == SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG) {
+        unsigned char update_dt_tag_rsp[] = {UCI_STATUS_OK};
+        memcpy(response_packet + sizeof(struct uci_packet_header), update_dt_tag_rsp, sizeof(update_dt_tag_rsp));
+        response_header->payload_len = sizeof(update_dt_tag_rsp);
     } else if (gid == SESSION_CONFIG && oid == SESSION_SET_APP_CONFIG) {
         unsigned char cfg_ids[MAX_RESPONSE_PAYLOAD_LEN] = {0};
         unsigned char processed_tlvs = 0;
         unsigned char declared_tlvs = 0;
-        unsigned int session_id = 0;
+        unsigned int identifier = 0;
         int session_idx = -1;
 
         if (payload && payload_len >= 5) {
-            session_id = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+            identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
             declared_tlvs = payload[4];
-            session_idx = find_session_by_id(session_id);
+            session_idx = find_session_by_token_or_id(identifier);
 
             int offset = 5;
             for (unsigned char i = 0; i < declared_tlvs; i++) {
@@ -453,15 +510,15 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         memcpy(response_packet + sizeof(struct uci_packet_header), set_app_cfg_rsp, response_len);
         response_header->payload_len = response_len;
     } else if (gid == SESSION_CONFIG && oid == SESSION_GET_APP_CONFIG) {
-        unsigned int session_id = 0;
+        unsigned int identifier = 0;
         unsigned char declared_cfgs = 0;
         int session_idx = -1;
         unsigned char cfg_count = 0;
 
         if (payload && payload_len >= 5) {
-            session_id = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+            identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
             declared_cfgs = payload[4];
-            session_idx = find_session_by_id(session_id);
+            session_idx = find_session_by_token_or_id(identifier);
 
             unsigned int available_ids = payload_len - 5;
             unsigned int max_cfg_entries = (MAX_RESPONSE_PAYLOAD_LEN - 2) / 3;
@@ -700,12 +757,15 @@ void handle_core_get_config_rsp(unsigned char* payload, int payload_len) {
 
 // Helper function to initialize session storage
 void init_uci_sessions() {
+    g_session_handle_counter = 1;
     for (int i = 0; i < MAX_SESSIONS; i++) {
         uci_sessions[i].session_id = 0;
         uci_sessions[i].session_type = 0;
         uci_sessions[i].is_allocated = 0;
         uci_sessions[i].session_state = SESSION_STATE_DEINIT;
         uci_sessions[i].num_configs = 0;
+        uci_sessions[i].session_handle = 0;
+        uci_sessions[i].ranging_count = 0;
         memset(uci_sessions[i].config_values, 0, sizeof(uci_sessions[i].config_values));
         memset(uci_sessions[i].config_lengths, 0, sizeof(uci_sessions[i].config_lengths));
     }
@@ -729,6 +789,45 @@ int find_session_by_id(unsigned int session_id) {
         }
     }
     return -1; // Session not found
+}
+
+int find_session_by_handle(unsigned int session_handle) {
+    for (int i = 0; i < MAX_SESSIONS; i++) {
+        if (uci_sessions[i].is_allocated && uci_sessions[i].session_handle == session_handle) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int find_session_by_token_or_id(unsigned int identifier) {
+    int idx = find_session_by_handle(identifier);
+    if (idx >= 0) {
+        return idx;
+    }
+    return find_session_by_id(identifier);
+}
+
+int get_allocated_session_count() {
+    int count = 0;
+    for (int i = 0; i < MAX_SESSIONS; i++) {
+        if (uci_sessions[i].is_allocated) {
+            count++;
+        }
+    }
+    return count;
+}
+
+void increment_session_ranging_count(int session_idx) {
+    if (session_idx < 0 || session_idx >= MAX_SESSIONS) {
+        return;
+    }
+    if (!uci_sessions[session_idx].is_allocated) {
+        return;
+    }
+    if (uci_sessions[session_idx].ranging_count < 0xFFFF) {
+        uci_sessions[session_idx].ranging_count++;
+    }
 }
 
 // Helper function to store configuration value in session

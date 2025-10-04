@@ -25,6 +25,8 @@ struct uci_session {
     SessionType session_type;
     unsigned char session_state;  // Using unsigned char to avoid direct dependency
     unsigned char is_allocated;  // 1 if session slot is in use, 0 otherwise
+    unsigned int session_handle;  // Simulated UWBS-generated session handle
+    unsigned short ranging_count; // Tracks completed ranging rounds
     unsigned char config_values[255];  // Store configuration values
     unsigned char config_lengths[255]; // Store configuration lengths
     int num_configs;            // Number of stored configurations

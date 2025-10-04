@@ -10,6 +10,11 @@
 #define ANDROID_FIRA_RANGE_DIAGNOSTICS 0x02
 #define ANDROID_RADAR_SET_APP_CONFIG 0x11
 #define ANDROID_RADAR_GET_APP_CONFIG 0x12
+#define TEST_RF_SET_CONFIG 0x00
+#define TEST_RF_PERIODIC_TX 0x02
+#define TEST_RF_PER_RX 0x03
+#define TEST_RF_RX 0x05
+#define TEST_RF_STOP 0x07
 
 // Global flag for hardware mode
 static int g_hardware_mode = 0;
@@ -562,6 +567,20 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
 
         memcpy(response_packet + sizeof(struct uci_packet_header), get_app_cfg_rsp, response_len);
         response_header->payload_len = response_len;
+    } else if (gid == TEST) {
+        if (oid == TEST_RF_SET_CONFIG) {
+            unsigned char rf_set_rsp[] = {UCI_STATUS_OK, 0x00};
+            memcpy(response_packet + sizeof(struct uci_packet_header), rf_set_rsp, sizeof(rf_set_rsp));
+            response_header->payload_len = sizeof(rf_set_rsp);
+        } else if (oid == TEST_RF_PERIODIC_TX || oid == TEST_RF_PER_RX || oid == TEST_RF_RX || oid == TEST_RF_STOP) {
+            unsigned char status = UCI_STATUS_OK;
+            memcpy(response_packet + sizeof(struct uci_packet_header), &status, 1);
+            response_header->payload_len = 1;
+        } else {
+            unsigned char status = UCI_STATUS_OK;
+            memcpy(response_packet + sizeof(struct uci_packet_header), &status, 1);
+            response_header->payload_len = 1;
+        }
     } else if (gid == VENDOR_ANDROID) {
         if (oid == ANDROID_GET_POWER_STATS) {
             unsigned char power_stats_rsp[17] = {0};

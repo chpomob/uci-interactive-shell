@@ -4,12 +4,26 @@
 #include <unistd.h> // For sleep
 #include <ctype.h>  // For character handling
 
+// Readline includes for tab completion
+#include <readline/readline.h>
+#include <readline/history.h>
+
+// Define _GNU_SOURCE to get strdup declaration
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
 #include "../include/uci_config_manager.h"
 #include "../include/uci_hw.h"
 #include "../include/uci_hw_interface.h"
 #include "../include/uci_hw_chardev.h"
+
+// Forward declarations for readline functions
+static void initialize_readline(void);
+static char* command_generator(const char* text, int state);
+static char** uci_completion(const char* text, int start, int end);
 
 #define MAX_LINE_LENGTH 256
 #define MAX_PAYLOAD_LENGTH 255
@@ -193,17 +207,32 @@ int main() {
     printf("  - FINAL_SUMMARY.md - Complete feature summary and technical details\n");
     printf("  - uci_analysis/ - Detailed UCI protocol analysis based on Android UWB specification\n");
 
+    // Initialize readline for tab completion
+    initialize_readline();
+
     while (1) {
-        printf("> ");
-        if (fgets(line, sizeof(line), stdin) == NULL) {
+        char* input_line = readline("> ");
+        if (input_line == NULL) {
+            printf("\n");
             break;
         }
 
-        // Remove trailing newline
-        line[strcspn(line, "\r\n")] = 0;
+        // Remove trailing newline if present
+        input_line[strcspn(input_line, "\r\n")] = 0;
 
-        if (strlen(line) > 0) {
-            add_to_history(line);  // Add command to history before processing
+        // Add non-empty lines to history
+        if (strlen(input_line) > 0) {
+            add_to_history(input_line);
+            add_history(input_line); // Also add to readline history
+        }
+
+        // Copy to our line buffer for compatibility with existing code
+        strncpy(line, input_line, sizeof(line) - 1);
+        line[sizeof(line) - 1] = '\0';
+        free(input_line);
+
+        if (strlen(line) == 0) {
+            continue;
         }
 
         if (strcmp(line, "quit") == 0) {
@@ -1909,5 +1938,77 @@ int main() {
     }
 
     return 0;
+}
+
+static char* command_generator(const char* text, int state) {
+    static int list_index, len;
+    const char* name;
+
+    // List of all available commands
+    const char* commands[] = {
+        "quit", "help", "history", "clear", "alias", "unalias",
+        "complete",
+        "get_device_info", "device_info", "device_reset", "get_caps_info", 
+        "set_config", "get_config", "get_device_state", "set_device_active",
+        "set_device_ready", "device_suspend", "set_power", "device_on", "device_off",
+        "session_init", "session_new", "session_deinit", "session_close",
+        "session_start", "start_ranging", "session_stop", "stop_ranging",
+        "get_session_state", "session_status", "set_app_config", "get_app_config",
+        "simulate_notification", "simulate_session_status", "simulate_data_credit",
+        "simulate_ranging", "simulate_multi_target_ranging", "demo_session_flow",
+        "hw_init", "hw_connect", "hw_info", "hw_send", "hw_send_raw",
+        "hw_get_device_info", "hw_device_info", "hw_device_reset",
+        "hw_get_caps_info", "hw_set_config", "hw_get_config", "hw_get_device_state",
+        "hw_set_device_active", "hw_set_device_ready", "hw_device_suspend",
+        "hw_session_init", "hw_session_new", "hw_session_deinit", "hw_session_close",
+        "hw_session_start", "hw_start_ranging", "hw_session_stop", "hw_stop_ranging",
+        "hw_get_session_state", "hw_session_status", "hw_set_app_config", "hw_get_app_config",
+        NULL
+    };
+
+    if (!state) {
+        list_index = 0;
+        len = strlen(text);
+    }
+
+    while ((name = commands[list_index]) != NULL) {
+        list_index++;
+        if (strncmp(name, text, len) == 0) {
+            // Use malloc and strcpy instead of strdup to avoid warnings
+            char* result = malloc(strlen(name) + 1);
+            if (result) {
+                strcpy(result, name);
+            }
+            return result;
+        }
+    }
+
+    return NULL;
+}
+
+static char** uci_completion(const char* text, int start, int end) {
+    char** matches = NULL;
+    
+    // Avoid unused parameter warning
+    (void)end;
+    
+    if (start == 0) {
+        // Complete command names at the beginning of the line
+        matches = rl_completion_matches(text, command_generator);
+    }
+    
+    return matches;
+}
+
+static void initialize_readline(void) {
+    // Allow conditional parsing of the ~/.inputrc file
+    rl_readline_name = "uci-shell";
+    
+    // Tell the completer that we want a crack first
+    rl_attempted_completion_function = uci_completion;
+    
+    // Load history if available
+    using_history();
+    stifle_history(100); // Limit history to 100 entries
 }
 

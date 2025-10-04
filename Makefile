@@ -1,5 +1,6 @@
 CC=gcc
 CFLAGS=-Iinclude -Wall -Wextra -std=c11
+LIBS=-lreadline
 
 SRC=$(wildcard src/*.c)
 OBJ=$(SRC:.c=.o)
@@ -12,7 +13,7 @@ TEST_TARGET=test_chardev
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
 
 src/main.o: src/main.c include/uci.h include/uci_functions.h
 src/uci.o: src/uci.c include/uci.h include/uci_functions.h

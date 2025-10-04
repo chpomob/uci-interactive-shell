@@ -1,7 +1,7 @@
 #define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 #define _XOPEN_SOURCE 600
-#include "uci_hw.h"
+#include "../include/uci_hw.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

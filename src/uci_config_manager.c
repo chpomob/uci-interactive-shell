@@ -1,4 +1,4 @@
-#include "uci_config_manager.h"
+#include "../include/uci_config_manager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

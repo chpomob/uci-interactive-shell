@@ -1,5 +1,5 @@
 #define _GNU_SOURCE
-#include "uci_hw_chardev.h"
+#include "../include/uci_hw_chardev.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

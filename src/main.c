@@ -4,12 +4,12 @@
 #include <unistd.h> // For sleep
 #include <ctype.h>  // For character handling
 
-#include "uci.h"
-#include "uci_functions.h"
-#include "uci_config_manager.h"
-#include "uci_hw.h"
-#include "uci_hw_interface.h"
-#include "uci_hw_chardev.h"
+#include "../include/uci.h"
+#include "../include/uci_functions.h"
+#include "../include/uci_config_manager.h"
+#include "../include/uci_hw.h"
+#include "../include/uci_hw_interface.h"
+#include "../include/uci_hw_chardev.h"
 
 #define MAX_LINE_LENGTH 256
 #define MAX_PAYLOAD_LENGTH 255

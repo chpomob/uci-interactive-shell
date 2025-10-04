@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "uci.h"
-#include "uci_functions.h"
+#include "../include/uci.h"
+#include "../include/uci_functions.h"
 
 // Global flag for hardware mode
 static int g_hardware_mode = 0;

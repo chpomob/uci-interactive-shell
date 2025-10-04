@@ -1,6 +1,6 @@
-#include "uci_hw_interface.h"
-#include "uci_hw_chardev.h"
-#include "uci.h"
+#include "../include/uci_hw_interface.h"
+#include "../include/uci_hw_chardev.h"
+#include "../include/uci.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

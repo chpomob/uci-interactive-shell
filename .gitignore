@@ -3,3 +3,5 @@
 
 # Executables
 uci-shell
+test_config_manager
+test_hw_interface

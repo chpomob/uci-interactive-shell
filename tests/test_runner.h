@@ -41,7 +41,16 @@
 #define ASSERT_EQUAL(expected, actual) \
     do { \
         if ((expected) != (actual)) { \
-            printf(" FAILED (Expected %d, but got %d)", (expected), (actual)); \
+            printf(" FAILED (Expected %d, but got %d)", (int)(expected), (int)(actual)); \
+            total_tests_failed++; \
+            goto test_case_end; \
+        } \
+    } while(0)
+
+#define ASSERT_UINT64_EQUAL(expected, actual) \
+    do { \
+        if ((expected) != (actual)) { \
+            printf(" FAILED (Expected 0x%lx, but got 0x%lx)", (unsigned long)(expected), (unsigned long)(actual)); \
             total_tests_failed++; \
             goto test_case_end; \
         } \

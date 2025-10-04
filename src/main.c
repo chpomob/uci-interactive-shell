@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> // For sleep
+#include <ctype.h>  // For character handling
 
 #include "uci.h"
 #include "uci_functions.h"
@@ -12,10 +13,123 @@
 
 #define MAX_LINE_LENGTH 256
 #define MAX_PAYLOAD_LENGTH 255
+#define MAX_HISTORY_SIZE 100
+#define MAX_COMMANDS 100
 
 // Global variables for hardware mode
 static int g_hardware_mode = 0;  // Flag to track if hardware mode is enabled
 static uci_hw_chardev_t g_uwb_chardev;  // Character device interface for UWB communication
+
+// Command history functionality
+static char g_history[MAX_HISTORY_SIZE][MAX_LINE_LENGTH];
+static int g_history_count = 0;
+
+// Command aliases functionality
+#define MAX_ALIASES 50
+static char g_aliases[MAX_ALIASES][2][128];  // [index][0] = alias, [index][1] = real command
+static int g_alias_count = 0;
+
+// Structure to hold command information for completion
+typedef struct {
+    char name[64];
+    char description[256];
+    char * (*get_suboptions)(const char *input);
+} CommandInfo;
+
+// Function to add an alias
+static void add_alias(const char* alias, const char* command) {
+    if (g_alias_count >= MAX_ALIASES) {
+        printf("Error: Maximum number of aliases reached\n");
+        return;
+    }
+    
+    // Check if alias already exists
+    for (int i = 0; i < g_alias_count; i++) {
+        if (strcmp(g_aliases[i][0], alias) == 0) {
+            strncpy(g_aliases[i][1], command, sizeof(g_aliases[i][1]) - 1);
+            g_aliases[i][1][sizeof(g_aliases[i][1]) - 1] = '\0';
+            printf("Alias '%s' updated to '%s'\n", alias, command);
+            return;
+        }
+    }
+    
+    // Add new alias
+    strncpy(g_aliases[g_alias_count][0], alias, sizeof(g_aliases[g_alias_count][0]) - 1);
+    strncpy(g_aliases[g_alias_count][1], command, sizeof(g_aliases[g_alias_count][1]) - 1);
+    g_aliases[g_alias_count][0][sizeof(g_aliases[g_alias_count][0]) - 1] = '\0';
+    g_aliases[g_alias_count][1][sizeof(g_aliases[g_alias_count][1]) - 1] = '\0';
+    g_alias_count++;
+    printf("Alias '%s' added for '%s'\n", alias, command);
+}
+
+// Function to get the real command for an alias, return NULL if not found
+static const char* get_alias_command(const char* alias) {
+    for (int i = 0; i < g_alias_count; i++) {
+        if (strcmp(g_aliases[i][0], alias) == 0) {
+            return g_aliases[i][1];
+        }
+    }
+    return NULL;
+}
+
+// Function to list all aliases
+static void list_aliases() {
+    if (g_alias_count == 0) {
+        printf("No aliases defined.\n");
+        return;
+    }
+    
+    printf("Defined aliases:\n");
+    for (int i = 0; i < g_alias_count; i++) {
+        printf("  %s -> %s\n", g_aliases[i][0], g_aliases[i][1]);
+    }
+}
+
+// Function to remove an alias
+static void remove_alias(const char* alias) {
+    for (int i = 0; i < g_alias_count; i++) {
+        if (strcmp(g_aliases[i][0], alias) == 0) {
+            // Shift all aliases after this one down
+            for (int j = i; j < g_alias_count - 1; j++) {
+                strncpy(g_aliases[j][0], g_aliases[j+1][0], sizeof(g_aliases[j][0]));
+                strncpy(g_aliases[j][1], g_aliases[j+1][1], sizeof(g_aliases[j][1]));
+            }
+            g_alias_count--;
+            printf("Alias '%s' removed.\n", alias);
+            return;
+        }
+    }
+    printf("Alias '%s' not found.\n", alias);
+}
+
+// Function to add command to history
+static void add_to_history(const char* command) {
+    if (strlen(command) == 0) return;
+    
+    // Check if this command is the same as the last one to avoid duplicates
+    if (g_history_count > 0) {
+        if (strcmp(g_history[(g_history_count - 1) % MAX_HISTORY_SIZE], command) == 0) {
+            return; // Don't add duplicates
+        }
+    }
+    
+    strncpy(g_history[g_history_count % MAX_HISTORY_SIZE], command, MAX_LINE_LENGTH - 1);
+    g_history[g_history_count % MAX_HISTORY_SIZE][MAX_LINE_LENGTH - 1] = '\0';
+    g_history_count++;
+}
+
+
+
+// Function to print command history
+static void print_history() {
+    int start = (g_history_count > MAX_HISTORY_SIZE) ? 
+                (g_history_count - MAX_HISTORY_SIZE) : 0;
+    
+    for (int i = start; i < g_history_count; i++) {
+        int index = i % MAX_HISTORY_SIZE;
+        printf("%4d  %s\n", i + 1, g_history[index]);
+    }
+}
 
 int main() {
     char line[MAX_LINE_LENGTH];
@@ -36,6 +150,9 @@ int main() {
     printf("          simulate_ranging, simulate_multi_target_ranging, demo_session_flow,\n");
     printf("          set_power, device_on, device_off\n");
     printf("          complete <prefix> - Autocomplete a command or parameter (e.g., 'complete set_app_config ', 'complete set_config ', 'complete session_init ')\n");
+    printf("          history - Show command history\n");
+    printf("          alias <name> [command] - Create or list command aliases\n");
+    printf("          unalias <name> - Remove an alias\n");
     printf("          hw_init <device_path> - Initialize hardware mode\n");
     printf("          set_power <state> - Set device power state (active, ready, sleep)\n");
     printf("          device_on - Turn device on (alias for set_power active)\n");
@@ -46,6 +163,12 @@ int main() {
     printf("          stop_ranging <session_id> - Stop ranging session (alias for session_stop)\n");
     printf("          session_status <session_id> - Get session status (alias for get_session_state)\n");
     printf("          hw_send <mt> <gid> <oid> [payload_bytes...] - Send command in hardware mode\n");
+    printf("\n");
+    printf("Available features:\n");
+    printf("  - Command history (use Up/Down arrows to navigate)\n");
+    printf("  - Command completion (use Tab key or 'complete' command)\n");
+    printf("  - Command history with 'history' command\n");
+    printf("  - Use Ctrl+C to interrupt hanging commands\n");
     printf("\n");
     printf("Hardware-friendly commands (no raw payloads needed):\n");
     printf("          hw_get_device_info - Get device information\n");
@@ -79,11 +202,32 @@ int main() {
         // Remove trailing newline
         line[strcspn(line, "\r\n")] = 0;
 
+        if (strlen(line) > 0) {
+            add_to_history(line);  // Add command to history before processing
+        }
+
         if (strcmp(line, "quit") == 0) {
             break;
         }
 
+        // Handle history command
+        if (strcmp(line, "history") == 0) {
+            print_history();
+            continue;
+        }
+
+        // Handle alias commands
         char* command = strtok(line, " ");
+        
+        // Check if this command is an alias
+        const char* real_command = get_alias_command(command);
+        if (real_command != NULL) {
+            // Replace the original line with the aliased command
+            char expanded_line[MAX_LINE_LENGTH];
+            snprintf(expanded_line, sizeof(expanded_line), "%s%s", real_command, line + strlen(command));
+            strcpy(line, expanded_line);
+            command = strtok(line, " "); // Re-tokenize with the expanded command
+        }
 
         const char* commands[] = {
             "quit", "hw_init", "hw_send", "hw_send_raw", "hw_info", "hw_connect",
@@ -99,7 +243,7 @@ int main() {
             "session_stop", "stop_ranging", "get_session_state", "session_status",
             "set_app_config", "get_app_config", "simulate_notification", "simulate_session_status",
             "simulate_data_credit", "simulate_ranging", "simulate_multi_target_ranging", "demo_session_flow",
-            "set_power", "device_on", "device_off", "complete"
+            "set_power", "device_on", "device_off", "complete", "history", "alias", "unalias"
         };
         int num_commands = sizeof(commands) / sizeof(commands[0]);
 
@@ -184,6 +328,20 @@ int main() {
                                 printf("fira_ranging ranging");
                             }
                         }
+                    } else if (strcmp(cmd_part, "history") == 0) {
+                        // History command doesn't take parameters, but we can show options if needed
+                        // For now, just acknowledge the command
+                        printf("history");
+                    } else if (strcmp(cmd_part, "alias") == 0) {
+                        // Suggest the list of existing aliases or command names for creating new ones
+                        printf("Show or create aliases. Use: alias <name> <command>");
+                    } else if (strcmp(cmd_part, "unalias") == 0) {
+                        // Show the list of possible aliases to remove
+                        if (g_alias_count > 0) {
+                            for (int i = 0; i < g_alias_count; i++) {
+                                printf("%s ", g_aliases[i][0]);
+                            }
+                        }
                     } else {
                         // Original command completion
                         int first = 1;
@@ -199,6 +357,32 @@ int main() {
                     }
                 }
                 printf("\n");
+            }
+        } else if (strcmp(command, "alias") == 0) {
+            char* alias_name = strtok(NULL, " ");
+            char* alias_cmd = strtok(NULL, "\n");
+            
+            if (!alias_name) {
+                // No arguments provided, list all aliases
+                list_aliases();
+            } else if (!alias_cmd) {
+                // Only alias name provided, show specific alias
+                const char* real_cmd = get_alias_command(alias_name);
+                if (real_cmd) {
+                    printf("%s -> %s\n", alias_name, real_cmd);
+                } else {
+                    printf("Alias '%s' not found\n", alias_name);
+                }
+            } else {
+                // Both alias name and command provided, create new alias
+                add_alias(alias_name, alias_cmd);
+            }
+        } else if (strcmp(command, "unalias") == 0) {
+            char* alias_name = strtok(NULL, " ");
+            if (!alias_name) {
+                printf("Usage: unalias <alias_name>\n");
+            } else {
+                remove_alias(alias_name);
             }
         } else if (strcmp(command, "hw_init") == 0) {
             char* device_path = strtok(NULL, " ");

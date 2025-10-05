@@ -2,6 +2,7 @@
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
 #include <string.h>
+#include <stdint.h>
 
 #ifndef ANDROID_GET_POWER_STATS
 #define ANDROID_GET_POWER_STATS 0x00
@@ -12,6 +13,13 @@
 #define TEST_RF_PERIODIC_TX 0x02
 #define TEST_RF_STOP 0x07
 #endif
+
+static inline void write_u32_le(unsigned char* buffer, uint32_t value) {
+    buffer[0] = value & 0xFF;
+    buffer[1] = (value >> 8) & 0xFF;
+    buffer[2] = (value >> 16) & 0xFF;
+    buffer[3] = (value >> 24) & 0xFF;
+}
 
 // Test suite for UCI functions
 int main() {
@@ -283,18 +291,19 @@ int main() {
         // According to UCI spec, this should have sequence number + session_token + etc.
         // For this test, just verify the function doesn't crash with minimal valid payload
         unsigned char minimal_payload[] = {
-            0x00, 0x00, 0x00, 0x01,  // sequence_number (4 bytes)
-            0x00, 0x00, 0x00, 0x02,  // session_token (4 bytes)
+            0x01, 0x00, 0x00, 0x00,  // sequence_number (4 bytes)
+            0x02, 0x00, 0x00, 0x00,  // session_token (4 bytes)
             0x01,                    // rcr_indicator (1 byte)
-            0x00, 0x00, 0x00, 0x0A,  // current_ranging_interval (4 bytes) = 10 ms
+            0x0A, 0x00, 0x00, 0x00,  // current_ranging_interval (4 bytes) = 10 ms
             0x01,                    // ranging_measurement_type (1 byte) = TWO_WAY
             0x00,                    // reserved
-            0x00, 0x00, 0x00, 0x01,  // hus_primary_session_id (4 bytes)
+            0x00,                    // mac_address_indicator
+            0x01, 0x00, 0x00, 0x00,  // hus_primary_session_id (4 bytes)
             0x01,                    // number of measurements (1 byte)
-            0x00, 0x11,              // mac address (2 bytes)
+            0x11, 0x00,              // mac address (2 bytes)
             0x00,                    // status
             0x00,                    // nlos
-            0x01, 0x2C,              // distance (300 cm)
+            0x2C, 0x01,              // distance (300 cm)
             0x00, 0x00,              // aoa azimuth
             0x00,                    // aoa azimuth fom
             0x00, 0x00,              // aoa elevation
@@ -320,7 +329,7 @@ int main() {
     {
         init_uci_sessions();
 
-        unsigned char init_payload[5] = {0x00, 0x00, 0x00, 0x01, FIRA_RANGING_SESSION};
+        unsigned char init_payload[5] = {0x01, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
         send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload, sizeof(init_payload));
 
         int slot = find_session_by_id(0x00000001);
@@ -330,12 +339,8 @@ int main() {
         unsigned int handle = uci_sessions[slot].session_handle;
         ASSERT_TRUE(handle != 0);
 
-        unsigned char handle_payload[4] = {
-            (unsigned char)((handle >> 24) & 0xFF),
-            (unsigned char)((handle >> 16) & 0xFF),
-            (unsigned char)((handle >> 8) & 0xFF),
-            (unsigned char)(handle & 0xFF)
-        };
+        unsigned char handle_payload[4];
+        write_u32_le(handle_payload, handle);
 
         send_uci_command(COMMAND, COMPLETE, SESSION_CONTROL, SESSION_START, handle_payload, sizeof(handle_payload));
         ASSERT_EQUAL(SESSION_STATE_ACTIVE, uci_sessions[slot].session_state);
@@ -429,14 +434,14 @@ int main() {
     TEST_CASE(android_radar_commands);
     {
         unsigned char set_payload[] = {
-            0x00, 0x00, 0x00, 0x05, // session handle
+            0x05, 0x00, 0x00, 0x00, // session handle
             0x01,                   // number of TLVs
             0x01, 0x01, 0xAA        // cfg_id, len, value
         };
         send_uci_command(COMMAND, COMPLETE, VENDOR_ANDROID, ANDROID_RADAR_SET_APP_CONFIG, set_payload, sizeof(set_payload));
 
         unsigned char get_payload[] = {
-            0x00, 0x00, 0x00, 0x05, // session handle
+            0x05, 0x00, 0x00, 0x00, // session handle
             0x01,                   // number of TLVs
             0x01                    // cfg_id
         };

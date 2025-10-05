@@ -295,25 +295,32 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
         unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
         
         // Decode payload based on MT, GID, and Opcode
+        int decoded = 0;
         if (mt == RESPONSE && gid == CORE) {
             switch(opcode) {
                 case CORE_DEVICE_INFO:
                     decode_core_device_info_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case CORE_GET_CAPS_INFO:
                     decode_core_get_caps_info_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case CORE_SET_CONFIG:
                     decode_core_set_config_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case CORE_GET_CONFIG:
                     decode_core_get_config_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case CORE_DEVICE_RESET:
                     decode_core_device_reset_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case CORE_DEVICE_SUSPEND:
                     decode_core_device_suspend_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 default:
                     printf("    No specific decoder for CORE RESPONSE opcode 0x%02X\n", opcode);
@@ -323,21 +330,27 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
             switch(opcode) {
                 case SESSION_INIT:
                     decode_session_init_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case SESSION_DEINIT:
                     decode_session_deinit_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case SESSION_SET_APP_CONFIG:
                     decode_session_set_app_config_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case SESSION_GET_APP_CONFIG:
                     decode_session_get_app_config_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case SESSION_GET_COUNT:
                     decode_session_get_count_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case SESSION_GET_STATE:
                     decode_session_get_state_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 default:
                     printf("    No specific decoder for SESSION_CONFIG RESPONSE opcode 0x%02X\n", opcode);
@@ -347,12 +360,15 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
             switch(opcode) {
                 case SESSION_START:
                     decode_session_start_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case SESSION_STOP:
                     decode_session_stop_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case SESSION_GET_RANGING_COUNT:
                     decode_session_get_ranging_count_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 default:
                     printf("    No specific decoder for SESSION_CONTROL RESPONSE opcode 0x%02X\n", opcode);
@@ -362,9 +378,11 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
             switch(opcode) {
                 case CORE_DEVICE_STATUS_NTF:
                     decode_core_device_status_ntf(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case CORE_GENERIC_ERROR_NTF:
                     decode_core_generic_error_ntf(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 default:
                     printf("    No specific decoder for CORE NOTIFICATION opcode 0x%02X\n", opcode);
@@ -374,21 +392,35 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
             switch(opcode) {
                 case SESSION_STATUS_NTF:
                     decode_session_status_ntf(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 default:
-                    printf("    No specific decoder for SESSION_CONFIG NOTIFICATION opcode 0x%02X\n", opcode);
+                    // Heuristic: Check if this might be a SESSION_STATUS_NTF with wrong opcode
+                    if (payload_len == 6) {
+                        // SESSION_STATUS_NTF has 6 bytes: session_token(4) + session_state(1) + reason_code(1)
+                        printf("    WARNING: Opcode 0x%02X is not SESSION_STATUS_NTF, but payload structure suggests it might be.\n", opcode);
+                        printf("    Interpreting as SESSION_STATUS_NTF:\n");
+                        decode_session_status_ntf(payload_ptr, (int)payload_len);
+                        decoded = 1;
+                        printf("    NOTE: This suggests possible firmware bug or packet corruption.\n");
+                    } else {
+                        printf("    No specific decoder for SESSION_CONFIG NOTIFICATION opcode 0x%02X\n", opcode);
+                    }
                     break;
             }
         } else if (mt == NOTIFICATION && gid == SESSION_CONTROL) {
             switch(opcode) {
                 case SESSION_INFO_NTF:
                     decode_session_info_ntf(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case SESSION_DATA_CREDIT_NTF:
                     decode_session_data_credit_ntf(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 case SESSION_DATA_TRANSFER_STATUS_NTF:
                     decode_session_data_transfer_status_ntf(payload_ptr, (int)payload_len);
+                    decoded = 1;
                     break;
                 default:
                     printf("    No specific decoder for SESSION_CONTROL NOTIFICATION opcode 0x%02X\n", opcode);
@@ -396,8 +428,22 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
             }
         } else if (gid == TEST || gid == VENDOR_ANDROID) {
             printf("    Decoder not implemented for TEST/VENDOR_ANDROID packets\n");
+            decoded = 1;
         } else {
             printf("    No specific decoder for MT=%d, GID=%d, OP=0x%02X\n", mt, gid, opcode);
+        }
+        
+        // If no decoder matched, provide generic information
+        if (!decoded && payload_len > 0) {
+            printf("    Unrecognized packet type - providing generic analysis:\n");
+            printf("    Payload bytes: ");
+            for (size_t i = 0; i < payload_len && i < 32; i++) {
+                printf("%02X ", payload_ptr[i]);
+            }
+            if (payload_len > 32) {
+                printf("...(and %u more bytes)", (unsigned int)(payload_len - 32));
+            }
+            printf("\n");
         }
     }
     
@@ -2784,5 +2830,3 @@ void decode_session_data_transfer_status_ntf(unsigned char* payload, int payload
         printf("\n");
     }
 }
-
-// Simple response decoders (basic implementations)

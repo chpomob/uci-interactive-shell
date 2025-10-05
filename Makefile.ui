@@ -1,0 +1,143 @@
+# Makefile for UCI UI Enhancements
+#
+# This Makefile provides targets for building and testing the UI enhancements
+# for the UCI Interactive Shell.
+
+# Compiler and flags
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c11 -I./include
+LDFLAGS = -lreadline
+
+# Source files
+SRC_DIR = src
+INC_DIR = include
+BUILD_DIR = build
+
+# Main application sources
+MAIN_SRC = $(SRC_DIR)/main.c $(SRC_DIR)/uci.c $(SRC_DIR)/uci_config_manager.c \
+           $(SRC_DIR)/uci_hw.c $(SRC_DIR)/uci_hw_interface.c $(SRC_DIR)/uci_hw_chardev.c
+
+# UI enhancement sources
+UI_SRC = $(SRC_DIR)/uci_ui.c $(SRC_DIR)/uci_ui_main_patch.c
+
+# Test sources
+TEST_SRC_DIR = .
+TESTS = test_ui_enhancements test_ansi_codes test_ui_integration \
+        demo_enhanced_ui ui_enhancement_comparison
+
+# Default target
+.PHONY: all
+all: help
+
+# Help target
+.PHONY: help
+help:
+	@echo "UCI UI Enhancement Makefile"
+	@echo "============================="
+	@echo "Available targets:"
+	@echo "  help              - Show this help message"
+	@echo "  build-demo        - Build the enhanced UI demo"
+	@echo "  build-tests       - Build all test programs"
+	@echo "  test              - Run all tests"
+	@echo "  clean             - Clean build artifacts"
+	@echo ""
+	@echo "Individual test targets:"
+	@echo "  test-ui-basic     - Test basic UI functions"
+	@echo "  test-ansi         - Test ANSI codes"
+	@echo "  test-integration  - Test UI integration"
+	@echo "  demo-enhanced     - Run enhanced UI demo"
+	@echo "  demo-comparison   - Run UI comparison demo"
+
+# Create build directory
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+# Build the enhanced UI demo
+.PHONY: build-demo
+build-demo: $(BUILD_DIR)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/demo_enhanced_ui $(TEST_SRC_DIR)/demo_enhanced_ui.c $(UI_SRC)
+
+# Build all test programs
+.PHONY: build-tests
+build-tests: $(BUILD_DIR)
+	@echo "Building test programs..."
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/test_ui_enhancements $(TEST_SRC_DIR)/test_ui_enhancements.c $(UI_SRC)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/test_ansi_codes $(TEST_SRC_DIR)/test_ansi_codes.c $(UI_SRC)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/test_ui_integration $(TEST_SRC_DIR)/test_ui_integration.c $(UI_SRC) $(SRC_DIR)/uci_ui_main_patch.c
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/demo_enhanced_ui $(TEST_SRC_DIR)/demo_enhanced_ui.c $(UI_SRC) $(SRC_DIR)/uci_ui_main_patch.c
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/ui_enhancement_comparison $(TEST_SRC_DIR)/ui_enhancement_comparison.c $(UI_SRC) $(SRC_DIR)/uci_ui_main_patch.c
+	@echo "Test programs built successfully in $(BUILD_DIR)/"
+
+# Run all tests
+.PHONY: test
+test: build-tests
+	@echo "Running UI enhancement tests..."
+	@echo ""
+	@echo "=== Test 1: Basic UI Functions ==="
+	$(BUILD_DIR)/test_ui_enhancements
+	@echo ""
+	@echo "=== Test 2: ANSI Codes ==="
+	$(BUILD_DIR)/test_ansi_codes
+	@echo ""
+	@echo "=== Test 3: UI Integration ==="
+	$(BUILD_DIR)/test_ui_integration
+	@echo ""
+	@echo "=== Demo 1: Enhanced UI Demo ==="
+	$(BUILD_DIR)/demo_enhanced_ui
+	@echo ""
+	@echo "=== Demo 2: UI Comparison ==="
+	$(BUILD_DIR)/ui_enhancement_comparison
+	@echo ""
+	@echo "All tests completed successfully!"
+
+# Individual test targets
+.PHONY: test-ui-basic
+test-ui-basic: $(BUILD_DIR)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/test_ui_enhancements $(TEST_SRC_DIR)/test_ui_enhancements.c $(UI_SRC)
+	$(BUILD_DIR)/test_ui_enhancements
+
+.PHONY: test-ansi
+test-ansi: $(BUILD_DIR)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/test_ansi_codes $(TEST_SRC_DIR)/test_ansi_codes.c $(UI_SRC)
+	$(BUILD_DIR)/test_ansi_codes
+
+.PHONY: test-integration
+test-integration: $(BUILD_DIR)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/test_ui_integration $(TEST_SRC_DIR)/test_ui_integration.c $(UI_SRC) $(SRC_DIR)/uci_ui_main_patch.c
+	$(BUILD_DIR)/test_ui_integration
+
+.PHONY: demo-enhanced
+demo-enhanced: $(BUILD_DIR)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/demo_enhanced_ui $(TEST_SRC_DIR)/demo_enhanced_ui.c $(UI_SRC) $(SRC_DIR)/uci_ui_main_patch.c
+	$(BUILD_DIR)/demo_enhanced_ui
+
+.PHONY: demo-comparison
+demo-comparison: $(BUILD_DIR)
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/ui_enhancement_comparison $(TEST_SRC_DIR)/ui_enhancement_comparison.c $(UI_SRC) $(SRC_DIR)/uci_ui_main_patch.c
+	$(BUILD_DIR)/ui_enhancement_comparison
+
+# Clean build artifacts
+.PHONY: clean
+clean:
+	rm -rf $(BUILD_DIR)
+	@echo "Cleaned build artifacts."
+
+# Install UI enhancements into main application
+.PHONY: install
+install:
+	@echo "Installing UI enhancements into main application..."
+	@echo "Please follow the instructions in UI_ENHANCEMENT_PATCH.md"
+	@echo "to manually integrate the UI enhancements into src/main.c"
+
+# Show what files were created
+.PHONY: status
+status:
+	@echo "UCI UI Enhancement Files:"
+	@echo "=========================="
+	@ls -la $(INC_DIR)/uci_ui*.h 2>/dev/null || echo "No header files found"
+	@ls -la $(SRC_DIR)/uci_ui*.c 2>/dev/null || echo "No source files found"
+	@ls -la *_patch* 2>/dev/null || echo "No patch files found"
+	@ls -la *demo* 2>/dev/null || echo "No demo files found"
+	@ls -la *test* 2>/dev/null || echo "No test files found"
+	@ls -la *comparison* 2>/dev/null || echo "No comparison files found"
+	@ls -la *.md 2>/dev/null | grep -i ui || echo "No UI documentation found"

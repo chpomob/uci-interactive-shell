@@ -20,6 +20,7 @@ void increment_session_ranging_count(int session_idx);
 void handle_session_info_ntf(unsigned char* payload, int payload_len);
 void uci_process_pending_notifications();
 
+size_t uci_build_core_capabilities_payload(unsigned char* buffer, size_t max_len);
 void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid, unsigned char* payload, int payload_len);
 void parse_uci_packet(unsigned char* packet, size_t packet_len);
 

@@ -431,6 +431,105 @@ int main() {
 
         TEST_PASS();
     }
+    // Verify capability payload exposes rich Android-aligned TLVs
+    TEST_CASE(core_caps_info_payload_shape);
+    {
+        unsigned char caps_payload[255] = {0};
+        size_t payload_len = uci_build_core_capabilities_payload(caps_payload, sizeof(caps_payload));
+
+        if (payload_len <= 2) {
+            TEST_FAIL("Capability payload length too small");
+            goto test_case_end_caps_info_payload_shape;
+        }
+
+        if (caps_payload[0] != UCI_STATUS_OK) {
+            TEST_FAIL("Capability status not OK");
+            goto test_case_end_caps_info_payload_shape;
+        }
+
+        unsigned char num_tlvs = caps_payload[1];
+        if (num_tlvs < 10) {
+            TEST_FAIL("Expected at least 10 capability TLVs");
+            goto test_case_end_caps_info_payload_shape;
+        }
+
+        size_t offset = 2;
+        int found_phy = 0;
+        int found_mac = 0;
+        int found_sts = 0;
+        int found_max_msg = 0;
+        int found_max_data = 0;
+
+        for (unsigned char tlv_index = 0; tlv_index < num_tlvs; tlv_index++) {
+            if (offset + 2 > payload_len) {
+                TEST_FAIL("Truncated TLV header in capability payload");
+                goto test_case_end_caps_info_payload_shape;
+            }
+
+            unsigned char tlv_type = caps_payload[offset];
+            unsigned char tlv_len = caps_payload[offset + 1];
+            offset += 2;
+
+            if (offset + tlv_len > payload_len) {
+                TEST_FAIL("Truncated TLV value in capability payload");
+                goto test_case_end_caps_info_payload_shape;
+            }
+
+            const unsigned char* value = &caps_payload[offset];
+
+            switch (tlv_type) {
+                case SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE:
+                    if (tlv_len != 4 || value[0] != 0x01 || value[1] != 0x00 ||
+                        value[2] != 0x02 || value[3] != 0x00) {
+                        TEST_FAIL("Unexpected PHY version range values");
+                        goto test_case_end_caps_info_payload_shape;
+                    }
+                    found_phy = 1;
+                    break;
+                case SUPPORTED_V1_FIRA_MAC_VERSION_RANGE_V2_MAX_DATA_PAYLOAD_SIZE:
+                    if (tlv_len != 4 || value[0] != 0x01 || value[1] != 0x00 ||
+                        value[2] != 0x02 || value[3] != 0x00) {
+                        TEST_FAIL("Unexpected MAC version range values");
+                        goto test_case_end_caps_info_payload_shape;
+                    }
+                    found_mac = 1;
+                    break;
+                case SUPPORTED_V1_STS_CONFIG_V2_DEVICE_TYPE:
+                    if (tlv_len != 1 || value[0] != 0x07) {
+                        TEST_FAIL("Unexpected STS config mask");
+                        goto test_case_end_caps_info_payload_shape;
+                    }
+                    found_sts = 1;
+                    break;
+                case SUPPORTED_V1_MAX_MESSAGE_SIZE_V2_ASSIGNED:
+                    if (tlv_len != 2 || value[0] != 0x00 || value[1] != 0x04) {
+                        TEST_FAIL("Unexpected max message size");
+                        goto test_case_end_caps_info_payload_shape;
+                    }
+                    found_max_msg = 1;
+                    break;
+                case SUPPORTED_V1_MAX_DATA_PACKET_PAYLOAD_SIZE_V2_SESSION_KEY_LENGTH:
+                    if (tlv_len != 2 || value[0] != 0x10 || value[1] != 0x01) {
+                        TEST_FAIL("Unexpected max data payload size");
+                        goto test_case_end_caps_info_payload_shape;
+                    }
+                    found_max_data = 1;
+                    break;
+                default:
+                    break;
+            }
+
+            offset += tlv_len;
+        }
+
+        if (!found_phy || !found_mac || !found_sts || !found_max_msg || !found_max_data) {
+            TEST_FAIL("Missing expected capability TLVs");
+            goto test_case_end_caps_info_payload_shape;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_caps_info_payload_shape:;
     // Test radar-specific Android vendor commands
     TEST_CASE(android_radar_commands);
     {

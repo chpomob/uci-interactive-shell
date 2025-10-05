@@ -58,6 +58,62 @@ static char g_hardware_device_path[256] = "/dev/ttyUSB0";  // Default device pat
 static unsigned long long g_fake_timestamp = 0;
 static unsigned int g_session_handle_counter = 1;
 
+typedef struct {
+    uint8_t type;
+    uint8_t length;
+    const uint8_t* value;
+} capability_tlv_entry_t;
+
+#define CAP_ENTRY(type_id, array_literal) \
+    { (uint8_t)(type_id), (uint8_t)sizeof(array_literal), (array_literal) }
+
+// Capability payload values derived from Android's default UWBS capabilities.
+static const uint8_t kCapPhyVersionRange[] = {0x01, 0x00, 0x02, 0x00};
+static const uint8_t kCapMacVersionRange[] = {0x01, 0x00, 0x02, 0x00};
+static const uint8_t kCapDeviceRoles[] = {0x03};
+static const uint8_t kCapRangingMethods[] = {0x07};
+static const uint8_t kCapStsConfig[] = {0x07};
+static const uint8_t kCapMultiNodeModes[] = {0x07};
+static const uint8_t kCapRangingTimeStruct[] = {0x03};
+static const uint8_t kCapScheduledMode[] = {0x03};
+static const uint8_t kCapHoppingMode[] = {0x03};
+static const uint8_t kCapBlockStriding[] = {0x01};
+static const uint8_t kCapUwbInitiationTime[] = {0x32, 0x00};
+static const uint8_t kCapChannels[] = {0x20, 0x08, 0x00};
+static const uint8_t kCapRframeConfig[] = {0x07};
+static const uint8_t kCapCcConstraintLength[] = {0x02};
+static const uint8_t kCapBprfParameterSets[] = {0x1F};
+static const uint8_t kCapHprfParameterSets[] = {0x03};
+static const uint8_t kCapAoaSupport[] = {0x07};
+static const uint8_t kCapExtendedMacAddress[] = {0x01};
+static const uint8_t kCapMaxMessageSize[] = {0x00, 0x04};
+static const uint8_t kCapMaxDataPayloadSize[] = {0x10, 0x01};
+
+static const capability_tlv_entry_t kDefaultCapabilityTlvs[] = {
+    CAP_ENTRY(SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE, kCapPhyVersionRange),
+    CAP_ENTRY(SUPPORTED_V1_FIRA_MAC_VERSION_RANGE_V2_MAX_DATA_PAYLOAD_SIZE, kCapMacVersionRange),
+    CAP_ENTRY(SUPPORTED_V1_DEVICE_ROLES_V2_FIRA_PHY_VERSION_RANGE, kCapDeviceRoles),
+    CAP_ENTRY(SUPPORTED_V1_RANGING_METHOD_V2_FIRA_MAC_VERSION_RANGE, kCapRangingMethods),
+    CAP_ENTRY(SUPPORTED_V1_STS_CONFIG_V2_DEVICE_TYPE, kCapStsConfig),
+    CAP_ENTRY(SUPPORTED_V1_MULTI_NODE_MODES_V2_DEVICE_ROLES, kCapMultiNodeModes),
+    CAP_ENTRY(SUPPORTED_V1_RANGING_TIME_STRUCT_V2_RANGING_METHOD, kCapRangingTimeStruct),
+    CAP_ENTRY(SUPPORTED_V1_SCHEDULED_MODE_V2_STS_CONFIG, kCapScheduledMode),
+    CAP_ENTRY(SUPPORTED_V1_HOPPING_MODE_V2_MULTI_NODE_MODE, kCapHoppingMode),
+    CAP_ENTRY(SUPPORTED_V1_BLOCK_STRIDING_V2_RANGING_TIME_STRUCT, kCapBlockStriding),
+    CAP_ENTRY(SUPPORTED_V1_UWB_INITIATION_TIME_V2_SCHEDULE_MODE, kCapUwbInitiationTime),
+    CAP_ENTRY(SUPPORTED_V1_CHANNELS_V2_HOPPING_MODE, kCapChannels),
+    CAP_ENTRY(SUPPORTED_V1_RFRAME_CONFIG_V2_BLOCK_STRIDING, kCapRframeConfig),
+    CAP_ENTRY(SUPPORTED_V1_CC_CONSTRAINT_LENGTH_V2_UWB_INITIATION_TIME, kCapCcConstraintLength),
+    CAP_ENTRY(SUPPORTED_V1_BPRF_PARAMETER_SETS_V2_CHANNELS, kCapBprfParameterSets),
+    CAP_ENTRY(SUPPORTED_V1_HPRF_PARAMETER_SETS_V2_RFRAME_CONFIG, kCapHprfParameterSets),
+    CAP_ENTRY(SUPPORTED_V1_AOA_V2_AOA_SUPPORT, kCapAoaSupport),
+    CAP_ENTRY(SUPPORTED_V1_EXTENDED_MAC_ADDRESS_V2_EXTENDED_MAC_ADDRESS, kCapExtendedMacAddress),
+    CAP_ENTRY(SUPPORTED_V1_MAX_MESSAGE_SIZE_V2_ASSIGNED, kCapMaxMessageSize),
+    CAP_ENTRY(SUPPORTED_V1_MAX_DATA_PACKET_PAYLOAD_SIZE_V2_SESSION_KEY_LENGTH, kCapMaxDataPayloadSize),
+};
+
+static const size_t kDefaultCapabilityTlvsCount = sizeof(kDefaultCapabilityTlvs) / sizeof(kDefaultCapabilityTlvs[0]);
+
 #define MAX_PENDING_NOTIFICATIONS 16
 typedef struct {
     unsigned char data[sizeof(struct uci_packet_header) + MAX_RESPONSE_PAYLOAD_LEN];
@@ -84,6 +140,35 @@ static int notification_queue_empty() {
 
 static int notification_queue_full() {
     return ((g_notification_tail + 1) % MAX_PENDING_NOTIFICATIONS) == g_notification_head;
+}
+
+size_t uci_build_core_capabilities_payload(unsigned char* buffer, size_t max_len) {
+    if (buffer == NULL || max_len < 2) {
+        return 0;
+    }
+
+    size_t required = 2; // status + TLV count
+    for (size_t i = 0; i < kDefaultCapabilityTlvsCount; i++) {
+        required += 2 + kDefaultCapabilityTlvs[i].length;
+    }
+
+    if (required > max_len) {
+        return 0;
+    }
+
+    size_t offset = 0;
+    buffer[offset++] = UCI_STATUS_OK;
+    buffer[offset++] = (uint8_t)kDefaultCapabilityTlvsCount;
+
+    for (size_t i = 0; i < kDefaultCapabilityTlvsCount; i++) {
+        const capability_tlv_entry_t* entry = &kDefaultCapabilityTlvs[i];
+        buffer[offset++] = entry->type;
+        buffer[offset++] = entry->length;
+        memcpy(buffer + offset, entry->value, entry->length);
+        offset += entry->length;
+    }
+
+    return offset;
 }
 
 static void enqueue_notification(unsigned char gid, unsigned char oid, const unsigned char* payload, size_t payload_len) {
@@ -663,10 +748,19 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         memcpy(response_packet + sizeof(struct uci_packet_header), device_info_rsp_payload, sizeof(device_info_rsp_payload));
         response_header->payload_len = sizeof(device_info_rsp_payload);
     } else if (gid == CORE && oid == CORE_GET_CAPS_INFO) {
-        // Simulate a CORE_GET_CAPS_INFO_RSP
-        unsigned char caps_rsp_payload[] = {UCI_STATUS_OK, 0x01, SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE, 0x02, 0x01, 0x00};
-        memcpy(response_packet + sizeof(struct uci_packet_header), caps_rsp_payload, sizeof(caps_rsp_payload));
-        response_header->payload_len = sizeof(caps_rsp_payload);
+        unsigned char caps_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
+        size_t caps_payload_len = uci_build_core_capabilities_payload(
+            caps_rsp_payload,
+            sizeof(caps_rsp_payload));
+
+        if (caps_payload_len == 0) {
+            // Fallback to simple status to avoid emitting a malformed packet.
+            caps_rsp_payload[0] = UCI_STATUS_FAILED;
+            caps_payload_len = 1;
+        }
+
+        memcpy(response_packet + sizeof(struct uci_packet_header), caps_rsp_payload, caps_payload_len);
+        response_header->payload_len = (unsigned char)caps_payload_len;
     } else if (gid == CORE && oid == CORE_QUERY_UWBS_TIMESTAMP) {
         unsigned char timestamp_rsp[9];
         timestamp_rsp[0] = UCI_STATUS_OK;

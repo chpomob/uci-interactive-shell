@@ -5,3 +5,8 @@
 uci-shell
 test_config_manager
 test_hw_interface
+test_session_manager
+*.gcda
+*.gcno
+*.gcov
+coverage/

@@ -12,7 +12,7 @@ CONFIG_TEST_TARGET=test_config_manager
 HW_INTERFACE_TEST_TARGET=test_hw_interface
 SESSION_MANAGER_TEST_TARGET=test_session_manager
 
-.PHONY: all clean install test unit-test config-test hw-interface-test session-manager-test
+.PHONY: all clean install test unit-test config-test hw-interface-test session-manager-test coverage
 
 all: $(TARGET) unit-test config-test hw-interface-test session-manager-test
 
@@ -24,6 +24,8 @@ src/uci.o: src/uci.c include/uci.h include/uci_functions.h
 
 clean:
 	rm -f $(OBJ) $(TARGET) $(TEST_TARGET) $(UNIT_TEST_TARGET) $(CONFIG_TEST_TARGET) $(SESSION_MANAGER_TEST_TARGET) tests/*.o tests/*.d
+	rm -f src/*.gcno src/*.gcda tests/*.gcno tests/*.gcda *.gcov *.gcda *.gcno
+	rm -rf coverage
 
 install: $(TARGET)
 	install -m 755 $(TARGET) /usr/local/bin/uci-shell
@@ -65,3 +67,11 @@ tests/test_uci_functions.o: tests/test_uci_functions.c tests/test_runner.h inclu
 tests/test_config_manager.o: tests/test_config_manager.c tests/test_runner.h include/uci.h include/uci_config_manager.h
 tests/test_hw_interface.o: tests/test_hw_interface.c tests/test_runner.h include/uci.h include/uci_hw_interface.h
 tests/test_session_manager.o: tests/test_session_manager.c tests/test_runner.h include/uci.h include/uci_functions.h
+
+coverage: clean
+	$(MAKE) CFLAGS="$(CFLAGS) --coverage" LIBS="$(LIBS) --coverage" unit-test config-test session-manager-test
+	mkdir -p coverage
+	gcov -o src src/*.gcno > coverage/src_coverage.txt
+	gcov -o tests tests/*.gcno > coverage/tests_coverage.txt
+	mv -f *.gcov coverage/ 2>/dev/null || true
+	@echo "Coverage reports written to coverage/src_coverage.txt and coverage/tests_coverage.txt"

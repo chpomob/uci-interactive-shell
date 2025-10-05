@@ -201,6 +201,7 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
     unsigned char pbf = get_pbf(header);
     unsigned char mt = get_mt(header);
     unsigned char opcode = get_opcode(header);
+    unsigned char opcode_reserved_bits = get_reserved_opcode_bits(header);
     unsigned char payload_len = header->payload_len;
 
     printf("  Message Type (MT): 0x%01X", mt);
@@ -273,6 +274,9 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
         printf(" (VENDOR_ANDROID_CMD_0x%02X)", opcode);
     } else {
         printf(" (UNKNOWN_OPCODE)");
+    }
+    if (opcode_reserved_bits) {
+        printf(" (reserved bits=0x%01X)", opcode_reserved_bits);
     }
     printf("\n");
 

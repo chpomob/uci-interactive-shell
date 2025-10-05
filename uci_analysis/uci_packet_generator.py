@@ -71,9 +71,9 @@ def create_uci_header(message_type, group_id, opcode, payload_length=0):
     # In binary format: [GID:4][PBF:1][MT:3]
     # So we need: (GID & 0x0F) | ((PBF & 0x01) << 4) | ((MT & 0x07) << 5)
     first_byte = (group_id & 0x0F) | ((0 & 0x01) << 4) | ((message_type & 0x07) << 5)
-    
-    # Second byte: [6 bits opcode][2 reserved bits] 
-    second_byte = ((opcode & 0x3F) << 2)  # opcode shifted left 2 bits
+
+    # Second byte: [6 bits opcode][2 reserved bits] with opcode in LSBs
+    second_byte = (opcode & 0x3F)
     
     # For control packets: [first_byte][second_byte][reserved][payload_length]
     header = struct.pack('<BBBB', first_byte, second_byte, 0, payload_length)
@@ -119,10 +119,11 @@ def print_packet(name, packet_bytes):
         gid = first_byte & 0x0F          # Lower 4 bits
         pbf = (first_byte >> 4) & 0x01   # Bit 4
         mt = (first_byte >> 5) & 0x07    # Upper 3 bits
-        opcode = (second_byte >> 2) & 0x3F  # Upper 6 bits of second byte
-        
+        opcode = second_byte & 0x3F         # Lower 6 bits of second byte
+        reserved_bits = (second_byte >> 6) & 0x03
+
         print(f"  First byte (0x{first_byte:02x}): GID={gid}, PBF={pbf}, MT={mt}")
-        print(f"  Second byte (0x{second_byte:02x}): opcode={opcode}, reserved=0x{(second_byte & 0x03):02x}")
+        print(f"  Second byte (0x{second_byte:02x}): opcode={opcode}, reserved=0x{reserved_bits:02x}")
         print(f"  Third byte (0x{reserved:02x}): reserved")
         print(f"  Fourth byte (0x{payload_len:02x}): payload length")
         print(f"  MT: {mt} ({list(MESSAGE_TYPE.keys())[list(MESSAGE_TYPE.values()).index(mt)]})")

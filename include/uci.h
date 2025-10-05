@@ -6,13 +6,13 @@
 
 // UCI Packet Header - aligned with Android UWB specification
 // For control packets (COMMAND, RESPONSE, NOTIFICATION):
-// Byte 0: [GID:4][PBF:1][MT:3] = GID | (PBF << 4) | (MT << 5)
-// Byte 1: [Opcode:6][R:2] = (Opcode << 2) 
+// Byte 0: [GID:4][PBF:1][MT:3] where GID occupies the least significant bits
+// Byte 1: [Opcode:6][R:2] where Opcode occupies the least significant bits
 // Byte 2: Reserved
 // Byte 3: Payload Length
 struct uci_packet_header {
     unsigned char first_byte;   // GID | (PBF << 4) | (MT << 5)
-    unsigned char second_byte;  // (Opcode << 2) 
+    unsigned char second_byte;  // Opcode in bits[5:0], reserved bits[7:6]
     unsigned char reserved2;    // Reserved
     unsigned char payload_len;  // Payload length
 };
@@ -44,7 +44,7 @@ static inline void set_header_values(struct uci_packet_header *header,
                                     unsigned char opcode_id,
                                     unsigned char payload_length) {
     header->first_byte = group_id | (packet_boundary << 4) | (message_type << 5);
-    header->second_byte = (opcode_id << 2);  // opcode shifted left 2 bits
+    header->second_byte = (opcode_id & 0x3F);  // opcode occupies lower 6 bits
     header->reserved2 = 0;
     header->payload_len = payload_length;
 }
@@ -63,7 +63,11 @@ static inline unsigned char get_mt(const struct uci_packet_header *header) {
 }
 
 static inline unsigned char get_opcode(const struct uci_packet_header *header) {
-    return (header->second_byte >> 2) & 0x3F;
+    return header->second_byte & 0x3F;
+}
+
+static inline unsigned char get_reserved_opcode_bits(const struct uci_packet_header *header) {
+    return (header->second_byte >> 6) & 0x03;
 }
 
 // UCI packet analysis function

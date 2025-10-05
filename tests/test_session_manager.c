@@ -148,12 +148,12 @@ int main() {
         ASSERT_EQUAL(1, uci_sessions[0].num_configs);
         
         // Retrieve config
-        unsigned char retrieved_value;
-        unsigned char retrieved_len;
-        int result = get_session_config(0, DEVICE_STATE, &retrieved_value, &retrieved_len);
-        
+        unsigned char retrieved_value[MAX_SESSION_CONFIG_VALUE_SIZE] = {0};
+        unsigned char retrieved_len = (unsigned char)sizeof(retrieved_value);
+        int result = get_session_config(0, DEVICE_STATE, retrieved_value, &retrieved_len);
+
         ASSERT_EQUAL(1, result);  // Successful retrieval
-        ASSERT_EQUAL(test_value, retrieved_value);
+        ASSERT_EQUAL(test_value, retrieved_value[0]);
         ASSERT_EQUAL(test_len, retrieved_len);
         TEST_PASS();
     }
@@ -170,9 +170,9 @@ int main() {
         uci_sessions[0].session_state = SESSION_STATE_ACTIVE;
         
         // Try to get config that hasn't been set
-        unsigned char retrieved_value;
-        unsigned char retrieved_len;
-        int result = get_session_config(0, RANGING_ROUND_USAGE, &retrieved_value, &retrieved_len);
+        unsigned char retrieved_value[MAX_SESSION_CONFIG_VALUE_SIZE] = {0};
+        unsigned char retrieved_len = (unsigned char)sizeof(retrieved_value);
+        int result = get_session_config(0, RANGING_ROUND_USAGE, retrieved_value, &retrieved_len);
         
         ASSERT_EQUAL(0, result);  // Not found
         ASSERT_EQUAL(0, retrieved_len);  // Length should be 0
@@ -204,17 +204,22 @@ int main() {
         ASSERT_EQUAL(3, uci_sessions[0].num_configs);
         
         // Retrieve each config
-        unsigned char retrieved_val;
-        unsigned char retrieved_len;
-        
-        ASSERT_EQUAL(1, get_session_config(0, DEVICE_STATE, &retrieved_val, &retrieved_len));
-        ASSERT_EQUAL(0x01, retrieved_val);
-        
-        ASSERT_EQUAL(1, get_session_config(0, CHANNEL_NUMBER, &retrieved_val, &retrieved_len));
-        ASSERT_EQUAL(0x02, retrieved_val);
-        
-        ASSERT_EQUAL(1, get_session_config(0, DEVICE_ROLE, &retrieved_val, &retrieved_len));
-        ASSERT_EQUAL(0x03, retrieved_val);
+        unsigned char retrieved_val[MAX_SESSION_CONFIG_VALUE_SIZE] = {0};
+        unsigned char retrieved_len = (unsigned char)sizeof(retrieved_val);
+
+        ASSERT_EQUAL(1, get_session_config(0, DEVICE_STATE, retrieved_val, &retrieved_len));
+        ASSERT_EQUAL(1, retrieved_len);
+        ASSERT_EQUAL(0x01, retrieved_val[0]);
+
+        retrieved_len = (unsigned char)sizeof(retrieved_val);
+        ASSERT_EQUAL(1, get_session_config(0, CHANNEL_NUMBER, retrieved_val, &retrieved_len));
+        ASSERT_EQUAL(1, retrieved_len);
+        ASSERT_EQUAL(0x02, retrieved_val[0]);
+
+        retrieved_len = (unsigned char)sizeof(retrieved_val);
+        ASSERT_EQUAL(1, get_session_config(0, DEVICE_ROLE, retrieved_val, &retrieved_len));
+        ASSERT_EQUAL(1, retrieved_len);
+        ASSERT_EQUAL(0x03, retrieved_val[0]);
         TEST_PASS();
     }
     test_case_end_9:;

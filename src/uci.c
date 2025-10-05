@@ -853,6 +853,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             uci_sessions[session_idx].session_state = SESSION_STATE_INIT;
             uci_sessions[session_idx].is_allocated = 1;
             uci_sessions[session_idx].num_configs = 0;
+            memset(uci_sessions[session_idx].configs, 0, sizeof(uci_sessions[session_idx].configs));
             uci_sessions[session_idx].session_handle = session_handle;
             uci_sessions[session_idx].ranging_count = 0;
 
@@ -886,8 +887,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             session->session_handle = 0;
             session->ranging_count = 0;
             session->num_configs = 0;
-            memset(session->config_values, 0, sizeof(session->config_values));
-            memset(session->config_lengths, 0, sizeof(session->config_lengths));
+            memset(session->configs, 0, sizeof(session->configs));
         } else {
             unsigned char err = UCI_STATUS_INVALID_PARAM;
             enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
@@ -1119,35 +1119,48 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         }
 
         unsigned char get_app_cfg_rsp[MAX_RESPONSE_PAYLOAD_LEN] = {0};
-        unsigned char response_len = (unsigned char)(2 + (cfg_count * 3));
-        get_app_cfg_rsp[0] = (cfg_count > 0 && session_idx >= 0) ? UCI_STATUS_OK : UCI_STATUS_INVALID_PARAM;
-        get_app_cfg_rsp[1] = cfg_count;
-        if (get_app_cfg_rsp[0] != UCI_STATUS_OK) {
+        unsigned char status = (session_idx >= 0) ? UCI_STATUS_OK : UCI_STATUS_INVALID_PARAM;
+        unsigned char returned_cfgs = 0;
+        size_t response_len = 2;
+
+        if (status != UCI_STATUS_OK) {
             unsigned char err = UCI_STATUS_INVALID_PARAM;
             enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
         }
 
-        int response_offset = 2;
         for (unsigned char i = 0; i < cfg_count; i++) {
             unsigned char cfg_id = payload[5 + i];
-            unsigned char value = 0;
-            unsigned char len = 0;
+            unsigned char value_buf[MAX_SESSION_CONFIG_VALUE_SIZE];
+            unsigned char value_len = MAX_SESSION_CONFIG_VALUE_SIZE;
+            unsigned char copy_len = 0;
 
-            if (session_idx >= 0 && get_session_config(session_idx, cfg_id, &value, &len) && len > 0) {
-                get_app_cfg_rsp[response_offset] = cfg_id;
-                get_app_cfg_rsp[response_offset + 1] = 1; // current storage is single-byte per config
-                get_app_cfg_rsp[response_offset + 2] = value;
-            } else {
-                get_app_cfg_rsp[response_offset] = cfg_id;
-                get_app_cfg_rsp[response_offset + 1] = 1;
-                get_app_cfg_rsp[response_offset + 2] = 0;
+            if (session_idx >= 0 &&
+                get_session_config(session_idx, cfg_id, value_buf, &value_len) && value_len > 0) {
+                copy_len = value_len;
             }
 
-            response_offset += 3;
+            size_t required = 2 + copy_len;
+            if (response_len + required > MAX_RESPONSE_PAYLOAD_LEN) {
+                status = UCI_STATUS_INVALID_PARAM;
+                unsigned char err = UCI_STATUS_INVALID_PARAM;
+                enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
+                break;
+            }
+
+            get_app_cfg_rsp[response_len] = cfg_id;
+            get_app_cfg_rsp[response_len + 1] = copy_len;
+            if (copy_len > 0) {
+                memcpy(&get_app_cfg_rsp[response_len + 2], value_buf, copy_len);
+            }
+            response_len += required;
+            returned_cfgs++;
         }
 
+        get_app_cfg_rsp[0] = status;
+        get_app_cfg_rsp[1] = returned_cfgs;
+
         memcpy(response_packet + sizeof(struct uci_packet_header), get_app_cfg_rsp, response_len);
-        response_header->payload_len = response_len;
+        response_header->payload_len = (unsigned char)response_len;
     } else if (gid == TEST) {
         if (oid == TEST_RF_SET_CONFIG) {
             unsigned char rf_set_rsp[] = {UCI_STATUS_OK, 0x00};
@@ -1396,8 +1409,7 @@ void init_uci_sessions() {
         uci_sessions[i].num_configs = 0;
         uci_sessions[i].session_handle = 0;
         uci_sessions[i].ranging_count = 0;
-        memset(uci_sessions[i].config_values, 0, sizeof(uci_sessions[i].config_values));
-        memset(uci_sessions[i].config_lengths, 0, sizeof(uci_sessions[i].config_lengths));
+        memset(uci_sessions[i].configs, 0, sizeof(uci_sessions[i].configs));
     }
 }
 
@@ -1474,23 +1486,33 @@ void store_session_config(int session_idx, unsigned char cfg_id, unsigned char* 
         printf("Error: Zero length configuration value in store_session_config\n");
         return;
     }
-    if (cfg_id >= sizeof(uci_sessions[session_idx].config_values)) {
-        printf("Error: Invalid configuration ID 0x%02X in store_session_config\n", cfg_id);
-        return;
+
+    struct uci_session* session = &uci_sessions[session_idx];
+
+    for (int i = 0; i < MAX_SESSION_CONFIGS; i++) {
+        uci_session_config_entry* entry = &session->configs[i];
+        if (entry->in_use && entry->cfg_id == cfg_id) {
+            entry->length = len;
+            memcpy(entry->value, value, len);
+            return;
+        }
     }
 
-    // Only store first byte as per current design (single-byte placeholder)
-    if (len > 1) {
-        printf("Warning: Configuration value length %d exceeds 1 byte, storing only first byte\n", len);
+    for (int i = 0; i < MAX_SESSION_CONFIGS; i++) {
+        uci_session_config_entry* entry = &session->configs[i];
+        if (!entry->in_use) {
+            entry->in_use = 1;
+            entry->cfg_id = cfg_id;
+            entry->length = len;
+            memcpy(entry->value, value, len);
+            if (session->num_configs < MAX_SESSION_CONFIGS) {
+                session->num_configs++;
+            }
+            return;
+        }
     }
 
-    if (uci_sessions[session_idx].num_configs < MAX_SESSION_CONFIGS &&
-        uci_sessions[session_idx].config_lengths[cfg_id] == 0) {
-        uci_sessions[session_idx].num_configs++;
-    }
-
-    uci_sessions[session_idx].config_values[cfg_id] = value[0];
-    uci_sessions[session_idx].config_lengths[cfg_id] = len;
+    printf("Warning: No space to store session config 0x%02X\n", cfg_id);
 }
 
 // Helper function to get configuration value from session
@@ -1499,24 +1521,31 @@ int get_session_config(int session_idx, unsigned char cfg_id, unsigned char* val
         printf("Error: Invalid session index %d in get_session_config\n", session_idx);
         return 0;
     }
-    if (!value) {
-        printf("Error: Null value pointer in get_session_config\n");
-        return 0;
-    }
     if (!len) {
         printf("Error: Null length pointer in get_session_config\n");
         return 0;
     }
-    if (cfg_id >= sizeof(uci_sessions[session_idx].config_values)) {
-        printf("Error: Invalid configuration ID 0x%02X in get_session_config\n", cfg_id);
-        return 0;
+
+    struct uci_session* session = &uci_sessions[session_idx];
+    for (int i = 0; i < MAX_SESSION_CONFIGS; i++) {
+        uci_session_config_entry* entry = &session->configs[i];
+        if (entry->in_use && entry->cfg_id == cfg_id) {
+            unsigned char available = *len;
+            *len = entry->length;
+            if (value && available > 0) {
+                size_t copy_len = entry->length;
+                if (copy_len > available) {
+                    copy_len = available;
+                    printf("Warning: Buffer too small for session config 0x%02X (need %u bytes)\n",
+                           cfg_id, entry->length);
+                }
+                memcpy(value, entry->value, copy_len);
+            }
+            return 1;
+        }
     }
 
-    *len = uci_sessions[session_idx].config_lengths[cfg_id];
-    if (*len > 0) {
-        value[0] = uci_sessions[session_idx].config_values[cfg_id];
-        return 1;
-    }
+    *len = 0;
     return 0;
 }
 

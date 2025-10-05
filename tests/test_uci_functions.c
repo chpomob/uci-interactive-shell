@@ -253,15 +253,15 @@ int main() {
         }
         
         // Test getting configuration
-        unsigned char retrieved_value = 0;
-        unsigned char retrieved_len = 0;
-        int result = get_session_config(slot, DEVICE_STATE, &retrieved_value, &retrieved_len);
-        
+        unsigned char retrieved_value[MAX_SESSION_CONFIG_VALUE_SIZE] = {0};
+        unsigned char retrieved_len = (unsigned char)sizeof(retrieved_value);
+        int result = get_session_config(slot, DEVICE_STATE, retrieved_value, &retrieved_len);
+
         if (result != 1) {
             TEST_FAIL("Should successfully retrieve config");
             goto test_case_end7;
         }
-        if (retrieved_value != test_value) {
+        if (retrieved_value[0] != test_value) {
             TEST_FAIL("Retrieved value should match stored value");
             goto test_case_end7;
         }
@@ -269,9 +269,10 @@ int main() {
             TEST_FAIL("Retrieved length should match stored length");
             goto test_case_end7;
         }
-        
+
         // Try getting non-existent config
-        result = get_session_config(slot, LOW_POWER_MODE, &retrieved_value, &retrieved_len);
+        retrieved_len = (unsigned char)sizeof(retrieved_value);
+        result = get_session_config(slot, LOW_POWER_MODE, retrieved_value, &retrieved_len);
         if (result != 0) {
             TEST_FAIL("Should not retrieve non-existent config");
             goto test_case_end7;

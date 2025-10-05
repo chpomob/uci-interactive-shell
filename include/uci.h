@@ -19,7 +19,15 @@ struct uci_packet_header {
 
 // UCI Session context structure for tracking session state
 #define MAX_SESSIONS 10
-#define MAX_SESSION_CONFIGS 20
+#define MAX_SESSION_CONFIGS 32
+#define MAX_SESSION_CONFIG_VALUE_SIZE 255
+
+typedef struct {
+    unsigned char cfg_id;
+    unsigned char length;
+    unsigned char value[MAX_SESSION_CONFIG_VALUE_SIZE];
+    unsigned char in_use;
+} uci_session_config_entry;
 
 struct uci_session {
     unsigned int session_id;
@@ -28,8 +36,7 @@ struct uci_session {
     unsigned char is_allocated;  // 1 if session slot is in use, 0 otherwise
     unsigned int session_handle;  // Simulated UWBS-generated session handle
     unsigned short ranging_count; // Tracks completed ranging rounds
-    unsigned char config_values[255];  // Store configuration values
-    unsigned char config_lengths[255]; // Store configuration lengths
+    uci_session_config_entry configs[MAX_SESSION_CONFIGS];
     int num_configs;            // Number of stored configurations
 };
 

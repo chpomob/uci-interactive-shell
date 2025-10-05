@@ -4,65 +4,64 @@
 #include <string.h>
 #include <strings.h>  // For strcasecmp
 #include <stdint.h>
-#include <ctype.h>
 
 // Application configuration parameter information
 static const config_param_info_t app_config_params[] = {
-    {DEVICE_TYPE, "DEVICE_TYPE", "Device type (initiator/responder)", 0, 1, 0, ""},
-    {RANGING_ROUND_USAGE, "RANGING_ROUND_USAGE", "Ranging round usage", 0, 3, 0, ""},
-    {STS_CONFIG, "STS_CONFIG", "Secure timestamp configuration", 0, 7, 0, ""},
-    {MULTI_NODE_MODE, "MULTI_NODE_MODE", "Multi-node mode", 0, 3, 0, ""},
-    {CHANNEL_NUMBER, "CHANNEL_NUMBER", "UWB channel number", 0, 15, 9, ""},
-    {NO_OF_CONTROLEE, "NO_OF_CONTROLEE", "Number of controlees", 0, 8, 0, ""},
-    {DEVICE_MAC_ADDRESS, "DEVICE_MAC_ADDRESS", "Device MAC address", 0, 0xFFFF, 0, ""},
-    {DST_MAC_ADDRESS, "DST_MAC_ADDRESS", "Destination MAC address", 0, 0xFFFF, 0, ""},
-    {SLOT_DURATION, "SLOT_DURATION", "Slot duration in RSTU", 0, 0xFFFF, 2400, "RSTU"},
-    {RANGING_DURATION, "RANGING_DURATION", "Ranging duration in milliseconds", 0, 0xFFFFFFFF, 1000, "ms"},
-    {STS_INDEX, "STS_INDEX", "STS index", 0, 0xFFFF, 0, ""},
-    {MAC_FCS_TYPE, "MAC_FCS_TYPE", "MAC frame check sequence type", 0, 1, 0, ""},
-    {RANGING_ROUND_CONTROL, "RANGING_ROUND_CONTROL", "Ranging round control", 0, 0xFF, 0, ""},
-    {AOA_RESULT_REQ, "AOA_RESULT_REQ", "Angle-of-arrival result request", 0, 3, 0, ""},
-    {RNG_DATA_NTF, "RNG_DATA_NTF", "Ranging data notification", 0, 3, 0, ""},
-    {RNG_DATA_NTF_PROXIMITY_NEAR, "RNG_DATA_NTF_PROXIMITY_NEAR", "Ranging data notification proximity near", 0, 0xFFFF, 0, "cm"},
-    {RNG_DATA_NTF_PROXIMITY_FAR, "RNG_DATA_NTF_PROXIMITY_FAR", "Ranging data notification proximity far", 0, 0xFFFF, 0, "cm"},
-    {DEVICE_ROLE, "DEVICE_ROLE", "Device role", 0, 1, 0, ""},
-    {RFRAME_CONFIG, "RFRAME_CONFIG", "Ranging frame configuration", 0, 7, 0, ""},
-    {RSSI_REPORTING, "RSSI_REPORTING", "RSSI reporting", 0, 1, 0, ""},
-    {PREAMBLE_CODE_INDEX, "PREAMBLE_CODE_INDEX", "Preamble code index", 0, 31, 10, ""},
-    {SFD_ID, "SFD_ID", "Start of frame delimiter ID", 0, 3, 2, ""},
-    {PSDU_DATA_RATE, "PSDU_DATA_RATE", "PSDU data rate", 0, 3, 0, ""},
-    {PREAMBLE_DURATION, "PREAMBLE_DURATION", "Preamble duration", 0, 3, 1, ""},
-    {LINK_LAYER_MODE, "LINK_LAYER_MODE", "Link layer mode", 0, 1, 0, ""},
-    {DATA_REPETITION_COUNT, "DATA_REPETITION_COUNT", "Data repetition count", 0, 63, 0, ""},
-    {RANGING_TIME_STRUCT, "RANGING_TIME_STRUCT", "Ranging time structure", 0, 3, 0, ""},
-    {SLOTS_PER_RR, "SLOTS_PER_RR", "Slots per ranging round", 0, 0xFF, 1, ""},
-    {TX_ADAPTIVE_PAYLOAD_POWER, "TX_ADAPTIVE_PAYLOAD_POWER", "Transmit adaptive payload power", 0, 1, 0, ""},
-    {RNG_DATA_NTF_AOA_BOUND, "RNG_DATA_NTF_AOA_BOUND", "Ranging data notification AoA bound", 0, 0xFFFF, 0, "degrees"},
-    {RESPONDER_SLOT_INDEX, "RESPONDER_SLOT_INDEX", "Responder slot index", 0, 0xFF, 0, ""},
-    {PRF_MODE, "PRF_MODE", "Pulse repetition frequency mode", 0, 3, 0, ""},
-    {CAP_SIZE_RANGE, "CAP_SIZE_RANGE", "Capability size range", 0, 0xFFFF, 0, ""},
-    {TX_JITTER_WINDOW_SIZE, "TX_JITTER_WINDOW_SIZE", "Transmit jitter window size", 0, 0xFFFF, 0, "RSTU"},
-    {SCHEDULED_MODE, "SCHEDULED_MODE", "Scheduled mode", 0, 1, 0, ""},
-    {KEY_ROTATION, "KEY_ROTATION", "Key rotation", 0, 1, 0, ""},
-    {KEY_ROTATION_RATE, "KEY_ROTATION_RATE", "Key rotation rate", 0, 0xFFFF, 0, ""},
-    {SESSION_PRIORITY, "SESSION_PRIORITY", "Session priority", 0, 100, 50, ""},
-    {MAC_ADDRESS_MODE, "MAC_ADDRESS_MODE", "MAC address mode", 0, 1, 0, ""},
-    {VENDOR_ID, "VENDOR_ID", "Vendor ID", 0, 0xFFFF, 0, ""},
-    {STATIC_STS_IV, "STATIC_STS_IV", "Static STS initialization vector", 0, 0xFFFFFFFFFFFFFFFFULL, 0, ""},
-    {NUMBER_OF_STS_SEGMENTS, "NUMBER_OF_STS_SEGMENTS", "Number of STS segments", 0, 0xFF, 1, ""},
-    {MAX_RR_RETRY, "MAX_RR_RETRY", "Maximum ranging round retry", 0, 0xFF, 3, ""},
-    {UWB_INITIATION_TIME, "UWB_INITIATION_TIME", "UWB initiation time", 0, 0xFFFFFFFF, 0, "ms"},
-    {HOPPING_MODE, "HOPPING_MODE", "Hopping mode", 0, 3, 0, ""},
-    {BLOCK_STRIDE_LENGTH, "BLOCK_STRIDE_LENGTH", "Block stride length", 0, 0xFFFF, 0, ""},
-    {RESULT_REPORT_CONFIG, "RESULT_REPORT_CONFIG", "Result report configuration", 0, 0xFF, 0, ""},
-    {IN_BAND_TERMINATION_ATTEMPT_COUNT, "IN_BAND_TERMINATION_ATTEMPT_COUNT", "In-band termination attempt count", 0, 0xFF, 3, ""},
-    {SUB_SESSION_ID, "SUB_SESSION_ID", "Sub-session ID", 0, 0xFFFFFFFF, 0, ""},
+    {DEVICE_TYPE, "device_type", "Device type (initiator/responder)", 0, 1, 1, ""},
+    {RANGING_ROUND_USAGE, "ranging_round_usage", "Ranging round usage", 0, 3, 0, ""},
+    {STS_CONFIG, "sts_config", "Secure timestamp configuration", 0, 7, 0, ""},
+    {MULTI_NODE_MODE, "multi_node_mode", "Multi-node mode", 0, 3, 0, ""},
+    {CHANNEL_NUMBER, "channel_number", "UWB channel number", 0, 15, 9, ""},
+    {NO_OF_CONTROLEE, "no_of_controlee", "Number of controlees", 0, 8, 0, ""},
+    {DEVICE_MAC_ADDRESS, "device_mac_address", "Device MAC address", 0, 0xFFFF, 0, ""},
+    {DST_MAC_ADDRESS, "dst_mac_address", "Destination MAC address", 0, 0xFFFF, 0, ""},
+    {SLOT_DURATION, "slot_duration", "Slot duration in RSTU", 0, 0xFFFF, 2400, "RSTU"},
+    {RANGING_DURATION, "ranging_duration", "Ranging duration in milliseconds", 0, 0xFFFFFFFF, 1000, "ms"},
+    {STS_INDEX, "sts_index", "STS index", 0, 0xFFFF, 0, ""},
+    {MAC_FCS_TYPE, "mac_fcs_type", "MAC frame check sequence type", 0, 1, 0, ""},
+    {RANGING_ROUND_CONTROL, "ranging_round_control", "Ranging round control", 0, 0xFF, 0, ""},
+    {AOA_RESULT_REQ, "aoa_result_req", "Angle-of-arrival result request", 0, 3, 0, ""},
+    {RNG_DATA_NTF, "rng_data_ntf", "Ranging data notification", 0, 3, 0, ""},
+    {RNG_DATA_NTF_PROXIMITY_NEAR, "rng_data_ntf_proximity_near", "Ranging data notification proximity near", 0, 0xFFFF, 0, "cm"},
+    {RNG_DATA_NTF_PROXIMITY_FAR, "rng_data_ntf_proximity_far", "Ranging data notification proximity far", 0, 0xFFFF, 0, "cm"},
+    {DEVICE_ROLE, "device_role", "Device role", 0, 1, 0, ""},
+    {RFRAME_CONFIG, "rframe_config", "Ranging frame configuration", 0, 7, 0, ""},
+    {RSSI_REPORTING, "rssi_reporting", "RSSI reporting", 0, 1, 0, ""},
+    {PREAMBLE_CODE_INDEX, "preamble_code_index", "Preamble code index", 0, 31, 10, ""},
+    {SFD_ID, "sfd_id", "Start of frame delimiter ID", 0, 3, 2, ""},
+    {PSDU_DATA_RATE, "psdu_data_rate", "PSDU data rate", 0, 3, 0, ""},
+    {PREAMBLE_DURATION, "preamble_duration", "Preamble duration", 0, 3, 1, ""},
+    {LINK_LAYER_MODE, "link_layer_mode", "Link layer mode", 0, 1, 0, ""},
+    {DATA_REPETITION_COUNT, "data_repetition_count", "Data repetition count", 0, 63, 0, ""},
+    {RANGING_TIME_STRUCT, "ranging_time_struct", "Ranging time structure", 0, 3, 0, ""},
+    {SLOTS_PER_RR, "slots_per_rr", "Slots per ranging round", 0, 0xFF, 1, ""},
+    {TX_ADAPTIVE_PAYLOAD_POWER, "tx_adaptive_payload_power", "Transmit adaptive payload power", 0, 1, 0, ""},
+    {RNG_DATA_NTF_AOA_BOUND, "rng_data_ntf_aoa_bound", "Ranging data notification AoA bound", 0, 0xFFFF, 0, "degrees"},
+    {RESPONDER_SLOT_INDEX, "responder_slot_index", "Responder slot index", 0, 0xFF, 0, ""},
+    {PRF_MODE, "prf_mode", "Pulse repetition frequency mode", 0, 3, 0, ""},
+    {CAP_SIZE_RANGE, "cap_size_range", "Capability size range", 0, 0xFFFF, 0, ""},
+    {TX_JITTER_WINDOW_SIZE, "tx_jitter_window_size", "Transmit jitter window size", 0, 0xFFFF, 0, "RSTU"},
+    {SCHEDULED_MODE, "scheduled_mode", "Scheduled mode", 0, 1, 0, ""},
+    {KEY_ROTATION, "key_rotation", "Key rotation", 0, 1, 0, ""},
+    {KEY_ROTATION_RATE, "key_rotation_rate", "Key rotation rate", 0, 0xFFFF, 0, ""},
+    {SESSION_PRIORITY, "session_priority", "Session priority", 0, 100, 50, ""},
+    {MAC_ADDRESS_MODE, "mac_address_mode", "MAC address mode", 0, 1, 0, ""},
+    {VENDOR_ID, "vendor_id", "Vendor ID", 0, 0xFFFF, 0, ""},
+    {STATIC_STS_IV, "static_sts_iv", "Static STS initialization vector", 0, 0xFFFFFFFFFFFFFFFFULL, 0, ""},
+    {NUMBER_OF_STS_SEGMENTS, "number_of_sts_segments", "Number of STS segments", 0, 0xFF, 1, ""},
+    {MAX_RR_RETRY, "max_rr_retry", "Maximum ranging round retry", 0, 0xFF, 3, ""},
+    {UWB_INITIATION_TIME, "uwb_initiation_time", "UWB initiation time", 0, 0xFFFFFFFF, 0, "ms"},
+    {HOPPING_MODE, "hopping_mode", "Hopping mode", 0, 3, 0, ""},
+    {BLOCK_STRIDE_LENGTH, "block_stride_length", "Block stride length", 0, 0xFFFF, 0, ""},
+    {RESULT_REPORT_CONFIG, "result_report_config", "Result report configuration", 0, 0xFF, 0, ""},
+    {IN_BAND_TERMINATION_ATTEMPT_COUNT, "in_band_termination_attempt_count", "In-band termination attempt count", 0, 0xFF, 3, ""},
+    {SUB_SESSION_ID, "sub_session_id", "Sub-session ID", 0, 0xFFFFFFFF, 0, ""},
 };
 
 // Device configuration parameter information
 static const device_config_param_info_t device_config_params[] = {
-    {DEVICE_STATE, "DEVICE_STATE", "Device state", 0, 3, 0, ""},
-    {LOW_POWER_MODE, "LOW_POWER_MODE", "Low power mode", 0, 1, 0, ""},
+    {DEVICE_STATE, "device_state", "Device state", 0, 3, 1, ""},
+    {LOW_POWER_MODE, "low_power_mode", "Low power mode", 0, 1, 0, ""},
 };
 
 // Configuration storage arrays
@@ -177,8 +176,9 @@ int uci_config_set_app_param(AppConfigTlvType cfg_id, const unsigned char* value
     app_config_lengths[cfg_id] = value_len;
     
     if (g_verbose_mode) {
+        const char* param_name = uci_config_get_app_param_name(cfg_id);
         printf("Stored app config %s (0x%02X) with %zu bytes:", 
-               uci_config_get_app_param_name(cfg_id), cfg_id, value_len);
+               param_name ? param_name : "unknown", cfg_id, value_len);
         for (size_t i = 0; i < value_len; i++) {
             printf(" %02X", value[i]);
         }
@@ -202,8 +202,9 @@ int uci_config_get_app_param(AppConfigTlvType cfg_id, unsigned char* value, size
     *value_len = app_config_lengths[cfg_id];
     
     if (g_verbose_mode) {
+        const char* param_name = uci_config_get_app_param_name(cfg_id);
         printf("Retrieved app config %s (0x%02X) with %zu bytes:", 
-               uci_config_get_app_param_name(cfg_id), cfg_id, *value_len);
+               param_name ? param_name : "unknown", cfg_id, *value_len);
         for (size_t i = 0; i < *value_len; i++) {
             printf(" %02X", value[i]);
         }
@@ -238,7 +239,7 @@ const char* uci_config_get_app_param_name(AppConfigTlvType cfg_id) {
             return app_config_params[i].name;
         }
     }
-    return "UNKNOWN";
+    return NULL;
 }
 
 // Get application configuration parameter description
@@ -297,8 +298,9 @@ int uci_config_set_device_param(DeviceConfigId cfg_id, const unsigned char* valu
     device_config_lengths[cfg_id] = value_len;
     
     if (g_verbose_mode) {
+        const char* param_name = uci_config_get_device_param_name(cfg_id);
         printf("Stored device config %s (0x%02X) with %zu bytes:", 
-               uci_config_get_device_param_name(cfg_id), cfg_id, value_len);
+               param_name ? param_name : "unknown", cfg_id, value_len);
         for (size_t i = 0; i < value_len; i++) {
             printf(" %02X", value[i]);
         }
@@ -322,8 +324,9 @@ int uci_config_get_device_param(DeviceConfigId cfg_id, unsigned char* value, siz
     *value_len = device_config_lengths[cfg_id];
     
     if (g_verbose_mode) {
+        const char* param_name = uci_config_get_device_param_name(cfg_id);
         printf("Retrieved device config %s (0x%02X) with %zu bytes:", 
-               uci_config_get_device_param_name(cfg_id), cfg_id, *value_len);
+               param_name ? param_name : "unknown", cfg_id, *value_len);
         for (size_t i = 0; i < *value_len; i++) {
             printf(" %02X", value[i]);
         }
@@ -358,7 +361,7 @@ const char* uci_config_get_device_param_name(DeviceConfigId cfg_id) {
             return device_config_params[i].name;
         }
     }
-    return "UNKNOWN";
+    return NULL;
 }
 
 // Get device configuration parameter description

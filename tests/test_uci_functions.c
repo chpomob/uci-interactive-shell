@@ -7,6 +7,7 @@
 #define ANDROID_GET_POWER_STATS 0x00
 #define ANDROID_SET_COUNTRY_CODE 0x01
 #define ANDROID_RADAR_SET_APP_CONFIG 0x11
+#define ANDROID_RADAR_GET_APP_CONFIG 0x12
 #define TEST_RF_SET_CONFIG 0x00
 #define TEST_RF_PERIODIC_TX 0x02
 #define TEST_RF_STOP 0x07
@@ -386,6 +387,55 @@ int main() {
     }
     test_case_end:;
 #undef test_case_end
+
+    // Test additional core command coverage
+    TEST_CASE(core_timestamp_and_get_config_variants);
+    {
+        // Query timestamp twice to exercise counter increment path
+        send_uci_command(COMMAND, COMPLETE, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
+        send_uci_command(COMMAND, COMPLETE, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
+
+        // Trigger invalid GET_CONFIG path (null payload)
+        send_uci_command(COMMAND, COMPLETE, CORE, CORE_GET_CONFIG, NULL, 0);
+
+        // Request multiple config IDs including one unknown to cover default value path
+        unsigned char multi_get_payload[] = {0x03, DEVICE_STATE, LOW_POWER_MODE, 0xFF};
+        send_uci_command(COMMAND, COMPLETE, CORE, CORE_GET_CONFIG, multi_get_payload, sizeof(multi_get_payload));
+
+        TEST_PASS();
+    }
+    // Test session edge cases and invalid parameter handling
+    TEST_CASE(session_command_edge_cases);
+    {
+        init_uci_sessions();
+
+        unsigned char short_payload[] = {0x00};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_UPDATE_CONTROLLER_MULTICAST_LIST, short_payload, sizeof(short_payload));
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_QUERY_DATA_SIZE_IN_RANGING, short_payload, sizeof(short_payload));
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONTROL, SESSION_GET_RANGING_COUNT, short_payload, sizeof(short_payload));
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_GET_APP_CONFIG, short_payload, sizeof(short_payload));
+
+        TEST_PASS();
+    }
+    // Test radar-specific Android vendor commands
+    TEST_CASE(android_radar_commands);
+    {
+        unsigned char set_payload[] = {
+            0x00, 0x00, 0x00, 0x05, // session handle
+            0x01,                   // number of TLVs
+            0x01, 0x01, 0xAA        // cfg_id, len, value
+        };
+        send_uci_command(COMMAND, COMPLETE, VENDOR_ANDROID, ANDROID_RADAR_SET_APP_CONFIG, set_payload, sizeof(set_payload));
+
+        unsigned char get_payload[] = {
+            0x00, 0x00, 0x00, 0x05, // session handle
+            0x01,                   // number of TLVs
+            0x01                    // cfg_id
+        };
+        send_uci_command(COMMAND, COMPLETE, VENDOR_ANDROID, ANDROID_RADAR_GET_APP_CONFIG, get_payload, sizeof(get_payload));
+
+        TEST_PASS();
+    }
 
     TEST_SUITE_END();
 }

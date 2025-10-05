@@ -222,6 +222,13 @@ typedef enum {
     FIRA_RANGING_WITH_DATA_PHASE = 0x05,
 } SessionType;
 
+typedef enum {
+    FRAME_REPORT_TLV_RSSI = 0x00,
+    FRAME_REPORT_TLV_AOA = 0x01,
+    FRAME_REPORT_TLV_CIR = 0x02,
+    FRAME_REPORT_TLV_SEGMENT_METRICS = 0x06,
+} FrameReportTlvType;
+
 // Capability TLV types - aligned with Android UWB spec
 typedef enum {
     SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE = 0x00,

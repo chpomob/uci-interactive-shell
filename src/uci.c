@@ -666,8 +666,18 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
                     printf("    No specific decoder for SESSION_CONTROL NOTIFICATION opcode 0x%02X\n", opcode);
                     break;
             }
-        } else if (gid == TEST || gid == VENDOR_ANDROID) {
-            printf("    Decoder not implemented for TEST/VENDOR_ANDROID packets\n");
+        } else if (mt == NOTIFICATION && gid == VENDOR_ANDROID) {
+            switch(opcode) {
+                case ANDROID_FIRA_RANGE_DIAGNOSTICS:
+                    decode_android_range_diagnostics_ntf(payload_ptr, (int)payload_len);
+                    decoded = 1;
+                    break;
+                default:
+                    printf("    No specific decoder for VENDOR_ANDROID NOTIFICATION opcode 0x%02X\n", opcode);
+                    break;
+            }
+        } else if (gid == TEST) {
+            printf("    Decoder not implemented for TEST packets\n");
             decoded = 1;
         } else {
             printf("    No specific decoder for MT=%d, GID=%d, OP=0x%02X\n", mt, gid, opcode);
@@ -1565,6 +1575,145 @@ static const char* get_app_config_name(AppConfigTlvType cfg_id) {
         case DIAGRAMS_FRAME_REPORTS_FIELDS: return "DIAGRAMS_FRAME_REPORTS_FIELDS";
         case ANTENNA_MODE: return "ANTENNA_MODE";
         default: return NULL;
+    }
+}
+
+static const char* get_frame_report_tlv_name(FrameReportTlvType tlv_type) {
+    switch (tlv_type) {
+        case FRAME_REPORT_TLV_RSSI: return "RSSI";
+        case FRAME_REPORT_TLV_AOA: return "AOA";
+        case FRAME_REPORT_TLV_CIR: return "CIR";
+        case FRAME_REPORT_TLV_SEGMENT_METRICS: return "SEGMENT_METRICS";
+        default: return NULL;
+    }
+}
+
+static void decode_frame_report_tlv(FrameReportTlvType tlv_type,
+                                    const unsigned char* value,
+                                    unsigned short length) {
+    const char* name = get_frame_report_tlv_name(tlv_type);
+    printf("        TLV Type: 0x%02X", tlv_type);
+    if (name) {
+        printf(" (%s)", name);
+    } else {
+        printf(" (UNKNOWN)");
+    }
+    printf(", Length: %u\n", length);
+
+    if (!value || length == 0) {
+        printf("          No data.\n");
+        return;
+    }
+
+    switch (tlv_type) {
+        case FRAME_REPORT_TLV_RSSI: {
+            printf("          RSSI Samples (dBm): ");
+            for (unsigned short i = 0; i < length; i++) {
+                printf("%d ", (int8_t)value[i]);
+            }
+            printf("\n");
+            break;
+        }
+        case FRAME_REPORT_TLV_AOA: {
+            if (length % 8 != 0) {
+                printf("          WARNING: AOA payload length %u is not a multiple of 8 bytes.\n", length);
+            }
+            unsigned short offset = 0;
+            unsigned int measurement_idx = 0;
+            while (offset + 8 <= length) {
+                int16_t tdoa = (int16_t)read_u16_le(&value[offset]);
+                int16_t pdoa = (int16_t)read_u16_le(&value[offset + 2]);
+                int16_t aoa = (int16_t)read_u16_le(&value[offset + 4]);
+                unsigned char fom = value[offset + 6];
+                unsigned char meas_type = value[offset + 7];
+                printf("          Measurement %u: TDOA=%d, PDOA=%d, AoA=%d, FoM=%u, Type=0x%02X\n",
+                       measurement_idx++, tdoa, pdoa, aoa, fom, meas_type);
+                offset += 8;
+            }
+            if (offset < length) {
+                printf("          %u trailing bytes remain unparsed.\n", (unsigned int)(length - offset));
+            }
+            break;
+        }
+        case FRAME_REPORT_TLV_CIR: {
+            unsigned short offset = 0;
+            if (length < 1) {
+                printf("          WARNING: CIR payload too short.\n");
+                break;
+            }
+            unsigned char cir_entries = value[offset++];
+            printf("          CIR Entries: %u\n", cir_entries);
+            for (unsigned char entry = 0; entry < cir_entries; entry++) {
+                if (offset + 16 > length) {
+                    printf("          WARNING: CIR entry %u truncated (need at least 16 bytes, have %u).\n",
+                           entry, (unsigned int)(length - offset));
+                    break;
+                }
+                unsigned short first_path_index = read_u16_le(&value[offset]);
+                unsigned short first_path_snr = read_u16_le(&value[offset + 2]);
+                unsigned short first_path_ns = read_u16_le(&value[offset + 4]);
+                unsigned short peak_path_index = read_u16_le(&value[offset + 6]);
+                unsigned short peak_path_snr = read_u16_le(&value[offset + 8]);
+                unsigned short peak_path_ns = read_u16_le(&value[offset + 10]);
+                unsigned char first_path_sample_offset = value[offset + 12];
+                unsigned char samples_number = value[offset + 13];
+                unsigned short sample_window_len = read_u16_le(&value[offset + 14]);
+                offset += 16;
+
+                printf("          CIR %u: first_path_index=%u, first_path_snr=%u, first_path_ns=%u\n",
+                       entry, first_path_index, first_path_snr, first_path_ns);
+                printf("                   peak_path_index=%u, peak_path_snr=%u, peak_path_ns=%u\n",
+                       peak_path_index, peak_path_snr, peak_path_ns);
+                printf("                   first_path_sample_offset=%u, samples_number=%u, sample_window_len=%u\n",
+                       first_path_sample_offset, samples_number, sample_window_len);
+
+                if (offset + sample_window_len > length) {
+                    printf("          WARNING: CIR sample window truncated (expected %u bytes, have %u).\n",
+                           sample_window_len, (unsigned int)(length - offset));
+                    break;
+                }
+
+                unsigned short preview = sample_window_len < 16 ? sample_window_len : 16;
+                printf("                   Sample window preview: ");
+                for (unsigned short i = 0; i < preview; i++) {
+                    printf("%02X ", value[offset + i]);
+                }
+                if (sample_window_len > preview) {
+                    printf("... (+%u bytes)", sample_window_len - preview);
+                }
+                printf("\n");
+
+                offset += sample_window_len;
+            }
+            if (offset < length) {
+                printf("          %u trailing bytes remain after CIR parsing.\n", (unsigned int)(length - offset));
+            }
+            break;
+        }
+        case FRAME_REPORT_TLV_SEGMENT_METRICS: {
+            printf("          Segment metrics payload (%u bytes): ", length);
+            unsigned short preview = length < 32 ? length : 32;
+            for (unsigned short i = 0; i < preview; i++) {
+                printf("%02X ", value[i]);
+            }
+            if (length > preview) {
+                printf("... (+%u bytes)", length - preview);
+            }
+            printf("\n");
+            break;
+        }
+        default: {
+            printf("          Raw bytes: ");
+            unsigned short preview = length < 32 ? length : 32;
+            for (unsigned short i = 0; i < preview; i++) {
+                printf("%02X ", value[i]);
+            }
+            if (length > preview) {
+                printf("... (+%u bytes)", length - preview);
+            }
+            printf("\n");
+            break;
+        }
     }
 }
 
@@ -2589,7 +2738,7 @@ void decode_session_set_app_config_rsp(unsigned char* payload, int payload_len) 
 
 void decode_session_get_app_config_rsp(unsigned char* payload, int payload_len) {
     printf("    SESSION_GET_APP_CONFIG_RSP - Get Application Configuration Response\n");
-    
+
     if (payload_len < 2) {
         printf("      ERROR: Payload too short (%d bytes, need at least 2)\n", payload_len);
         return;
@@ -2644,9 +2793,72 @@ void decode_session_get_app_config_rsp(unsigned char* payload, int payload_len) 
     }
 }
 
+void decode_android_range_diagnostics_ntf(unsigned char* payload, int payload_len) {
+    printf("    ANDROID_FIRA_RANGE_DIAGNOSTICS_NTF - Range Diagnostics Notification\n");
+
+    if (payload_len < 9) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 9)\n", payload_len);
+        return;
+    }
+
+    uint32_t session_token = read_u32_le(&payload[0]);
+    uint32_t sequence_number = read_u32_le(&payload[4]);
+    unsigned char report_count = payload[8];
+
+    printf("      Session Token: 0x%08X\n", session_token);
+    printf("      Sequence Number: %u\n", sequence_number);
+    printf("      Frame Reports: %u\n", report_count);
+
+    int offset = 9;
+    for (unsigned char report_idx = 0; report_idx < report_count; report_idx++) {
+        if (offset + 4 > payload_len) {
+            printf("      WARNING: Incomplete frame report header at index %u (need 4 bytes, have %d).\n",
+                   report_idx, payload_len - offset);
+            return;
+        }
+
+        unsigned char uwb_msg_id = payload[offset];
+        unsigned char action = payload[offset + 1];
+        unsigned char antenna_set = payload[offset + 2];
+        unsigned char tlv_count = payload[offset + 3];
+        offset += 4;
+
+        printf("      Frame Report %u:\n", report_idx);
+        printf("        UWB Message ID: 0x%02X\n", uwb_msg_id);
+        printf("        Action: 0x%02X\n", action);
+        printf("        Antenna Set: 0x%02X\n", antenna_set);
+        printf("        TLV Count: %u\n", tlv_count);
+
+        for (unsigned char tlv_idx = 0; tlv_idx < tlv_count; tlv_idx++) {
+            if (offset + 3 > payload_len) {
+                printf("        WARNING: Incomplete frame report TLV header at index %u (need 3 bytes, have %d).\n",
+                       tlv_idx, payload_len - offset);
+                return;
+            }
+
+            FrameReportTlvType tlv_type = (FrameReportTlvType)payload[offset];
+            unsigned short tlv_len = read_u16_le(&payload[offset + 1]);
+            offset += 3;
+
+            if (offset + tlv_len > payload_len) {
+                printf("        WARNING: TLV 0x%02X length %u exceeds remaining payload (%d).\n",
+                       tlv_type, tlv_len, payload_len - offset);
+                return;
+            }
+
+            decode_frame_report_tlv(tlv_type, &payload[offset], tlv_len);
+            offset += tlv_len;
+        }
+    }
+
+    if (offset < payload_len) {
+        printf("      NOTE: %d trailing diagnostic bytes remain after parsing.\n", payload_len - offset);
+    }
+}
+
 void decode_session_get_count_rsp(unsigned char* payload, int payload_len) {
     printf("    SESSION_GET_COUNT_RSP - Get Session Count Response\n");
-    
+
     if (payload_len < 2) {
         printf("      ERROR: Payload too short (%d bytes, need at least 2)\n", payload_len);
         return;

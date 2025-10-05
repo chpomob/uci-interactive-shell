@@ -7,12 +7,18 @@
 #ifndef ANDROID_GET_POWER_STATS
 #define ANDROID_GET_POWER_STATS 0x00
 #define ANDROID_SET_COUNTRY_CODE 0x01
+#define ANDROID_FIRA_RANGE_DIAGNOSTICS 0x02
 #define ANDROID_RADAR_SET_APP_CONFIG 0x11
 #define ANDROID_RADAR_GET_APP_CONFIG 0x12
 #define TEST_RF_SET_CONFIG 0x00
 #define TEST_RF_PERIODIC_TX 0x02
 #define TEST_RF_STOP 0x07
 #endif
+
+static inline void write_u16_le(unsigned char* buffer, uint16_t value) {
+    buffer[0] = value & 0xFF;
+    buffer[1] = (value >> 8) & 0xFF;
+}
 
 static inline void write_u32_le(unsigned char* buffer, uint32_t value) {
     buffer[0] = value & 0xFF;
@@ -625,6 +631,88 @@ int main() {
         TEST_PASS();
     }
     test_case_end_caps_info_payload_shape:;
+
+    TEST_CASE(android_range_diagnostics_notification);
+    {
+        unsigned char payload[128] = {0};
+        size_t payload_len = 0;
+
+        write_u32_le(&payload[payload_len], 0xAABBCCDD);
+        payload_len += 4;
+        write_u32_le(&payload[payload_len], 0x01020304);
+        payload_len += 4;
+        payload[payload_len++] = 0x01; // one frame report
+
+        payload[payload_len++] = 0x10; // UWB message ID
+        payload[payload_len++] = 0x01; // action
+        payload[payload_len++] = 0x02; // antenna set
+        payload[payload_len++] = 0x03; // TLV count
+
+        // TLV 0: RSSI samples
+        payload[payload_len++] = FRAME_REPORT_TLV_RSSI;
+        write_u16_le(&payload[payload_len], 2);
+        payload_len += 2;
+        payload[payload_len++] = 0xF6;
+        payload[payload_len++] = 0xEC;
+
+        // TLV 1: AOA measurement block (single measurement)
+        payload[payload_len++] = FRAME_REPORT_TLV_AOA;
+        write_u16_le(&payload[payload_len], 8);
+        payload_len += 2;
+        write_u16_le(&payload[payload_len], 100); // TDOA
+        payload_len += 2;
+        write_u16_le(&payload[payload_len], 200); // PDOA
+        payload_len += 2;
+        write_u16_le(&payload[payload_len], 300); // AOA
+        payload_len += 2;
+        payload[payload_len++] = 0x05; // FoM
+        payload[payload_len++] = 0x02; // measurement type
+
+        // TLV 2: CIR with one entry and 4-byte sample window
+        payload[payload_len++] = FRAME_REPORT_TLV_CIR;
+        size_t cir_len_index = payload_len;
+        write_u16_le(&payload[payload_len], 0);
+        payload_len += 2;
+        size_t cir_start = payload_len;
+
+        payload[payload_len++] = 0x01; // number of entries
+        write_u16_le(&payload[payload_len], 10); // first_path_index
+        payload_len += 2;
+        write_u16_le(&payload[payload_len], 20); // first_path_snr
+        payload_len += 2;
+        write_u16_le(&payload[payload_len], 30); // first_path_ns
+        payload_len += 2;
+        write_u16_le(&payload[payload_len], 40); // peak_path_index
+        payload_len += 2;
+        write_u16_le(&payload[payload_len], 50); // peak_path_snr
+        payload_len += 2;
+        write_u16_le(&payload[payload_len], 60); // peak_path_ns
+        payload_len += 2;
+        payload[payload_len++] = 0x07; // first_path_sample_offset
+        payload[payload_len++] = 0x02; // samples_number
+        write_u16_le(&payload[payload_len], 4); // sample window length
+        payload_len += 2;
+        payload[payload_len++] = 0xAA;
+        payload[payload_len++] = 0xBB;
+        payload[payload_len++] = 0xCC;
+        payload[payload_len++] = 0xDD;
+
+        size_t cir_length = payload_len - cir_start;
+        write_u16_le(&payload[cir_len_index], (uint16_t)cir_length);
+
+        struct uci_packet_header header;
+        set_header_values(&header, NOTIFICATION, COMPLETE, VENDOR_ANDROID,
+                          ANDROID_FIRA_RANGE_DIAGNOSTICS, (unsigned char)payload_len);
+
+        unsigned char packet[sizeof(struct uci_packet_header) + 128] = {0};
+        memcpy(packet, &header, sizeof(struct uci_packet_header));
+        memcpy(packet + sizeof(struct uci_packet_header), payload, payload_len);
+
+        parse_uci_packet(packet, sizeof(struct uci_packet_header) + payload_len);
+
+        TEST_PASS();
+    }
+
     // Test radar-specific Android vendor commands
     TEST_CASE(android_radar_commands);
     {

@@ -114,4 +114,7 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len);
 void decode_session_data_credit_ntf(unsigned char* payload, int payload_len);
 void decode_session_data_transfer_status_ntf(unsigned char* payload, int payload_len);
 
+// VENDOR_ANDROID notification decoders
+void decode_android_range_diagnostics_ntf(unsigned char* payload, int payload_len);
+
 #endif // UCI_H

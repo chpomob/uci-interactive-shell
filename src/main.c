@@ -21,6 +21,8 @@
 #include "../include/uci_hw.h"
 #include "../include/uci_hw_interface.h"
 #include "../include/uci_hw_chardev.h"
+#include "../include/uci_ui.h"
+#include "../include/uci_ui_main_patch.h"
 
 #define MAX_PAYLOAD_LENGTH 255
 
@@ -36,59 +38,8 @@ int main() {
         printf("Warning: Failed to initialize configuration manager\n");
     }
 
-    printf("UCI Interactive Shell\n");
-    printf("Enter 'quit' to exit.\n");
-    printf("Commands: send, get_device_info, device_info, device_reset, get_caps_info, set_config, get_config,\n");
-    printf("          get_device_state, set_device_active, set_device_ready, device_suspend,\n");
-    printf("          session_init, session_new, session_deinit, session_close, session_start, start_ranging,\n");
-    printf("          session_stop, stop_ranging, get_session_state, session_status,\n");
-    printf("          set_app_config, get_app_config,\n");
-    printf("          simulate_notification, simulate_session_status, simulate_data_credit,\n");
-    printf("          simulate_ranging, simulate_multi_target_ranging, demo_session_flow,\n");
-    printf("          set_power, device_on, device_off\n");
-    printf("          complete <prefix> - Autocomplete a command or parameter (e.g., 'complete set_app_config ', 'complete set_config ', 'complete session_init ')\n");
-    printf("          history - Show command history\n");
-    printf("          alias <name> [command] - Create or list command aliases\n");
-    printf("          unalias <name> - Remove an alias\n");
-    printf("          hw_init <device_path> - Initialize hardware mode\n");
-    printf("          set_power <state> - Set device power state (active, ready, sleep)\n");
-    printf("          device_on - Turn device on (alias for set_power active)\n");
-    printf("          device_off - Turn device off (alias for set_power ready)\n");
-    printf("          session_new <session_id> <type> - Create new session (alias for session_init)\n");
-    printf("          session_close <session_id> - Close session (alias for session_deinit)\n");
-    printf("          start_ranging <session_id> - Start ranging session (alias for session_start)\n");
-    printf("          stop_ranging <session_id> - Stop ranging session (alias for session_stop)\n");
-    printf("          session_status <session_id> - Get session status (alias for get_session_state)\n");
-    printf("          hw_send <mt> <gid> <oid> [payload_bytes...] - Send command in hardware mode\n");
-    printf("\n");
-    printf("Available features:\n");
-    printf("  - Command history (use Up/Down arrows to navigate)\n");
-    printf("  - Command completion (use Tab key or 'complete' command)\n");
-    printf("  - Command history with 'history' command\n");
-    printf("  - Use Ctrl+C to interrupt hanging commands\n");
-    printf("\n");
-    printf("Hardware-friendly commands (no raw payloads needed):\n");
-    printf("          hw_get_device_info - Get device information\n");
-    printf("          hw_device_reset - Reset the device\n");
-    printf("          hw_get_caps_info - Get device capabilities information\n");
-    printf("          hw_set_config <config_name> <value> - Set device configuration\n");
-    printf("          hw_get_config <config_name> - Get device configuration\n");
-    printf("          hw_get_device_state - Get current device state\n");
-    printf("          hw_set_device_active - Set device to ACTIVE state\n");
-    printf("          hw_set_device_ready - Set device to READY state\n");
-    printf("          hw_device_suspend - Suspend the device\n");
-    printf("          hw_session_init <session_id> <session_type> - Initialize a ranging session\n");
-    printf("          hw_session_deinit <session_id> - Deinitialize a ranging session\n");
-    printf("          hw_session_start <session_id> - Start a ranging session\n");
-    printf("          hw_session_stop <session_id> - Stop a ranging session\n");
-    printf("          hw_get_session_state <session_id> - Get session state\n");
-    printf("          hw_set_app_config <session_id> <config_name> <value> - Set session app configuration\n");
-    printf("          hw_get_app_config <session_id> <config_name> - Get session app configuration\n");
-    printf("\n");
-    printf("For complete documentation, see:\n");
-    printf("  - README.md - Project overview and usage\n");
-    printf("  - FINAL_SUMMARY.md - Complete feature summary and technical details\n");
-    printf("  - uci_analysis/ - Detailed UCI protocol analysis based on Android UWB specification\n");
+    // Print enhanced welcome message with colors
+    ui_print_welcome_message();
 
     // Initialize readline for tab completion
     cli_initialize_readline();
@@ -1076,10 +1027,10 @@ int main() {
             // Initialize hardware interface with the specified device
             if (uci_hw_interface_init(device_path) == 0) {
                 g_hardware_mode = 1;
-                printf("Hardware mode initialized successfully with device: %s\n", device_path);
+                ui_print_hardware_mode_initialized(device_path);
                 printf("Ready to communicate with real UWB hardware!\n");
             } else {
-                printf("Failed to initialize hardware mode with device: %s\n", device_path);
+                ui_print_error("Failed to initialize hardware mode with device");
             }
         } else if (strcmp(command, "get_device_info") == 0 || strcmp(command, "device_info") == 0) {
             send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_INFO, NULL, 0);
@@ -1737,7 +1688,7 @@ int main() {
                 analyze_uci_packet(packet, packet_len);
             }
         } else {
-            printf("Unknown command: %s\n", command);
+            ui_print_command_not_found(command);
         }
 
         // Note: In a real implementation, notifications would arrive asynchronously from the UWB device

@@ -5,6 +5,11 @@
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
 #include "../include/uci_config_manager.h"
+#include "../include/uci_hw.h"
+#include "../include/uci_hw_interface.h"
+#include "../include/uci_hw_chardev.h"
+#include "../include/uci_ui.h"
+#include "../include/uci_ui_main_patch.h"
 
 // Helper functions for Little-Endian conversion
 static inline uint16_t read_u16_le(const unsigned char* buffer) {
@@ -898,7 +903,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             memcpy(packet + sizeof(struct uci_packet_header), payload, payload_len);
         }
         
-        printf("Sending UCI packet to hardware (%s):\n", g_hardware_device_path);
+        ui_print_sending_uci_packet(g_hardware_device_path);
         // Print the raw bytes as they would appear on the wire
         unsigned char* header_bytes = (unsigned char*)header;
         printf("  Header: %02X %02X %02X %02X\n", header_bytes[0], header_bytes[1], header_bytes[2], header_bytes[3]);
@@ -935,7 +940,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     struct uci_packet_header header;
     set_header_values(&header, mt, pbf, gid, oid, payload_len);
 
-    printf("Sending UCI packet:\n");
+    ui_print_sending_uci_packet("simulator");
     // Print the raw bytes as they would appear on the wire
     unsigned char* header_bytes = (unsigned char*)&header;
     printf("  Header: %02X %02X %02X %02X\n", header_bytes[0], header_bytes[1], header_bytes[2], header_bytes[3]);

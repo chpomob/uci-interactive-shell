@@ -2,6 +2,7 @@
 #define UCI_H
 
 #include "uci_pdl.h"
+#include <stddef.h>
 
 // UCI Packet Header - aligned with Android UWB specification
 // For control packets (COMMAND, RESPONSE, NOTIFICATION):

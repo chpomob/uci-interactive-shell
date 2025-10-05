@@ -114,6 +114,73 @@ void uci_process_pending_notifications() {
     }
 }
 
+void decode_session_data_credit_ntf(unsigned char* payload, int payload_len);
+void decode_session_data_transfer_status_ntf(unsigned char* payload, int payload_len);
+
+
+void decode_session_data_credit_ntf(unsigned char* payload, int payload_len) {
+    printf("    SESSION_DATA_CREDIT_NTF - Data Credit Notification\n");
+    
+    if (payload_len < 5) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 5)\n", payload_len);
+        return;
+    }
+    
+    unsigned int session_token = read_u32_le(payload);
+    unsigned char credit_availability = payload[4];
+    
+    printf("      Session Token: 0x%08X\n", session_token);
+    printf("      Credit Availability: 0x%02X", credit_availability);
+    if (credit_availability == 0x00) {
+        printf(" (NOT_AVAILABLE)\n");
+    } else {
+        printf(" (AVAILABLE)\n");
+    }
+}
+
+void decode_session_data_transfer_status_ntf(unsigned char* payload, int payload_len) {
+    printf("    SESSION_DATA_TRANSFER_STATUS_NTF - Data Transfer Status Notification\n");
+    
+    if (payload_len < 6) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 6)\n", payload_len);
+        return;
+    }
+    
+    unsigned int session_token = read_u32_le(payload);
+    unsigned short uci_sequence_number = read_u16_le(&payload[4]);
+    
+    printf("      Session Token: 0x%08X\n", session_token);
+    printf("      UCI Sequence Number: %u\n", uci_sequence_number);
+    
+    if (payload_len >= 8) {
+        unsigned char status = payload[6];
+        unsigned char tx_count = payload[7];
+        
+        printf("      Status: 0x%02X", status);
+        switch(status) {
+            case UCI_DATA_TRANSFER_STATUS_REPETITION_OK: printf(" (REPETITION_OK)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER: printf(" (ERROR_DATA_TRANSFER)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_NO_CREDIT_AVAILABLE: printf(" (ERROR_NO_CREDIT_AVAILABLE)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_REJECTED: printf(" (ERROR_REJECTED)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_SESSION_TYPE_NOT_SUPPORTED: printf(" (SESSION_TYPE_NOT_SUPPORTED)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER_IS_ONGOING: printf(" (ERROR_DATA_TRANSFER_IS_ONGOING)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_INVALID_FORMAT: printf(" (INVALID_FORMAT)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        
+        printf("      TX Count: %d\n", tx_count);
+    }
+    
+    if (payload_len > 8) {
+        printf("      Additional Data (%d bytes): ", payload_len - 8);
+        for (int i = 8; i < payload_len; i++) {
+            printf("%02X ", payload[i]);
+        }
+        printf("\n");
+    }
+}
+
 // Function to analyze and display a UCI packet in human-readable format
 void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
     if (packet_len < sizeof(struct uci_packet_header)) {

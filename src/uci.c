@@ -1008,10 +1008,25 @@ void increment_session_ranging_count(int session_idx) {
 // Helper function to store configuration value in session
 void store_session_config(int session_idx, unsigned char cfg_id, unsigned char* value, unsigned char len) {
     if (session_idx < 0 || session_idx >= MAX_SESSIONS) {
+        printf("Error: Invalid session index %d in store_session_config\\n", session_idx);
         return;
     }
-    if (!value || len == 0 || cfg_id >= sizeof(uci_sessions[session_idx].config_values)) {
+    if (!value) {
+        printf("Error: Null value pointer in store_session_config\\n");
         return;
+    }
+    if (len == 0) {
+        printf("Error: Zero length configuration value in store_session_config\\n");
+        return;
+    }
+    if (cfg_id >= sizeof(uci_sessions[session_idx].config_values)) {
+        printf("Error: Invalid configuration ID 0x%02X in store_session_config\\n", cfg_id);
+        return;
+    }
+
+    // Only store first byte as per current design (single-byte placeholder)
+    if (len > 1) {
+        printf("Warning: Configuration value length %d exceeds 1 byte, storing only first byte\\n", len);
     }
 
     if (uci_sessions[session_idx].num_configs < MAX_SESSION_CONFIGS &&
@@ -1026,12 +1041,19 @@ void store_session_config(int session_idx, unsigned char cfg_id, unsigned char* 
 // Helper function to get configuration value from session
 int get_session_config(int session_idx, unsigned char cfg_id, unsigned char* value, unsigned char* len) {
     if (session_idx < 0 || session_idx >= MAX_SESSIONS) {
+        printf("Error: Invalid session index %d in get_session_config\\n", session_idx);
         return 0;
     }
-    if (!value || !len) {
+    if (!value) {
+        printf("Error: Null value pointer in get_session_config\\n");
+        return 0;
+    }
+    if (!len) {
+        printf("Error: Null length pointer in get_session_config\\n");
         return 0;
     }
     if (cfg_id >= sizeof(uci_sessions[session_idx].config_values)) {
+        printf("Error: Invalid configuration ID 0x%02X in get_session_config\\n", cfg_id);
         return 0;
     }
 

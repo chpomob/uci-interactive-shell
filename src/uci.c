@@ -42,6 +42,120 @@ static double q6_9_to_double(int16_t raw) {
     return (double)raw / 512.0;
 }
 
+static inline uint32_t read_u32_be(const unsigned char* buffer) {
+    return ((uint32_t)buffer[0] << 24) |
+           ((uint32_t)buffer[1] << 16) |
+           ((uint32_t)buffer[2] << 8) |
+           ((uint32_t)buffer[3]);
+}
+
+static void print_short_address_measurement(const unsigned char* data) {
+    unsigned short mac_address = read_u16_le(&data[0]);
+    unsigned char status = data[2];
+    unsigned char nlos = data[3];
+    unsigned short distance = read_u16_le(&data[4]);
+    unsigned short aoa_azimuth = read_u16_le(&data[6]);
+    unsigned char aoa_azimuth_fom = data[8];
+    unsigned short aoa_elevation = read_u16_le(&data[9]);
+    unsigned char aoa_elevation_fom = data[11];
+    unsigned short aoa_destination_azimuth = read_u16_le(&data[12]);
+    unsigned char aoa_destination_azimuth_fom = data[14];
+    unsigned short aoa_destination_elevation = read_u16_le(&data[15]);
+    unsigned char aoa_destination_elevation_fom = data[17];
+    unsigned char slot_index = data[18];
+    unsigned char rssi = data[19];
+
+    printf("      MAC Address: 0x%04X\n", mac_address);
+    printf("      Status: 0x%02X", status);
+    if (status == UCI_STATUS_OK) {
+        printf(" (OK)\n");
+    } else {
+        printf(" (UNKNOWN)\n");
+    }
+    printf("      NLOS: %s\n", nlos ? "YES" : "NO");
+    printf("      Distance: %u cm\n", distance);
+    printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
+    printf("      AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
+    printf("      Destination AoA Azimuth: %u degrees (FoM: %u)\n", aoa_destination_azimuth, aoa_destination_azimuth_fom);
+    printf("      Destination AoA Elevation: %u degrees (FoM: %u)\n", aoa_destination_elevation, aoa_destination_elevation_fom);
+    printf("      Slot Index: %u\n", slot_index);
+    printf("      RSSI: %d dBm\n", (int8_t)rssi);
+}
+
+static void print_extended_address_measurement(const unsigned char* data) {
+    uint64_t mac_address = read_u64_le(&data[0]);
+    unsigned char status = data[8];
+    unsigned char nlos = data[9];
+    unsigned short distance = read_u16_le(&data[10]);
+    unsigned short aoa_azimuth = read_u16_le(&data[12]);
+    unsigned char aoa_azimuth_fom = data[14];
+    unsigned short aoa_elevation = read_u16_le(&data[15]);
+    unsigned char aoa_elevation_fom = data[17];
+    unsigned short aoa_destination_azimuth = read_u16_le(&data[18]);
+    unsigned char aoa_destination_azimuth_fom = data[20];
+    unsigned short aoa_destination_elevation = read_u16_le(&data[21]);
+    unsigned char aoa_destination_elevation_fom = data[23];
+    unsigned char slot_index = data[24];
+    unsigned char rssi = data[25];
+
+    printf("      MAC Address: 0x%016llX\n", (unsigned long long)mac_address);
+    printf("      Status: 0x%02X", status);
+    if (status == UCI_STATUS_OK) {
+        printf(" (OK)\n");
+    } else {
+        printf(" (UNKNOWN)\n");
+    }
+    printf("      NLOS: %s\n", nlos ? "YES" : "NO");
+    printf("      Distance: %u cm\n", distance);
+    printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
+    printf("      AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
+    printf("      Destination AoA Azimuth: %u degrees (FoM: %u)\n", aoa_destination_azimuth, aoa_destination_azimuth_fom);
+    printf("      Destination AoA Elevation: %u degrees (FoM: %u)\n", aoa_destination_elevation, aoa_destination_elevation_fom);
+    printf("      Slot Index: %u\n", slot_index);
+    printf("      RSSI: %d dBm\n", (int8_t)rssi);
+}
+
+static void decode_range_vendor_data(const unsigned char* data, int length) {
+    if (!data || length <= 0) {
+        return;
+    }
+
+    int offset = 0;
+    while (offset + 6 <= length) {
+        unsigned char field_id = data[offset++];
+        unsigned char sub_id = data[offset++];
+        unsigned int value = read_u32_be(&data[offset]);
+        offset += 4;
+
+        printf("    Vendor Field 0x%02X/0x%02X: 0x%08X", field_id, sub_id, value);
+        if (field_id == 0x01 && sub_id == 0x01) {
+            printf(" (Distance: %u cm)", value);
+        }
+        printf("\n");
+
+        /* Remaining vendor bytes after the first known TLV are often zeroed out. */
+        int remaining = length - offset;
+        int all_zero = 1;
+        for (int i = 0; i < remaining; i++) {
+            if (data[offset + i] != 0x00) {
+                all_zero = 0;
+                break;
+            }
+        }
+        if (all_zero) {
+            return;
+        }
+    }
+
+    if (offset < length) {
+        printf("    Unparsed Vendor Data (%d bytes): ", length - offset);
+        for (int i = offset; i < length; i++) {
+            printf("%02X ", data[i]);
+        }
+        printf("\n");
+    }
+}
+
 static inline void write_u64_le(unsigned char* buffer, uint64_t value) {
     for (int i = 0; i < 8; i++) {
         buffer[i] = (value >> (i * 8)) & 0xFF;
@@ -683,6 +797,13 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
                 default:
                     printf("    No specific decoder for VENDOR_ANDROID NOTIFICATION opcode 0x%02X\n", opcode);
                     break;
+            }
+        } else if (mt == NOTIFICATION && gid == RANGING_DATA) {
+            if (opcode == RANGE_DATA_NTF_OPCODE) {
+                decode_range_data_ntf(payload_ptr, (int)payload_len);
+                decoded = 1;
+            } else {
+                printf("    No specific decoder for RANGING_DATA NOTIFICATION opcode 0x%02X\n", opcode);
             }
         } else if (gid == TEST) {
             printf("    Decoder not implemented for TEST packets\n");
@@ -2196,78 +2317,22 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
                 break;
             }
             
-            printf("    Measurement %d:\n", i+1);
-            
+            printf("    Measurement %d:\n", i + 1);
+
             if (mac_address_indicator == 0) { // SHORT_ADDRESS
                 if (offset + 20 > payload_len) {
                     printf("      Error: Insufficient data for SHORT_ADDRESS measurement\n");
                     break;
                 }
-                
-                unsigned short mac_address = read_u16_le(&payload[offset]);
-                unsigned char status = payload[offset + 2];
-                unsigned char nlos = payload[offset + 3];
-                unsigned short distance = read_u16_le(&payload[offset + 4]);
-                unsigned short aoa_azimuth = read_u16_le(&payload[offset + 6]);
-                unsigned char aoa_azimuth_fom = payload[offset + 8];
-                unsigned short aoa_elevation = read_u16_le(&payload[offset + 9]);
-                unsigned char aoa_elevation_fom = payload[offset + 11];
-                unsigned short aoa_destination_azimuth = read_u16_le(&payload[offset + 12]);
-                unsigned char aoa_destination_azimuth_fom = payload[offset + 14];
-                unsigned short aoa_destination_elevation = read_u16_le(&payload[offset + 15]);
-                unsigned char aoa_destination_elevation_fom = payload[offset + 17];
-                unsigned char slot_index = payload[offset + 18];
-                unsigned char rssi = payload[offset + 19];
-                
-                printf("      MAC Address: 0x%04X\n", mac_address);
-                printf("      Status: 0x%02X", status);
-                if (status == 0x00) printf(" (OK)");
-                printf("\n");
-                printf("      NLOS: %s\n", nlos ? "YES" : "NO");
-                printf("      Distance: %u cm\n", distance);
-                printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
-                printf("      AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
-                printf("      Destination AoA Azimuth: %u degrees (FoM: %u)\n", aoa_destination_azimuth, aoa_destination_azimuth_fom);
-                printf("      Destination AoA Elevation: %u degrees (FoM: %u)\n", aoa_destination_elevation, aoa_destination_elevation_fom);
-                printf("      Slot Index: %u\n", slot_index);
-                printf("      RSSI: %d dBm\n", (signed char)rssi);
-                
-                offset += 20; // Move to next measurement
+                print_short_address_measurement(&payload[offset]);
+                offset += 20;
             } else { // EXTENDED_ADDRESS
                 if (offset + 26 > payload_len) {
                     printf("      Error: Insufficient data for EXTENDED_ADDRESS measurement\n");
                     break;
                 }
-                
-                unsigned long long mac_address = read_u64_le(&payload[offset]);
-                unsigned char status = payload[offset + 8];
-                unsigned char nlos = payload[offset + 9];
-                unsigned short distance = read_u16_le(&payload[offset + 10]);
-                unsigned short aoa_azimuth = read_u16_le(&payload[offset + 12]);
-                unsigned char aoa_azimuth_fom = payload[offset + 14];
-                unsigned short aoa_elevation = read_u16_le(&payload[offset + 15]);
-                unsigned char aoa_elevation_fom = payload[offset + 17];
-                unsigned short aoa_destination_azimuth = read_u16_le(&payload[offset + 18]);
-                unsigned char aoa_destination_azimuth_fom = payload[offset + 20];
-                unsigned short aoa_destination_elevation = read_u16_le(&payload[offset + 21]);
-                unsigned char aoa_destination_elevation_fom = payload[offset + 23];
-                unsigned char slot_index = payload[offset + 24];
-                unsigned char rssi = payload[offset + 25];
-                
-                printf("      MAC Address: 0x%016llX\n", mac_address);
-                printf("      Status: 0x%02X", status);
-                if (status == 0x00) printf(" (OK)");
-                printf("\n");
-                printf("      NLOS: %s\n", nlos ? "YES" : "NO");
-                printf("      Distance: %u cm\n", distance);
-                printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
-                printf("      AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
-                printf("      Destination AoA Azimuth: %u degrees (FoM: %u)\n", aoa_destination_azimuth, aoa_destination_azimuth_fom);
-                printf("      Destination AoA Elevation: %u degrees (FoM: %u)\n", aoa_destination_elevation, aoa_destination_elevation_fom);
-                printf("      Slot Index: %u\n", slot_index);
-                printf("      RSSI: %d dBm\n", (signed char)rssi);
-                
-                offset += 26; // Move to next measurement
+                print_extended_address_measurement(&payload[offset]);
+                offset += 26;
             }
         }
     } else if (ranging_measurement_type == 0x03) { // OWR_AOA
@@ -2332,6 +2397,11 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
     } else {
         printf("    Unsupported ranging measurement type: 0x%02X\n", ranging_measurement_type);
     }
+
+    if (offset < payload_len) {
+        printf("  Vendor-specific Range Data (%d bytes):\n", payload_len - offset);
+        decode_range_vendor_data(&payload[offset], payload_len - offset);
+    }
 }
 
 void parse_uci_packet(unsigned char* packet, size_t packet_len) {
@@ -2392,6 +2462,12 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
         handle_session_config_ntf(get_opcode(header), payload_ptr, payload_len_int);
     } else if (get_mt(header) == NOTIFICATION && get_gid(header) == SESSION_CONTROL) {
         handle_session_control_ntf(get_opcode(header), payload_ptr, payload_len_int);
+    } else if (get_mt(header) == NOTIFICATION && get_gid(header) == RANGING_DATA) {
+        if (get_opcode(header) == RANGE_DATA_NTF_OPCODE) {
+            decode_range_data_ntf(payload_ptr, payload_len_int);
+        } else {
+            handle_generic_notification(get_gid(header), get_opcode(header), payload_ptr, payload_len_int);
+        }
     } else if (get_mt(header) == NOTIFICATION) {
         // Handle other notification types generically if not specifically handled
         handle_generic_notification(get_gid(header), get_opcode(header), payload_ptr, payload_len_int);
@@ -2852,6 +2928,66 @@ void decode_session_get_app_config_rsp(unsigned char* payload, int payload_len) 
             
             offset += cfg_len;
         }
+    }
+}
+
+void decode_range_data_ntf(unsigned char* payload, int payload_len) {
+    printf("    RANGE_DATA_NTF - Range Data Notification\n");
+
+    if (payload_len < 12) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 12)\n", payload_len);
+        return;
+    }
+
+    unsigned int session_token = read_u32_le(&payload[0]);
+    unsigned int sequence_number = read_u32_le(&payload[4]);
+    unsigned int control_word = read_u32_le(&payload[8]);
+
+    unsigned char status = control_word & 0xFF;
+    unsigned char mac_indicator = (control_word >> 8) & 0xFF;
+    unsigned char measurement_count = (control_word >> 16) & 0xFF;
+    unsigned char vendor_flags = (control_word >> 24) & 0xFF;
+
+    printf("      Session Token: 0x%08X\n", session_token);
+    printf("      Sequence Number: %u\n", sequence_number);
+    printf("      Status: 0x%02X", status);
+    if (status == UCI_STATUS_OK) {
+        printf(" (OK)");
+    }
+    printf("\n");
+    printf("      MAC Indicator: 0x%02X (%s)\n",
+           mac_indicator,
+           mac_indicator ? "EXTENDED_ADDRESS" : "SHORT_ADDRESS");
+    printf("      Measurement Count: %u\n", measurement_count);
+    if (vendor_flags) {
+        printf("      Vendor Flags: 0x%02X\n", vendor_flags);
+    }
+
+    int offset = 12;
+    for (unsigned int i = 0; i < measurement_count; i++) {
+        printf("      Measurement %u:\n", i + 1);
+        if (mac_indicator == 0) {
+            if (offset + 20 > payload_len) {
+                printf("        WARNING: Incomplete short-address measurement (need 20 bytes, have %d).\n",
+                       payload_len - offset);
+                return;
+            }
+            print_short_address_measurement(&payload[offset]);
+            offset += 20;
+        } else {
+            if (offset + 26 > payload_len) {
+                printf("        WARNING: Incomplete extended-address measurement (need 26 bytes, have %d).\n",
+                       payload_len - offset);
+                return;
+            }
+            print_extended_address_measurement(&payload[offset]);
+            offset += 26;
+        }
+    }
+
+    if (offset < payload_len) {
+        printf("      Vendor-specific Range Data (%d bytes):\n", payload_len - offset);
+        decode_range_vendor_data(&payload[offset], payload_len - offset);
     }
 }
 

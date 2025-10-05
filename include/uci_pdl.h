@@ -16,8 +16,11 @@
 #define SESSION_CONFIG  0x01
 #define SESSION_CONTROL 0x02
 #define DATA_CONTROL    0x03
+#define RANGING_DATA    0x0B
 #define TEST            0x0d
 #define VENDOR_ANDROID  0x0c
+
+#define RANGE_DATA_NTF_OPCODE 0x03
 
 // OID (Opcode ID) definitions for CORE group - aligned with Android UWB spec
 #define CORE_DEVICE_RESET         0x00

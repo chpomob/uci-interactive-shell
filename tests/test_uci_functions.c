@@ -724,6 +724,62 @@ int main() {
         TEST_PASS();
     }
 
+    TEST_CASE(range_data_notification_decoding);
+    {
+        unsigned char payload[64] = {0};
+        size_t offset = 0;
+
+        write_u32_le(&payload[offset], 0x2A); // session token
+        offset += 4;
+        write_u32_le(&payload[offset], 0x01); // sequence number
+        offset += 4;
+
+        unsigned int control = (0u << 24) | (1u << 16) | (0u << 8) | UCI_STATUS_OK;
+        write_u32_le(&payload[offset], control);
+        offset += 4;
+
+        payload[offset++] = 0x34; // MAC (little-endian: 0x1234)
+        payload[offset++] = 0x12;
+        payload[offset++] = UCI_STATUS_OK;
+        payload[offset++] = 0x00; // NLOS
+        write_u16_le(&payload[offset], 7); // distance cm
+        offset += 2;
+        write_u16_le(&payload[offset], 0); // AoA azimuth
+        offset += 2;
+        payload[offset++] = 0;   // AoA azimuth FoM
+        write_u16_le(&payload[offset], 0); // AoA elevation
+        offset += 2;
+        payload[offset++] = 0;   // AoA elevation FoM
+        write_u16_le(&payload[offset], 0); // Dest azimuth
+        offset += 2;
+        payload[offset++] = 0;   // Dest azimuth FoM
+        write_u16_le(&payload[offset], 0); // Dest elevation
+        offset += 2;
+        payload[offset++] = 0;   // Dest elevation FoM
+        payload[offset++] = 0;   // Slot index
+        payload[offset++] = 0xF6; // RSSI (-10 dBm)
+
+        // Vendor distance TLV (field 0x01/0x01, value 7)
+        payload[offset++] = 0x01;
+        payload[offset++] = 0x01;
+        payload[offset++] = 0x00;
+        payload[offset++] = 0x00;
+        payload[offset++] = 0x00;
+        payload[offset++] = 0x07;
+
+        struct uci_packet_header header;
+        set_header_values(&header, NOTIFICATION, COMPLETE, RANGING_DATA,
+                          RANGE_DATA_NTF_OPCODE, (unsigned char)offset);
+
+        unsigned char packet[sizeof(struct uci_packet_header) + 64] = {0};
+        memcpy(packet, &header, sizeof(struct uci_packet_header));
+        memcpy(packet + sizeof(struct uci_packet_header), payload, offset);
+
+        parse_uci_packet(packet, sizeof(struct uci_packet_header) + offset);
+
+        TEST_PASS();
+    }
+
     // Test radar-specific Android vendor commands
     TEST_CASE(android_radar_commands);
     {

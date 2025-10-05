@@ -46,6 +46,9 @@
 #define SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG           0x09
 #define SESSION_SET_INITIATOR_DT_ANCHOR_RR_RDM_LIST   0x0a
 #define SESSION_QUERY_DATA_SIZE_IN_RANGING            0x0b
+#define SESSION_SET_HYBRID_CONTROLLER_CONFIG          0x0c
+#define SESSION_SET_HYBRID_CONTROLEE_CONFIG           0x0d
+#define SESSION_DATA_TRANSFER_PHASE_CONFIG            0x0e
 
 // OID (Opcode ID) definitions for Session Control group - aligned with Android UWB spec
 #define SESSION_START               0x00
@@ -231,6 +234,13 @@ typedef enum {
     FRAME_REPORT_TLV_CIR = 0x02,
     FRAME_REPORT_TLV_SEGMENT_METRICS = 0x06,
 } FrameReportTlvType;
+
+typedef enum {
+    MULTICAST_ACTION_ADD = 0x00,
+    MULTICAST_ACTION_REMOVE = 0x01,
+    MULTICAST_ACTION_ADD_SHORT_KEY = 0x02,
+    MULTICAST_ACTION_ADD_LONG_KEY = 0x03,
+} UpdateMulticastListAction;
 
 // Capability TLV types - aligned with Android UWB spec
 typedef enum {

@@ -21,6 +21,15 @@ struct uci_packet_header {
 #define MAX_SESSIONS 10
 #define MAX_SESSION_CONFIGS 32
 #define MAX_SESSION_CONFIG_VALUE_SIZE 255
+#define MAX_MULTICAST_CONTROLEES 16
+#define MAX_DT_TAG_ROUNDS 32
+
+typedef struct {
+    unsigned short short_address;
+    unsigned int subsession_id;
+    unsigned char key_len;
+    unsigned char key[32];
+} uci_multicast_entry;
 
 typedef struct {
     unsigned char cfg_id;
@@ -38,6 +47,15 @@ struct uci_session {
     unsigned short ranging_count; // Tracks completed ranging rounds
     uci_session_config_entry configs[MAX_SESSION_CONFIGS];
     int num_configs;            // Number of stored configurations
+    uci_multicast_entry multicast_entries[MAX_MULTICAST_CONTROLEES];
+    unsigned char multicast_count;
+    unsigned char dt_tag_round_indexes[MAX_DT_TAG_ROUNDS];
+    unsigned char dt_tag_round_count;
+    unsigned char dtp_repetition;
+    unsigned char dtp_control;
+    unsigned char dtp_size;
+    unsigned char dtp_payload[64];
+    unsigned char dtp_payload_len;
 };
 
 // Global session storage

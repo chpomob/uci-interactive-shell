@@ -1,6 +1,7 @@
 #include "../tests/test_runner.h"
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
+#include "../include/uci_config_manager.h"
 #include <string.h>
 #include <stdint.h>
 
@@ -30,6 +31,8 @@ static inline void write_u32_le(unsigned char* buffer, uint32_t value) {
 // Test suite for UCI functions
 int main() {
     TEST_SUITE(uci_functions);
+
+    uci_config_init();
     
     // Test basic header creation
     TEST_CASE(header_creation);
@@ -369,6 +372,120 @@ int main() {
     test_case_end:;
 #undef test_case_end
 
+#define test_case_end test_case_end_multicast_updates
+    TEST_CASE(session_multicast_updates);
+    {
+        init_uci_sessions();
+
+        unsigned char init_payload[5] = {0x02, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload, sizeof(init_payload));
+
+        int slot = find_session_by_id(0x00000002);
+        ASSERT_TRUE(slot >= 0);
+
+        unsigned int handle = uci_sessions[slot].session_handle;
+        unsigned char add_payload[6 + 6] = {0};
+        write_u32_le(add_payload, handle);
+        add_payload[4] = MULTICAST_ACTION_ADD;
+        add_payload[5] = 1; // one controlee
+        add_payload[6] = 0x34;
+        add_payload[7] = 0x12; // short address 0x1234
+        write_u32_le(&add_payload[8], 0xAABBCCDD);
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_UPDATE_CONTROLLER_MULTICAST_LIST,
+                         add_payload, sizeof(add_payload));
+
+        ASSERT_EQUAL(1, uci_sessions[slot].multicast_count);
+        ASSERT_EQUAL(0x1234, uci_sessions[slot].multicast_entries[0].short_address);
+        ASSERT_UINT64_EQUAL(0xAABBCCDDu, uci_sessions[slot].multicast_entries[0].subsession_id);
+
+        unsigned char remove_payload[6 + 6] = {0};
+        write_u32_le(remove_payload, handle);
+        remove_payload[4] = MULTICAST_ACTION_REMOVE;
+        remove_payload[5] = 1;
+        remove_payload[6] = 0x34;
+        remove_payload[7] = 0x12;
+        write_u32_le(&remove_payload[8], 0xAABBCCDD);
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_UPDATE_CONTROLLER_MULTICAST_LIST,
+                         remove_payload, sizeof(remove_payload));
+
+        ASSERT_EQUAL(0, uci_sessions[slot].multicast_count);
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_dt_tag_rounds
+    TEST_CASE(session_dt_tag_round_updates);
+    {
+        init_uci_sessions();
+
+        unsigned char init_payload[5] = {0x03, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload, sizeof(init_payload));
+
+        int slot = find_session_by_id(0x00000003);
+        ASSERT_TRUE(slot >= 0);
+
+        unsigned int handle = uci_sessions[slot].session_handle;
+        unsigned char dt_payload[5 + 3] = {0};
+        write_u32_le(dt_payload, handle);
+        dt_payload[4] = 3;
+        dt_payload[5] = 1;
+        dt_payload[6] = 5;
+        dt_payload[7] = 9;
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG,
+                         dt_payload, sizeof(dt_payload));
+
+        ASSERT_EQUAL(3, uci_sessions[slot].dt_tag_round_count);
+        ASSERT_EQUAL(1, uci_sessions[slot].dt_tag_round_indexes[0]);
+        ASSERT_EQUAL(5, uci_sessions[slot].dt_tag_round_indexes[1]);
+        ASSERT_EQUAL(9, uci_sessions[slot].dt_tag_round_indexes[2]);
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_dtp_config
+    TEST_CASE(session_data_transfer_phase_config);
+    {
+        init_uci_sessions();
+
+        unsigned char init_payload[5] = {0x04, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload, sizeof(init_payload));
+
+        int slot = find_session_by_id(0x00000004);
+        ASSERT_TRUE(slot >= 0);
+
+        unsigned int handle = uci_sessions[slot].session_handle;
+        unsigned char dtp_payload[7 + 3] = {0};
+        write_u32_le(dtp_payload, handle);
+        dtp_payload[4] = 7;  // repetition
+        dtp_payload[5] = 0xA5; // control flags
+        dtp_payload[6] = 0x03; // size
+        dtp_payload[7] = 0x11;
+        dtp_payload[8] = 0x22;
+        dtp_payload[9] = 0x33;
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_DATA_TRANSFER_PHASE_CONFIG,
+                         dtp_payload, sizeof(dtp_payload));
+
+        ASSERT_EQUAL(7, uci_sessions[slot].dtp_repetition);
+        ASSERT_EQUAL(0xA5, uci_sessions[slot].dtp_control);
+        ASSERT_EQUAL(0x03, uci_sessions[slot].dtp_size);
+        ASSERT_EQUAL(3, uci_sessions[slot].dtp_payload_len);
+        ASSERT_EQUAL(0x11, uci_sessions[slot].dtp_payload[0]);
+        ASSERT_EQUAL(0x22, uci_sessions[slot].dtp_payload[1]);
+        ASSERT_EQUAL(0x33, uci_sessions[slot].dtp_payload[2]);
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
 #define test_case_end test_case_end_10
     // Test core configuration commands for coverage
     TEST_CASE(core_config_commands);
@@ -376,8 +493,21 @@ int main() {
         unsigned char bad_set_payload[] = {0x01, DEVICE_STATE, 0x02, 0xAA};
         send_uci_command(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, bad_set_payload, sizeof(bad_set_payload));
 
+        unsigned char multi_byte_payload[] = {0x01, LOW_POWER_MODE, 0x02, 0x34, 0x12};
+        send_uci_command(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, multi_byte_payload, sizeof(multi_byte_payload));
+
+        unsigned char stored_config[4] = {0};
+        size_t stored_len = sizeof(stored_config);
+        ASSERT_EQUAL(0, uci_config_get_device_param(LOW_POWER_MODE, stored_config, &stored_len));
+        ASSERT_EQUAL(2, (int)stored_len);
+        ASSERT_EQUAL(0x34, stored_config[0]);
+        ASSERT_EQUAL(0x12, stored_config[1]);
+
         unsigned char get_payload[] = {0x01, DEVICE_STATE};
         send_uci_command(COMMAND, COMPLETE, CORE, CORE_GET_CONFIG, get_payload, sizeof(get_payload));
+
+        unsigned char multi_get_payload[] = {0x02, DEVICE_STATE, LOW_POWER_MODE};
+        send_uci_command(COMMAND, COMPLETE, CORE, CORE_GET_CONFIG, multi_get_payload, sizeof(multi_get_payload));
 
         uci_process_pending_notifications();
 

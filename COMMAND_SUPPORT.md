@@ -17,8 +17,8 @@ Key limitations to keep in mind:
 
 - Data packets are not transported; data/control notifications are mocked only
   when explicitly emitted inside `send_uci_command`.
-- TLV values are stored as single-byte placeholders, so complex multi-byte
-  parameters will be truncated.
+- Device configuration TLVs preserve the byte lengths supplied by the host;
+  validation still focuses on known IDs rather than full schema checks.
 - Session handles are synthesized locally and do not survive resets.
 - Unsupported commands fall back to `UCI_STATUS_OK` without side effects.
 

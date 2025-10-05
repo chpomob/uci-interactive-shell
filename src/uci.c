@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
+#include "../include/uci_config_manager.h"
 
 // Helper functions for Little-Endian conversion
 static inline uint16_t read_u16_le(const unsigned char* buffer) {
@@ -162,6 +163,10 @@ static inline void write_u64_le(unsigned char* buffer, uint64_t value) {
     }
 }
 
+static int is_valid_device_config_id(unsigned char cfg_id) {
+    return cfg_id == DEVICE_STATE || cfg_id == LOW_POWER_MODE;
+}
+
 #define MAX_RESPONSE_PAYLOAD_LEN 255
 #define ANDROID_GET_POWER_STATS 0x00
 #define ANDROID_SET_COUNTRY_CODE 0x01
@@ -179,6 +184,18 @@ static int g_hardware_mode = 0;
 static char g_hardware_device_path[256] = "/dev/ttyUSB0";  // Default device path
 static unsigned long long g_fake_timestamp = 0;
 static unsigned int g_session_handle_counter = 1;
+
+static unsigned char session_add_multicast_entry(struct uci_session* session,
+                                                 unsigned short short_address,
+                                                 unsigned int subsession_id,
+                                                 const unsigned char* key,
+                                                 unsigned char key_len);
+static unsigned char session_remove_multicast_entry(struct uci_session* session,
+                                                    unsigned short short_address,
+                                                    unsigned int subsession_id);
+static int session_find_multicast_entry_idx(const struct uci_session* session,
+                                            unsigned short short_address,
+                                            unsigned int subsession_id);
 
 typedef struct {
     uint8_t type;
@@ -966,99 +983,124 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         memcpy(response_packet + sizeof(struct uci_packet_header), timestamp_rsp, sizeof(timestamp_rsp));
         response_header->payload_len = sizeof(timestamp_rsp);
     } else if (gid == CORE && oid == CORE_GET_CONFIG) {
+        unsigned char get_config_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
+        size_t response_offset = 2;
         unsigned char cfg_count = 0;
-        unsigned char cfg_ids_local[MAX_RESPONSE_PAYLOAD_LEN] = {0};
-        if (payload && payload_len >= 1) {
+        unsigned char status = UCI_STATUS_OK;
+
+        if (!payload || payload_len < 1) {
+            status = UCI_STATUS_INVALID_PARAM;
+        } else {
             unsigned char requested = payload[0];
-            unsigned int available = payload_len - 1;
-            unsigned int max_entries = (MAX_RESPONSE_PAYLOAD_LEN - 2) / 3;
-            if (requested > available) {
-                requested = (unsigned char)available;
+            unsigned int available_ids = payload_len > 1 ? (payload_len - 1) : 0;
+            if (requested > available_ids) {
+                requested = (unsigned char)available_ids;
             }
-            if (requested > max_entries) {
-                requested = (unsigned char)max_entries;
+
+            for (unsigned char i = 0; i < requested; i++) {
+                unsigned char cfg_id = payload[1 + i];
+                if (!is_valid_device_config_id(cfg_id)) {
+                    status = UCI_STATUS_INVALID_PARAM;
+                    continue;
+                }
+
+                unsigned char value_buffer[256] = {0};
+                size_t value_len = sizeof(value_buffer);
+                if (uci_config_get_device_param((DeviceConfigId)cfg_id, value_buffer, &value_len) != 0 ||
+                    value_len == 0 || value_len > 255) {
+                    status = UCI_STATUS_INVALID_PARAM;
+                    continue;
+                }
+
+                if (response_offset + 2 + value_len > sizeof(get_config_rsp_payload)) {
+                    status = UCI_STATUS_INVALID_MSG_SIZE;
+                    break;
+                }
+
+                get_config_rsp_payload[response_offset++] = cfg_id;
+                get_config_rsp_payload[response_offset++] = (unsigned char)value_len;
+                memcpy(&get_config_rsp_payload[response_offset], value_buffer, value_len);
+                response_offset += value_len;
+                cfg_count++;
             }
-            cfg_count = requested;
-            for (unsigned char i = 0; i < cfg_count; i++) {
-                cfg_ids_local[i] = payload[1 + i];
+
+            if (cfg_count == 0 && status == UCI_STATUS_OK) {
+                status = UCI_STATUS_INVALID_PARAM;
             }
         }
 
-        unsigned char get_config_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
-        unsigned char response_len = (unsigned char)(2 + (cfg_count * 3));
-        get_config_rsp_payload[0] = (cfg_count > 0) ? UCI_STATUS_OK : UCI_STATUS_INVALID_PARAM;
+        get_config_rsp_payload[0] = (cfg_count > 0) ? status : UCI_STATUS_INVALID_PARAM;
         get_config_rsp_payload[1] = cfg_count;
 
-        if (cfg_count == 0) {
-            unsigned char err = UCI_STATUS_INVALID_PARAM;
+        size_t response_len = response_offset;
+        if (response_len == 2) {
+            unsigned char err = get_config_rsp_payload[0];
             enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
         }
 
-        int response_offset = 2;
-        for (unsigned char i = 0; i < cfg_count; i++) {
-            unsigned char cfg_id = cfg_ids_local[i];
-            get_config_rsp_payload[response_offset] = cfg_id;
-            get_config_rsp_payload[response_offset + 1] = 1;
-            if (cfg_id == DEVICE_STATE) {
-                get_config_rsp_payload[response_offset + 2] = DEVICE_STATE_ACTIVE;
-            } else if (cfg_id == LOW_POWER_MODE) {
-                get_config_rsp_payload[response_offset + 2] = 0;
-            } else {
-                get_config_rsp_payload[response_offset + 2] = 0;
-            }
-            response_offset += 3;
-        }
-
         memcpy(response_packet + sizeof(struct uci_packet_header), get_config_rsp_payload, response_len);
-        response_header->payload_len = response_len;
+        response_header->payload_len = (unsigned char)response_len;
     } else if (gid == CORE && oid == CORE_SET_CONFIG) {
         unsigned char cfg_ids[MAX_RESPONSE_PAYLOAD_LEN] = {0};
+        unsigned char cfg_status[MAX_RESPONSE_PAYLOAD_LEN] = {0};
         unsigned char processed_tlvs = 0;
         unsigned char status = UCI_STATUS_OK;
 
-        if (payload && payload_len > 0) {
+        if (!payload || payload_len < 1) {
+            status = UCI_STATUS_INVALID_PARAM;
+        } else {
             unsigned char declared_tlvs = payload[0];
             int offset = 1;
             for (unsigned char i = 0; i < declared_tlvs; i++) {
                 if (offset + 2 > payload_len) {
                     status = UCI_STATUS_INVALID_PARAM;
-                    break; // Not enough bytes for cfg_id + length
+                    break;
                 }
 
-                unsigned char cfg_id = payload[offset];
-                unsigned char cfg_len = payload[offset + 1];
-                offset += 2;
+                unsigned char cfg_id = payload[offset++];
+                unsigned char cfg_len = payload[offset++];
 
-                if (offset + cfg_len > payload_len) {
+                if (offset + cfg_len > payload_len || cfg_len == 0) {
                     status = UCI_STATUS_INVALID_PARAM;
-                    break; // Truncated value
+                    break;
+                }
+
+                unsigned char tlv_status = UCI_STATUS_OK;
+                if (!is_valid_device_config_id(cfg_id) ||
+                    uci_config_set_device_param((DeviceConfigId)cfg_id, &payload[offset], cfg_len) != 0) {
+                    tlv_status = UCI_STATUS_INVALID_PARAM;
                 }
 
                 if (processed_tlvs < (MAX_RESPONSE_PAYLOAD_LEN - 2) / 2) {
                     cfg_ids[processed_tlvs] = cfg_id;
+                    cfg_status[processed_tlvs] = tlv_status;
                     processed_tlvs++;
+                }
+
+                if (tlv_status != UCI_STATUS_OK && status == UCI_STATUS_OK) {
+                    status = UCI_STATUS_INVALID_PARAM;
                 }
 
                 offset += cfg_len;
             }
-            if (processed_tlvs != declared_tlvs) {
+
+            if (processed_tlvs == 0 && status == UCI_STATUS_OK) {
                 status = UCI_STATUS_INVALID_PARAM;
             }
-        } else {
-            status = UCI_STATUS_INVALID_PARAM;
         }
 
-        unsigned char response_len = (unsigned char)(2 + (processed_tlvs * 2));
         unsigned char set_config_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
+        unsigned char response_len = (unsigned char)(2 + (processed_tlvs * 2));
         set_config_rsp_payload[0] = status;
         set_config_rsp_payload[1] = processed_tlvs;
         for (unsigned char i = 0; i < processed_tlvs; i++) {
             set_config_rsp_payload[2 + (i * 2)] = cfg_ids[i];
-            set_config_rsp_payload[2 + (i * 2) + 1] = UCI_STATUS_OK;
+            set_config_rsp_payload[2 + (i * 2) + 1] = cfg_status[i];
         }
 
         if (status != UCI_STATUS_OK) {
-            enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &status, 1);
+            unsigned char err = status;
+            enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
         }
 
         memcpy(response_packet + sizeof(struct uci_packet_header), set_config_rsp_payload, response_len);
@@ -1147,6 +1189,18 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             memset(uci_sessions[session_idx].configs, 0, sizeof(uci_sessions[session_idx].configs));
             uci_sessions[session_idx].session_handle = session_handle;
             uci_sessions[session_idx].ranging_count = 0;
+            uci_sessions[session_idx].multicast_count = 0;
+            memset(uci_sessions[session_idx].multicast_entries, 0,
+                   sizeof(uci_sessions[session_idx].multicast_entries));
+            uci_sessions[session_idx].dt_tag_round_count = 0;
+            memset(uci_sessions[session_idx].dt_tag_round_indexes, 0,
+                   sizeof(uci_sessions[session_idx].dt_tag_round_indexes));
+            uci_sessions[session_idx].dtp_repetition = 0;
+            uci_sessions[session_idx].dtp_control = 0;
+            uci_sessions[session_idx].dtp_size = 0;
+            uci_sessions[session_idx].dtp_payload_len = 0;
+            memset(uci_sessions[session_idx].dtp_payload, 0,
+                   sizeof(uci_sessions[session_idx].dtp_payload));
 
             unsigned char session_init_rsp_payload[5];
             session_init_rsp_payload[0] = UCI_STATUS_OK;
@@ -1179,6 +1233,15 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             session->ranging_count = 0;
             session->num_configs = 0;
             memset(session->configs, 0, sizeof(session->configs));
+            session->multicast_count = 0;
+            memset(session->multicast_entries, 0, sizeof(session->multicast_entries));
+            session->dt_tag_round_count = 0;
+            memset(session->dt_tag_round_indexes, 0, sizeof(session->dt_tag_round_indexes));
+            session->dtp_repetition = 0;
+            session->dtp_control = 0;
+            session->dtp_size = 0;
+            session->dtp_payload_len = 0;
+            memset(session->dtp_payload, 0, sizeof(session->dtp_payload));
         } else {
             unsigned char err = UCI_STATUS_INVALID_PARAM;
             enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
@@ -1312,14 +1375,232 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &status, 1);
         }
     } else if (gid == SESSION_CONFIG && oid == SESSION_UPDATE_CONTROLLER_MULTICAST_LIST) {
-        unsigned char status = (payload && payload_len >= 5) ? UCI_STATUS_OK : UCI_STATUS_INVALID_PARAM;
-        unsigned char multicast_rsp_payload[] = {status};
-        memcpy(response_packet + sizeof(struct uci_packet_header), multicast_rsp_payload, sizeof(multicast_rsp_payload));
-        response_header->payload_len = sizeof(multicast_rsp_payload);
+        typedef struct {
+            unsigned short short_address;
+            unsigned int subsession_id;
+            unsigned char status;
+        } multicast_result_t;
+
+        multicast_result_t results[MAX_MULTICAST_CONTROLEES];
+        memset(results, 0, sizeof(results));
+
+        unsigned char overall_status = UCI_STATUS_OK;
+        unsigned char processed = 0;
+        unsigned char action = 0;
+        unsigned char declared = 0;
+        unsigned int identifier = 0;
+        int session_idx = -1;
+        int offset = 6;
+
+        if (!payload || payload_len < 6) {
+            overall_status = UCI_STATUS_INVALID_PARAM;
+        } else {
+            identifier = read_u32_le(payload);
+            action = payload[4];
+            declared = payload[5];
+            session_idx = find_session_by_token_or_id(identifier);
+            if (session_idx < 0) {
+                overall_status = UCI_STATUS_INVALID_PARAM;
+            }
+        }
+
+        if (overall_status == UCI_STATUS_OK) {
+            struct uci_session* session = &uci_sessions[session_idx];
+            for (unsigned char i = 0; i < declared; i++) {
+                if (offset + 2 > payload_len) {
+                    overall_status = UCI_STATUS_INVALID_PARAM;
+                    break;
+                }
+
+                unsigned short short_address = read_u16_le(&payload[offset]);
+                offset += 2;
+
+                unsigned int subsession_id = 0;
+                unsigned char key_len_expected = 0;
+                unsigned char key_buffer[32] = {0};
+
+                int additional_bytes = 0;
+                switch (action) {
+                    case MULTICAST_ACTION_ADD:
+                        additional_bytes = 4;
+                        break;
+                    case MULTICAST_ACTION_REMOVE:
+                        additional_bytes = 4;
+                        break;
+                    case MULTICAST_ACTION_ADD_SHORT_KEY:
+                        additional_bytes = 4 + 16;
+                        key_len_expected = 16;
+                        break;
+                    case MULTICAST_ACTION_ADD_LONG_KEY:
+                        additional_bytes = 4 + 32;
+                        key_len_expected = 32;
+                        break;
+                    default:
+                        overall_status = UCI_STATUS_INVALID_PARAM;
+                        break;
+                }
+
+                if (overall_status != UCI_STATUS_OK) {
+                    break;
+                }
+
+                if (offset + additional_bytes > payload_len) {
+                    overall_status = UCI_STATUS_INVALID_PARAM;
+                    break;
+                }
+
+                subsession_id = read_u32_le(&payload[offset]);
+                offset += 4;
+
+                if (key_len_expected > 0) {
+                    memcpy(key_buffer, &payload[offset], key_len_expected);
+                    offset += key_len_expected;
+                }
+
+                unsigned char per_status;
+                if (action == MULTICAST_ACTION_REMOVE) {
+                    per_status = session_remove_multicast_entry(session, short_address, subsession_id);
+                } else {
+                    per_status = session_add_multicast_entry(session, short_address, subsession_id,
+                                                             key_len_expected ? key_buffer : NULL,
+                                                             key_len_expected);
+                }
+
+                if (processed < MAX_MULTICAST_CONTROLEES) {
+                    results[processed].short_address = short_address;
+                    results[processed].subsession_id = subsession_id;
+                    results[processed].status = per_status;
+                    processed++;
+                }
+
+                if (per_status != UCI_STATUS_OK && overall_status == UCI_STATUS_OK) {
+                    overall_status = per_status;
+                }
+            }
+        }
+
+        unsigned char multicast_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
+        multicast_rsp_payload[0] = overall_status;
+        multicast_rsp_payload[1] = processed;
+        size_t rsp_offset = 2;
+
+        for (unsigned char i = 0; i < processed; i++) {
+            if (rsp_offset + 7 > sizeof(multicast_rsp_payload)) {
+                multicast_rsp_payload[0] = UCI_STATUS_INVALID_MSG_SIZE;
+                multicast_rsp_payload[1] = 0;
+                rsp_offset = 2;
+                break;
+            }
+            write_u16_le(&multicast_rsp_payload[rsp_offset], results[i].short_address);
+            rsp_offset += 2;
+            write_u32_le(&multicast_rsp_payload[rsp_offset], results[i].subsession_id);
+            rsp_offset += 4;
+            multicast_rsp_payload[rsp_offset++] = results[i].status;
+        }
+
+        if (multicast_rsp_payload[0] != UCI_STATUS_OK) {
+            unsigned char err = multicast_rsp_payload[0];
+            enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
+        }
+
+        memcpy(response_packet + sizeof(struct uci_packet_header), multicast_rsp_payload, rsp_offset);
+        response_header->payload_len = (unsigned char)rsp_offset;
     } else if (gid == SESSION_CONFIG && oid == SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG) {
-        unsigned char update_dt_tag_rsp[] = {UCI_STATUS_OK};
-        memcpy(response_packet + sizeof(struct uci_packet_header), update_dt_tag_rsp, sizeof(update_dt_tag_rsp));
-        response_header->payload_len = sizeof(update_dt_tag_rsp);
+        unsigned char status = UCI_STATUS_OK;
+        unsigned char stored_count = 0;
+        struct uci_session* session = NULL;
+
+        if (!payload || payload_len < 5) {
+            status = UCI_STATUS_INVALID_PARAM;
+        } else {
+            unsigned int identifier = read_u32_le(payload);
+            unsigned char declared = payload[4];
+            if (payload_len < 5 + declared) {
+                status = UCI_STATUS_INVALID_PARAM;
+            } else {
+                int session_idx = find_session_by_token_or_id(identifier);
+                if (session_idx < 0) {
+                    status = UCI_STATUS_INVALID_PARAM;
+                } else if (declared > MAX_DT_TAG_ROUNDS) {
+                    status = UCI_STATUS_INVALID_PARAM;
+                } else {
+                    session = &uci_sessions[session_idx];
+                    session->dt_tag_round_count = declared;
+                    memcpy(session->dt_tag_round_indexes, &payload[5], declared);
+                    stored_count = declared;
+                }
+            }
+        }
+
+        unsigned char dt_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
+        size_t response_len = 2;
+        dt_rsp_payload[0] = status;
+        dt_rsp_payload[1] = (status == UCI_STATUS_OK) ? stored_count : 0;
+        if (status == UCI_STATUS_OK && stored_count > 0) {
+            memcpy(&dt_rsp_payload[2], session->dt_tag_round_indexes, stored_count);
+            response_len += stored_count;
+        }
+
+        if (status != UCI_STATUS_OK) {
+            unsigned char err = status;
+            enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
+        }
+
+        memcpy(response_packet + sizeof(struct uci_packet_header), dt_rsp_payload, response_len);
+        response_header->payload_len = (unsigned char)response_len;
+    } else if (gid == SESSION_CONFIG && oid == SESSION_DATA_TRANSFER_PHASE_CONFIG) {
+        unsigned char status = UCI_STATUS_OK;
+        struct uci_session* session = NULL;
+        unsigned char dtp_repetition = 0;
+        unsigned char dtp_control = 0;
+        unsigned char dtp_size = 0;
+        unsigned char extra_len = 0;
+        unsigned char extra_payload[64] = {0};
+
+        if (!payload || payload_len < 7) {
+            status = UCI_STATUS_INVALID_PARAM;
+        } else {
+            unsigned int identifier = read_u32_le(payload);
+            dtp_repetition = payload[4];
+            dtp_control = payload[5];
+            dtp_size = payload[6];
+            extra_len = (unsigned char)((payload_len > 7) ? (payload_len - 7) : 0);
+            if (extra_len > sizeof(extra_payload)) {
+                status = UCI_STATUS_INVALID_MSG_SIZE;
+            } else {
+                if (extra_len > 0) {
+                    memcpy(extra_payload, &payload[7], extra_len);
+                }
+
+                int session_idx = find_session_by_token_or_id(identifier);
+                if (session_idx < 0) {
+                    status = UCI_STATUS_INVALID_PARAM;
+                } else {
+                    session = &uci_sessions[session_idx];
+                }
+            }
+        }
+
+        if (status == UCI_STATUS_OK && session) {
+            session->dtp_repetition = dtp_repetition;
+            session->dtp_control = dtp_control;
+            session->dtp_size = dtp_size;
+            session->dtp_payload_len = extra_len;
+            if (extra_len > 0) {
+                memcpy(session->dtp_payload, extra_payload, extra_len);
+            } else {
+                memset(session->dtp_payload, 0, sizeof(session->dtp_payload));
+            }
+        }
+
+        if (status != UCI_STATUS_OK) {
+            unsigned char err = status;
+            enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
+        }
+
+        unsigned char dtp_rsp[] = {status};
+        memcpy(response_packet + sizeof(struct uci_packet_header), dtp_rsp, sizeof(dtp_rsp));
+        response_header->payload_len = sizeof(dtp_rsp);
     } else if (gid == SESSION_CONFIG && oid == SESSION_SET_APP_CONFIG) {
         unsigned char cfg_ids[MAX_RESPONSE_PAYLOAD_LEN] = {0};
         unsigned char processed_tlvs = 0;
@@ -1993,6 +2274,15 @@ void init_uci_sessions() {
         uci_sessions[i].session_handle = 0;
         uci_sessions[i].ranging_count = 0;
         memset(uci_sessions[i].configs, 0, sizeof(uci_sessions[i].configs));
+        uci_sessions[i].multicast_count = 0;
+        memset(uci_sessions[i].multicast_entries, 0, sizeof(uci_sessions[i].multicast_entries));
+        uci_sessions[i].dt_tag_round_count = 0;
+        memset(uci_sessions[i].dt_tag_round_indexes, 0, sizeof(uci_sessions[i].dt_tag_round_indexes));
+        uci_sessions[i].dtp_repetition = 0;
+        uci_sessions[i].dtp_control = 0;
+        uci_sessions[i].dtp_size = 0;
+        uci_sessions[i].dtp_payload_len = 0;
+        memset(uci_sessions[i].dtp_payload, 0, sizeof(uci_sessions[i].dtp_payload));
     }
 }
 
@@ -2053,6 +2343,83 @@ void increment_session_ranging_count(int session_idx) {
     if (uci_sessions[session_idx].ranging_count < 0xFFFF) {
         uci_sessions[session_idx].ranging_count++;
     }
+}
+
+static int session_find_multicast_entry_idx(const struct uci_session* session,
+                                            unsigned short short_address,
+                                            unsigned int subsession_id) {
+    if (!session) {
+        return -1;
+    }
+    for (int i = 0; i < session->multicast_count; i++) {
+        const uci_multicast_entry* entry = &session->multicast_entries[i];
+        if (entry->short_address == short_address && entry->subsession_id == subsession_id) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static unsigned char session_add_multicast_entry(struct uci_session* session,
+                                                 unsigned short short_address,
+                                                 unsigned int subsession_id,
+                                                 const unsigned char* key,
+                                                 unsigned char key_len) {
+    if (!session) {
+        return UCI_STATUS_INVALID_PARAM;
+    }
+
+    if (key_len > sizeof(session->multicast_entries[0].key)) {
+        key_len = sizeof(session->multicast_entries[0].key);
+    }
+
+    int existing_idx = session_find_multicast_entry_idx(session, short_address, subsession_id);
+    if (existing_idx >= 0) {
+        uci_multicast_entry* entry = &session->multicast_entries[existing_idx];
+        entry->key_len = key_len;
+        if (key_len > 0 && key) {
+            memcpy(entry->key, key, key_len);
+        } else {
+            memset(entry->key, 0, sizeof(entry->key));
+        }
+        return UCI_STATUS_OK;
+    }
+
+    if (session->multicast_count >= MAX_MULTICAST_CONTROLEES) {
+        return UCI_STATUS_MULTICAST_LIST_FULL;
+    }
+
+    uci_multicast_entry* entry = &session->multicast_entries[session->multicast_count++];
+    entry->short_address = short_address;
+    entry->subsession_id = subsession_id;
+    entry->key_len = key_len;
+    if (key_len > 0 && key) {
+        memcpy(entry->key, key, key_len);
+    } else {
+        memset(entry->key, 0, sizeof(entry->key));
+    }
+    return UCI_STATUS_OK;
+}
+
+static unsigned char session_remove_multicast_entry(struct uci_session* session,
+                                                    unsigned short short_address,
+                                                    unsigned int subsession_id) {
+    if (!session) {
+        return UCI_STATUS_INVALID_PARAM;
+    }
+
+    int idx = session_find_multicast_entry_idx(session, short_address, subsession_id);
+    if (idx < 0) {
+        return UCI_STATUS_ADDRESS_NOT_FOUND;
+    }
+
+    int last = session->multicast_count - 1;
+    if (idx != last) {
+        session->multicast_entries[idx] = session->multicast_entries[last];
+    }
+    memset(&session->multicast_entries[last], 0, sizeof(session->multicast_entries[last]));
+    session->multicast_count--;
+    return UCI_STATUS_OK;
 }
 
 // Helper function to store configuration value in session

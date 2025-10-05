@@ -1,0 +1,63 @@
+/*
+ * UCI Interactive Shell - UI Enhancement Integration Patch
+ *
+ * This patch can be applied to src/main.c to integrate the UI enhancements.
+ */
+
+#ifndef UCI_UI_INTEGRATION_PATCH_H
+#define UCI_UI_INTEGRATION_PATCH_H
+
+/*
+diff --git a/src/main.c b/src/main.c
+index 1234567..89abcde 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -1,6 +1,8 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include "../include/uci_ui.h"
++#include "../include/uci_ui_main_patch.h"
+ 
+ // ... existing includes ...
+ 
+@@ -36,9 +38,7 @@ int main() {
+     }
+ 
+     printf("UCI Interactive Shell\n");
+-    printf("Enter 'quit' to exit.\n");
+-    printf("Commands: send, get_device_info, device_info, device_reset, ...\n");
+-    // ... long list of commands ...
++    ui_print_welcome_message();
+ 
+     // Initialize readline for tab completion
+     cli_initialize_readline();
+@@ -194,7 +194,7 @@ int main() {
+             // Initialize hardware interface with the specified device
+             if (uci_hw_interface_init(device_path) == 0) {
+                 g_hardware_mode = 1;
+-                printf("Hardware mode initialized successfully with device: %s\n", device_path);
++                ui_print_hardware_mode_initialized(device_path);
+                 // Also initialize the character device interface
+                 if (uci_hw_chardev_init(&g_uwb_chardev, device_path) == 0) {
+                     if (uci_hw_chardev_open(&g_uwb_chardev) == 0) {
+@@ -1053,7 +1053,7 @@ int main() {
+             if (!g_hardware_mode) {
+                 printf("Hardware mode not initialized. Use 'hw_init <device_path>' first.\n");
+             } else {
+-                printf("Hardware mode initialized successfully with device: %s\n", device_path);
++                ui_print_hardware_mode_initialized(device_path);
+             }
+         } else if (strcmp(command, "hw_send") == 0 && g_hardware_mode) {
+             if (!uci_hw_interface_is_connected()) {
+@@ -1170,7 +1170,7 @@ int main() {
+             }
+         } else {
+             printf("Unknown command: %s\n", command);
+-            ui_print_command_not_found(command);
+         }
+ 
+         // Note: In a real implementation, notifications would arrive asynchronously
+*/
+         
+#endif // UCI_UI_INTEGRATION_PATCH_H

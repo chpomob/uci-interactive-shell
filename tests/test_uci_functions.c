@@ -350,6 +350,8 @@ int main() {
         send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_DEINIT, handle_payload, sizeof(handle_payload));
         ASSERT_EQUAL(0, uci_sessions[slot].is_allocated);
 
+        uci_process_pending_notifications();
+
         TEST_PASS();
     }
     test_case_end:;
@@ -364,6 +366,8 @@ int main() {
 
         unsigned char get_payload[] = {0x01, DEVICE_STATE};
         send_uci_command(COMMAND, COMPLETE, CORE, CORE_GET_CONFIG, get_payload, sizeof(get_payload));
+
+        uci_process_pending_notifications();
 
         TEST_PASS();
     }
@@ -402,6 +406,8 @@ int main() {
         unsigned char multi_get_payload[] = {0x03, DEVICE_STATE, LOW_POWER_MODE, 0xFF};
         send_uci_command(COMMAND, COMPLETE, CORE, CORE_GET_CONFIG, multi_get_payload, sizeof(multi_get_payload));
 
+        uci_process_pending_notifications();
+
         TEST_PASS();
     }
     // Test session edge cases and invalid parameter handling
@@ -414,6 +420,8 @@ int main() {
         send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_QUERY_DATA_SIZE_IN_RANGING, short_payload, sizeof(short_payload));
         send_uci_command(COMMAND, COMPLETE, SESSION_CONTROL, SESSION_GET_RANGING_COUNT, short_payload, sizeof(short_payload));
         send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_GET_APP_CONFIG, short_payload, sizeof(short_payload));
+
+        uci_process_pending_notifications();
 
         TEST_PASS();
     }
@@ -433,6 +441,8 @@ int main() {
             0x01                    // cfg_id
         };
         send_uci_command(COMMAND, COMPLETE, VENDOR_ANDROID, ANDROID_RADAR_GET_APP_CONFIG, get_payload, sizeof(get_payload));
+
+        uci_process_pending_notifications();
 
         TEST_PASS();
     }

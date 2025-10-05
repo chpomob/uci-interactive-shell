@@ -3,6 +3,15 @@
 #include "../include/uci_functions.h"
 #include <string.h>
 
+#ifndef ANDROID_GET_POWER_STATS
+#define ANDROID_GET_POWER_STATS 0x00
+#define ANDROID_SET_COUNTRY_CODE 0x01
+#define ANDROID_RADAR_SET_APP_CONFIG 0x11
+#define TEST_RF_SET_CONFIG 0x00
+#define TEST_RF_PERIODIC_TX 0x02
+#define TEST_RF_STOP 0x07
+#endif
+
 // Test suite for UCI functions
 int main() {
     TEST_SUITE(uci_functions);
@@ -304,5 +313,79 @@ int main() {
     }
     test_case_end8:;
     
+#define test_case_end test_case_end_9
+    // Test end-to-end session command flow through send_uci_command
+    TEST_CASE(session_command_flow);
+    {
+        init_uci_sessions();
+
+        unsigned char init_payload[5] = {0x00, 0x00, 0x00, 0x01, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload, sizeof(init_payload));
+
+        int slot = find_session_by_id(0x00000001);
+        ASSERT_TRUE(slot >= 0);
+        ASSERT_EQUAL(SESSION_STATE_INIT, uci_sessions[slot].session_state);
+
+        unsigned int handle = uci_sessions[slot].session_handle;
+        ASSERT_TRUE(handle != 0);
+
+        unsigned char handle_payload[4] = {
+            (unsigned char)((handle >> 24) & 0xFF),
+            (unsigned char)((handle >> 16) & 0xFF),
+            (unsigned char)((handle >> 8) & 0xFF),
+            (unsigned char)(handle & 0xFF)
+        };
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONTROL, SESSION_START, handle_payload, sizeof(handle_payload));
+        ASSERT_EQUAL(SESSION_STATE_ACTIVE, uci_sessions[slot].session_state);
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONTROL, SESSION_STOP, handle_payload, sizeof(handle_payload));
+        ASSERT_EQUAL(SESSION_STATE_IDLE, uci_sessions[slot].session_state);
+        ASSERT_EQUAL(1, uci_sessions[slot].ranging_count);
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONTROL, SESSION_GET_RANGING_COUNT, handle_payload, sizeof(handle_payload));
+        ASSERT_EQUAL(1, uci_sessions[slot].ranging_count);
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_DEINIT, handle_payload, sizeof(handle_payload));
+        ASSERT_EQUAL(0, uci_sessions[slot].is_allocated);
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_10
+    // Test core configuration commands for coverage
+    TEST_CASE(core_config_commands);
+    {
+        unsigned char bad_set_payload[] = {0x01, DEVICE_STATE, 0x02, 0xAA};
+        send_uci_command(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, bad_set_payload, sizeof(bad_set_payload));
+
+        unsigned char get_payload[] = {0x01, DEVICE_STATE};
+        send_uci_command(COMMAND, COMPLETE, CORE, CORE_GET_CONFIG, get_payload, sizeof(get_payload));
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_11
+    // Test vendor Android and RF test command stubs
+    TEST_CASE(vendor_and_test_commands);
+    {
+        unsigned char country_payload[2] = {'U', 'S'};
+        send_uci_command(COMMAND, COMPLETE, VENDOR_ANDROID, ANDROID_SET_COUNTRY_CODE, country_payload, sizeof(country_payload));
+        send_uci_command(COMMAND, COMPLETE, VENDOR_ANDROID, ANDROID_GET_POWER_STATS, NULL, 0);
+
+        unsigned char rf_payload[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
+        send_uci_command(COMMAND, COMPLETE, TEST, TEST_RF_SET_CONFIG, rf_payload, sizeof(rf_payload));
+        send_uci_command(COMMAND, COMPLETE, TEST, TEST_RF_PERIODIC_TX, rf_payload, sizeof(rf_payload));
+        send_uci_command(COMMAND, COMPLETE, TEST, TEST_RF_STOP, NULL, 0);
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
     TEST_SUITE_END();
 }

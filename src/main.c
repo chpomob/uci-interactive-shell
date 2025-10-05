@@ -16,28 +16,17 @@
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
 #include "../include/uci_cli.h"
+#include "../include/uci_cli_completion.h"
 #include "../include/uci_config_manager.h"
 #include "../include/uci_hw.h"
 #include "../include/uci_hw_interface.h"
 #include "../include/uci_hw_chardev.h"
-
-// Forward declarations for readline functions
-static void initialize_readline(void);
-static char* command_generator(const char* text, int state);
-static char** uci_completion(const char* text, int start, int end);
 
 #define MAX_PAYLOAD_LENGTH 255
 
 // Global variables for hardware mode
 static int g_hardware_mode = 0;  // Flag to track if hardware mode is enabled
 static uci_hw_chardev_t g_uwb_chardev;  // Character device interface for UWB communication
-
-// Structure to hold command information for completion
-typedef struct {
-    char name[64];
-    char description[256];
-    char * (*get_suboptions)(const char *input);
-} CommandInfo;
 
 int main() {
     char line[CLI_MAX_LINE_LENGTH];
@@ -102,7 +91,7 @@ int main() {
     printf("  - uci_analysis/ - Detailed UCI protocol analysis based on Android UWB specification\n");
 
     // Initialize readline for tab completion
-    initialize_readline();
+    cli_initialize_readline();
 
     while (1) {
         char* input_line = readline("> ");
@@ -152,131 +141,9 @@ int main() {
             command = strtok(line, " "); // Re-tokenize with the expanded command
         }
 
-        const char* commands[] = {
-            "quit", "hw_init", "hw_send", "hw_send_raw", "hw_info", "hw_connect",
-            "hw_get_device_info", "hw_device_info", "hw_device_reset", "hw_get_caps_info",
-            "hw_set_config", "hw_get_config", "hw_get_device_state", "hw_set_device_active",
-            "hw_set_device_ready", "hw_device_suspend", "hw_session_init", "hw_session_new",
-            "hw_session_deinit", "hw_session_close", "hw_session_start", "hw_start_ranging",
-            "hw_session_stop", "hw_stop_ranging", "hw_get_session_state", "hw_session_status",
-            "hw_set_app_config", "hw_get_app_config",
-            "get_device_info", "device_info", "device_reset", "get_caps_info", "set_config", "get_config",
-            "get_device_state", "set_device_active", "set_device_ready", "device_suspend",
-            "session_init", "session_new", "session_deinit", "session_close", "session_start", "start_ranging", 
-            "session_stop", "stop_ranging", "get_session_state", "session_status",
-            "set_app_config", "get_app_config", "simulate_notification", "simulate_session_status",
-            "simulate_data_credit", "simulate_ranging", "simulate_multi_target_ranging", "demo_session_flow",
-            "set_power", "device_on", "device_off", "analyze_packet", "complete", "history", "alias", "unalias"
-        };
-        int num_commands = sizeof(commands) / sizeof(commands[0]);
-
         if (strcmp(command, "complete") == 0) {
-            char* full_input = strtok(NULL, "\n");  // Get the entire remaining input
-            if (full_input) {
-                // Parse the input to understand context
-                char temp_input[512];
-                strncpy(temp_input, full_input, sizeof(temp_input) - 1);
-                temp_input[sizeof(temp_input) - 1] = '\0';
-                
-                // Tokenize to get command and following context
-                char* tok = strtok(temp_input, " ");
-                if (tok) {
-                    char* cmd_part = tok;
-                    char* next_part = strtok(NULL, " ");
-                    
-                    if (strcmp(cmd_part, "set_app_config") == 0) {
-                        // Check what we're trying to complete
-                        if (next_part == NULL) {
-                            // We expect session_id next, but can suggest config names for when it's filled
-                            printf("device_type ranging_usage ranging_round_usage sts_config multi_node_mode channel channel_number device_role aoa_request aoa_result_req scheduled_mode");
-                        } else {
-                            // If next_part could be session_id (numeric), then next could be config names
-                            char* config_name_part = strtok(NULL, " ");
-                            
-                            if (config_name_part == NULL) {
-                                // After session ID, showing possible config names
-                                printf("device_type ranging_usage ranging_round_usage sts_config multi_node_mode channel channel_number device_role aoa_request aoa_result_req scheduled_mode");
-                            } else {
-                                // After config name, showing possible values
-                                if (strcmp(config_name_part, "device_type") == 0) {
-                                    printf("responder initiator");
-                                } else if (strcmp(config_name_part, "ranging_usage") == 0 || strcmp(config_name_part, "ranging_round_usage") == 0) {
-                                    printf("ranging data");
-                                } else if (strcmp(config_name_part, "sts_config") == 0) {
-                                    printf("static dynamic");
-                                } else if (strcmp(config_name_part, "multi_node_mode") == 0) {
-                                    printf("unicast anycast multicast");
-                                } else if (strcmp(config_name_part, "device_role") == 0) {
-                                    printf("controller controlee");
-                                } else if (strcmp(config_name_part, "aoa_request") == 0 || strcmp(config_name_part, "aoa_result_req") == 0) {
-                                    printf("enable on disable off");
-                                } else if (strcmp(config_name_part, "scheduled_mode") == 0) {
-                                    printf("cont continuous scheduled");
-                                } else {
-                                    // If config name is partial, complete the config names
-                                    printf("device_type ranging_usage ranging_round_usage sts_config multi_node_mode channel channel_number device_role aoa_request aoa_result_req scheduled_mode");
-                                }
-                            }
-                        }
-                    } else if (strcmp(cmd_part, "set_config") == 0) {
-                        if (next_part == NULL) {
-                            printf("device_state low_power_mode");
-                        } else {
-                            char* config_name = next_part;
-                            char* value_part = strtok(NULL, " ");
-                            
-                            if (value_part == NULL) {
-                                if (strcmp(config_name, "device_state") == 0) {
-                                    printf("active ready");
-                                } else if (strcmp(config_name, "low_power_mode") == 0) {
-                                    printf("on off");
-                                } else {
-                                    printf("device_state low_power_mode");
-                                }
-                            } else {
-                                if (strcmp(config_name, "device_state") == 0) {
-                                    printf("active ready");
-                                } else if (strcmp(config_name, "low_power_mode") == 0) {
-                                    printf("on off");
-                                }
-                            }
-                        }
-                    } else if (strcmp(cmd_part, "session_init") == 0 || strcmp(cmd_part, "session_new") == 0) {
-                        if (next_part == NULL) {
-                            // First parameter would be session_id, second would be type
-                            printf("fira_ranging ranging");
-                        } else {
-                            char* type_part = strtok(NULL, " ");
-                            if (type_part == NULL) {
-                                printf("fira_ranging ranging");
-                            }
-                        }
-                    } else if (strcmp(cmd_part, "history") == 0) {
-                        // History command doesn't take parameters, but we can show options if needed
-                        // For now, just acknowledge the command
-                        printf("history");
-                    } else if (strcmp(cmd_part, "alias") == 0) {
-                        // Suggest the list of existing aliases or command names for creating new ones
-                        printf("Show or create aliases. Use: alias <name> <command>");
-                    } else if (strcmp(cmd_part, "unalias") == 0) {
-                        // Show the list of possible aliases to remove
-                        cli_alias_print_names();
-                    } else {
-                        // Original command completion
-                        int first = 1;
-                        for (int i = 0; i < num_commands; i++) {
-                            if (strncmp(full_input, commands[i], strlen(full_input)) == 0) {
-                                if (!first) {
-                                    printf(" ");
-                                }
-                                printf("%s", commands[i]);
-                                first = 0;
-                            }
-                        }
-                    }
-                }
-                printf("\n");
-            }
+            char* full_input = strtok(NULL, "\n");
+            cli_print_completion_suggestions(full_input);
         } else if (strcmp(command, "alias") == 0) {
             char* alias_name = strtok(NULL, " ");
             char* alias_cmd = strtok(NULL, "\n");
@@ -1878,77 +1745,4 @@ int main() {
     }
 
     return 0;
-}
-
-static char* command_generator(const char* text, int state) {
-    static int list_index, len;
-    const char* name;
-
-    // List of all available commands
-    const char* commands[] = {
-        "quit", "help", "history", "clear", "alias", "unalias",
-        "complete",
-        "get_device_info", "device_info", "device_reset", "get_caps_info", 
-        "set_config", "get_config", "get_device_state", "set_device_active",
-        "set_device_ready", "device_suspend", "set_power", "device_on", "device_off",
-        "session_init", "session_new", "session_deinit", "session_close",
-        "session_start", "start_ranging", "session_stop", "stop_ranging",
-        "get_session_state", "session_status", "set_app_config", "get_app_config",
-        "simulate_notification", "simulate_session_status", "simulate_data_credit",
-        "simulate_ranging", "simulate_multi_target_ranging", "demo_session_flow",
-        "hw_init", "hw_connect", "hw_info", "hw_send", "hw_send_raw",
-        "hw_get_device_info", "hw_device_info", "hw_device_reset",
-        "hw_get_caps_info", "hw_set_config", "hw_get_config", "hw_get_device_state",
-        "hw_set_device_active", "hw_set_device_ready", "hw_device_suspend",
-        "hw_session_init", "hw_session_new", "hw_session_deinit", "hw_session_close",
-        "hw_session_start", "hw_start_ranging", "hw_session_stop", "hw_stop_ranging",
-        "hw_get_session_state", "hw_session_status", "hw_set_app_config", "hw_get_app_config",
-        "analyze_packet",
-        NULL
-    };
-
-    if (!state) {
-        list_index = 0;
-        len = strlen(text);
-    }
-
-    while ((name = commands[list_index]) != NULL) {
-        list_index++;
-        if (strncmp(name, text, len) == 0) {
-            // Use malloc and strcpy instead of strdup to avoid warnings
-            char* result = malloc(strlen(name) + 1);
-            if (result) {
-                strcpy(result, name);
-            }
-            return result;
-        }
-    }
-
-    return NULL;
-}
-
-static char** uci_completion(const char* text, int start, int end) {
-    char** matches = NULL;
-    
-    // Avoid unused parameter warning
-    (void)end;
-    
-    if (start == 0) {
-        // Complete command names at the beginning of the line
-        matches = rl_completion_matches(text, command_generator);
-    }
-    
-    return matches;
-}
-
-static void initialize_readline(void) {
-    // Allow conditional parsing of the ~/.inputrc file
-    rl_readline_name = "uci-shell";
-    
-    // Tell the completer that we want a crack first
-    rl_attempted_completion_function = uci_completion;
-    
-    // Load history if available
-    using_history();
-    stifle_history(100); // Limit history to 100 entries
 }

@@ -286,6 +286,121 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
     } else {
         printf("  No payload data\n");
     }
+    
+    // Detailed payload decoding based on packet type
+    if (payload_len > 0) {
+        printf("  Detailed Payload Decoding:\n");
+        
+        // Define payload pointer for easier access
+        unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
+        
+        // Decode payload based on MT, GID, and Opcode
+        if (mt == RESPONSE && gid == CORE) {
+            switch(opcode) {
+                case CORE_DEVICE_INFO:
+                    decode_core_device_info_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case CORE_GET_CAPS_INFO:
+                    decode_core_get_caps_info_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case CORE_SET_CONFIG:
+                    decode_core_set_config_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case CORE_GET_CONFIG:
+                    decode_core_get_config_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case CORE_DEVICE_RESET:
+                    decode_core_device_reset_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case CORE_DEVICE_SUSPEND:
+                    decode_core_device_suspend_rsp(payload_ptr, (int)payload_len);
+                    break;
+                default:
+                    printf("    No specific decoder for CORE RESPONSE opcode 0x%02X\n", opcode);
+                    break;
+            }
+        } else if (mt == RESPONSE && gid == SESSION_CONFIG) {
+            switch(opcode) {
+                case SESSION_INIT:
+                    decode_session_init_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case SESSION_DEINIT:
+                    decode_session_deinit_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case SESSION_SET_APP_CONFIG:
+                    decode_session_set_app_config_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case SESSION_GET_APP_CONFIG:
+                    decode_session_get_app_config_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case SESSION_GET_COUNT:
+                    decode_session_get_count_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case SESSION_GET_STATE:
+                    decode_session_get_state_rsp(payload_ptr, (int)payload_len);
+                    break;
+                default:
+                    printf("    No specific decoder for SESSION_CONFIG RESPONSE opcode 0x%02X\n", opcode);
+                    break;
+            }
+        } else if (mt == RESPONSE && gid == SESSION_CONTROL) {
+            switch(opcode) {
+                case SESSION_START:
+                    decode_session_start_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case SESSION_STOP:
+                    decode_session_stop_rsp(payload_ptr, (int)payload_len);
+                    break;
+                case SESSION_GET_RANGING_COUNT:
+                    decode_session_get_ranging_count_rsp(payload_ptr, (int)payload_len);
+                    break;
+                default:
+                    printf("    No specific decoder for SESSION_CONTROL RESPONSE opcode 0x%02X\n", opcode);
+                    break;
+            }
+        } else if (mt == NOTIFICATION && gid == CORE) {
+            switch(opcode) {
+                case CORE_DEVICE_STATUS_NTF:
+                    decode_core_device_status_ntf(payload_ptr, (int)payload_len);
+                    break;
+                case CORE_GENERIC_ERROR_NTF:
+                    decode_core_generic_error_ntf(payload_ptr, (int)payload_len);
+                    break;
+                default:
+                    printf("    No specific decoder for CORE NOTIFICATION opcode 0x%02X\n", opcode);
+                    break;
+            }
+        } else if (mt == NOTIFICATION && gid == SESSION_CONFIG) {
+            switch(opcode) {
+                case SESSION_STATUS_NTF:
+                    decode_session_status_ntf(payload_ptr, (int)payload_len);
+                    break;
+                default:
+                    printf("    No specific decoder for SESSION_CONFIG NOTIFICATION opcode 0x%02X\n", opcode);
+                    break;
+            }
+        } else if (mt == NOTIFICATION && gid == SESSION_CONTROL) {
+            switch(opcode) {
+                case SESSION_INFO_NTF:
+                    decode_session_info_ntf(payload_ptr, (int)payload_len);
+                    break;
+                case SESSION_DATA_CREDIT_NTF:
+                    decode_session_data_credit_ntf(payload_ptr, (int)payload_len);
+                    break;
+                case SESSION_DATA_TRANSFER_STATUS_NTF:
+                    decode_session_data_transfer_status_ntf(payload_ptr, (int)payload_len);
+                    break;
+                default:
+                    printf("    No specific decoder for SESSION_CONTROL NOTIFICATION opcode 0x%02X\n", opcode);
+                    break;
+            }
+        } else if (gid == TEST || gid == VENDOR_ANDROID) {
+            printf("    Decoder not implemented for TEST/VENDOR_ANDROID packets\n");
+        } else {
+            printf("    No specific decoder for MT=%d, GID=%d, OP=0x%02X\n", mt, gid, opcode);
+        }
+    }
+    
     printf("========================\n");
 }
 
@@ -1678,3 +1793,996 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
         handle_generic_notification(get_gid(header), get_opcode(header), payload_ptr, payload_len_int);
     }
 }
+
+// === Payload Decoding Functions ===
+
+// CORE_GROUP Payload Decoders
+void decode_core_device_info_rsp(unsigned char* payload, int payload_len) {
+    printf("    CORE_DEVICE_INFO_RSP - Device Information Response\n");
+    
+    if (payload_len < 9) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 9)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned short uci_version = (payload[1] << 8) | payload[2];
+    unsigned short mac_version = (payload[3] << 8) | payload[4];
+    unsigned short phy_version = (payload[5] << 8) | payload[6];
+    unsigned short uci_test_version = (payload[7] << 8) | payload[8];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_SYNTAX_ERROR: printf(" (SYNTAX_ERROR)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        case UCI_STATUS_INVALID_RANGE: printf(" (INVALID_RANGE)\n"); break;
+        case UCI_STATUS_INVALID_MSG_SIZE: printf(" (INVALID_MSG_SIZE)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      UCI Version: 0x%04X\n", uci_version);
+    printf("      MAC Version: 0x%04X\n", mac_version);
+    printf("      PHY Version: 0x%04X\n", phy_version);
+    printf("      UCI Test Version: 0x%04X\n", uci_test_version);
+    
+    if (payload_len > 9) {
+        printf("      Vendor Specific Info (%d bytes): ", payload_len - 9);
+        for (int i = 9; i < payload_len; i++) {
+            printf("%02X ", payload[i]);
+        }
+        printf("\n");
+    }
+}
+
+void decode_core_get_caps_info_rsp(unsigned char* payload, int payload_len) {
+    printf("    CORE_GET_CAPS_INFO_RSP - Get Capabilities Information Response\n");
+    
+    if (payload_len < 2) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned char num_tlvs = payload[1];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      Number of TLVs: %d\n", num_tlvs);
+    
+    if (num_tlvs > 0 && payload_len >= 2) {
+        int offset = 2;
+        for (int i = 0; i < num_tlvs && offset + 3 <= payload_len; i++) {
+            CapTlvType tlv_type = (CapTlvType)payload[offset];
+            unsigned char tlv_len = payload[offset + 1];
+            offset += 2;
+            
+            printf("      TLV %d:\n", i);
+            printf("        Type: 0x%02X", tlv_type);
+            switch(tlv_type) {
+                case SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE: printf(" (PHY_VERSION_RANGE)\n"); break;
+                case SUPPORTED_V1_FIRA_MAC_VERSION_RANGE_V2_MAX_DATA_PAYLOAD_SIZE: printf(" (MAC_VERSION_RANGE)\n"); break;
+                case SUPPORTED_V1_DEVICE_ROLES_V2_FIRA_PHY_VERSION_RANGE: printf(" (DEVICE_ROLES)\n"); break;
+                case SUPPORTED_V1_RANGING_METHOD_V2_FIRA_MAC_VERSION_RANGE: printf(" (RANGING_METHOD)\n"); break;
+                case SUPPORTED_V1_STS_CONFIG_V2_DEVICE_TYPE: printf(" (STS_CONFIG)\n"); break;
+                case SUPPORTED_V1_MULTI_NODE_MODES_V2_DEVICE_ROLES: printf(" (MULTI_NODE_MODES)\n"); break;
+                case SUPPORTED_V1_RANGING_TIME_STRUCT_V2_RANGING_METHOD: printf(" (RANGING_TIME_STRUCT)\n"); break;
+                case SUPPORTED_V1_SCHEDULED_MODE_V2_STS_CONFIG: printf(" (SCHEDULED_MODE)\n"); break;
+                case SUPPORTED_V1_HOPPING_MODE_V2_MULTI_NODE_MODE: printf(" (HOPPING_MODE)\n"); break;
+                case SUPPORTED_V1_BLOCK_STRIDING_V2_RANGING_TIME_STRUCT: printf(" (BLOCK_STRIDING)\n"); break;
+                case SUPPORTED_V1_UWB_INITIATION_TIME_V2_SCHEDULE_MODE: printf(" (UWB_INITIATION_TIME)\n"); break;
+                case SUPPORTED_V1_CHANNELS_V2_HOPPING_MODE: printf(" (CHANNELS)\n"); break;
+                case SUPPORTED_V1_RFRAME_CONFIG_V2_BLOCK_STRIDING: printf(" (RFRAME_CONFIG)\n"); break;
+                case SUPPORTED_V1_CC_CONSTRAINT_LENGTH_V2_UWB_INITIATION_TIME: printf(" (CC_CONSTRAINT_LENGTH)\n"); break;
+                case SUPPORTED_V1_BPRF_PARAMETER_SETS_V2_CHANNELS: printf(" (BPRF_PARAMETER_SETS)\n"); break;
+                case SUPPORTED_V1_HPRF_PARAMETER_SETS_V2_RFRAME_CONFIG: printf(" (HPRF_PARAMETER_SETS)\n"); break;
+                case SUPPORTED_V1_AOA_V2_AOA_SUPPORT: printf(" (AOA)\n"); break;
+                case SUPPORTED_V1_EXTENDED_MAC_ADDRESS_V2_EXTENDED_MAC_ADDRESS: printf(" (EXTENDED_MAC_ADDRESS)\n"); break;
+                case SUPPORTED_V1_MAX_MESSAGE_SIZE_V2_ASSIGNED: printf(" (MAX_MESSAGE_SIZE)\n"); break;
+                case SUPPORTED_V1_MAX_DATA_PACKET_PAYLOAD_SIZE_V2_SESSION_KEY_LENGTH: printf(" (MAX_DATA_PACKET_PAYLOAD_SIZE)\n"); break;
+                case SUPPORTED_V2_EXTENDED_MAC_ADDRESS: printf(" (V2_EXTENDED_MAC_ADDRESS)\n"); break;
+                case SUPPORTED_V2_ASSIGNED: printf(" (V2_ASSIGNED)\n"); break;
+                case SUPPORTED_V2_SESSION_KEY_LENGTH: printf(" (V2_SESSION_KEY_LENGTH)\n"); break;
+                case SUPPORTED_V2_DT_ANCHOR_MAX_ACTIVE_RR: printf(" (DT_ANCHOR_MAX_ACTIVE_RR)\n"); break;
+                case SUPPORTED_V2_DT_TAG_MAX_ACTIVE_RR: printf(" (DT_TAG_MAX_ACTIVE_RR)\n"); break;
+                case SUPPORTED_V2_DT_TAG_BLOCK_SHIPPING: printf(" (DT_TAG_BLOCK_SHIPPING)\n"); break;
+                case SUPPORTED_V2_PSDU_LENGTH_SUPPORT: printf(" (PSDU_LENGTH_SUPPORT)\n"); break;
+                default: printf(" (UNKNOWN)\n"); break;
+            }
+            
+            printf("        Length: %d\n", tlv_len);
+            
+            if (offset + tlv_len <= payload_len) {
+                printf("        Value: ");
+                for (int j = 0; j < tlv_len; j++) {
+                    printf("%02X ", payload[offset + j]);
+                }
+                printf("\n");
+            } else {
+                printf("        Value: TRUNCATED (expected %d bytes, only %d available)\n", tlv_len, payload_len - offset);
+            }
+            
+            offset += tlv_len;
+        }
+    }
+}
+
+void decode_core_set_config_rsp(unsigned char* payload, int payload_len) {
+    printf("    CORE_SET_CONFIG_RSP - Set Configuration Response\n");
+    
+    if (payload_len < 2) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned char num_configs = payload[1];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      Number of Config Status: %d\n", num_configs);
+    
+    if (num_configs > 0 && payload_len >= 2) {
+        int offset = 2;
+        for (int i = 0; i < num_configs && offset + 2 <= payload_len; i++) {
+            DeviceConfigId cfg_id = (DeviceConfigId)payload[offset];
+            unsigned char cfg_status = payload[offset + 1];
+            offset += 2;
+            
+            printf("      Config %d:\n", i);
+            printf("        Config ID: 0x%02X", cfg_id);
+            switch(cfg_id) {
+                case DEVICE_STATE: printf(" (DEVICE_STATE)\n"); break;
+                case LOW_POWER_MODE: printf(" (LOW_POWER_MODE)\n"); break;
+                default: printf(" (UNKNOWN)\n"); break;
+            }
+            
+            printf("        Status: 0x%02X", cfg_status);
+            switch(cfg_status) {
+                case UCI_STATUS_OK: printf(" (OK)\n"); break;
+                case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+                case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+                case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+                default: printf(" (UNKNOWN)\n"); break;
+            }
+        }
+    }
+}
+
+void decode_core_get_config_rsp(unsigned char* payload, int payload_len) {
+    printf("    CORE_GET_CONFIG_RSP - Get Configuration Response\n");
+    
+    if (payload_len < 2) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned char num_tlvs = payload[1];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      Number of TLVs: %d\n", num_tlvs);
+    
+    if (num_tlvs > 0 && payload_len >= 2) {
+        int offset = 2;
+        for (int i = 0; i < num_tlvs && offset + 3 <= payload_len; i++) {
+            DeviceConfigId cfg_id = (DeviceConfigId)payload[offset];
+            unsigned char cfg_len = payload[offset + 1];
+            offset += 2;
+            
+            printf("      TLV %d:\n", i);
+            printf("        Config ID: 0x%02X", cfg_id);
+            switch(cfg_id) {
+                case DEVICE_STATE: printf(" (DEVICE_STATE)\n"); break;
+                case LOW_POWER_MODE: printf(" (LOW_POWER_MODE)\n"); break;
+                default: printf(" (UNKNOWN)\n"); break;
+            }
+            
+            printf("        Length: %d\n", cfg_len);
+            
+            if (offset + cfg_len <= payload_len) {
+                printf("        Value: ");
+                for (int j = 0; j < cfg_len; j++) {
+                    printf("%02X ", payload[offset + j]);
+                }
+                printf("\n");
+                
+                // Interpret common values
+                if (cfg_id == DEVICE_STATE && cfg_len == 1) {
+                    unsigned char state = payload[offset];
+                    printf("          Interpreted as Device State: ");
+                    switch(state) {
+                        case DEVICE_STATE_READY: printf("READY (0x%02X)\n", state); break;
+                        case DEVICE_STATE_ACTIVE: printf("ACTIVE (0x%02X)\n", state); break;
+                        case DEVICE_STATE_ERROR: printf("ERROR (0x%02X)\n", state); break;
+                        default: printf("UNKNOWN (0x%02X)\n", state); break;
+                    }
+                } else if (cfg_id == LOW_POWER_MODE && cfg_len == 1) {
+                    unsigned char lpm = payload[offset];
+                    printf("          Interpreted as Low Power Mode: %s (0x%02X)\n", 
+                           lpm ? "ON" : "OFF", lpm);
+                }
+            } else {
+                printf("        Value: TRUNCATED (expected %d bytes, only %d available)\n", cfg_len, payload_len - offset);
+            }
+            
+            offset += cfg_len;
+        }
+    }
+}
+
+void decode_core_device_reset_rsp(unsigned char* payload, int payload_len) {
+    printf("    CORE_DEVICE_RESET_RSP - Device Reset Response\n");
+    
+    if (payload_len < 1) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 1)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+}
+
+void decode_core_device_suspend_rsp(unsigned char* payload, int payload_len) {
+    printf("    CORE_DEVICE_SUSPEND_RSP - Device Suspend Response\n");
+    
+    if (payload_len < 1) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 1)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+}
+
+// SESSION_CONFIG Group Payload Decoders
+void decode_session_init_rsp(unsigned char* payload, int payload_len) {
+    printf("    SESSION_INIT_RSP - Session Initialization Response\n");
+    
+    if (payload_len < 5) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 5)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned int session_handle = (payload[1] << 24) | (payload[2] << 16) | (payload[3] << 8) | payload[4];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        case UCI_STATUS_SESSION_DUPLICATE: printf(" (SESSION_DUPLICATE)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      Session Handle: 0x%08X\n", session_handle);
+}
+
+void decode_session_deinit_rsp(unsigned char* payload, int payload_len) {
+    printf("    SESSION_DEINIT_RSP - Session Deinitialization Response\n");
+    
+    if (payload_len < 1) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 1)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+}
+
+void decode_session_set_app_config_rsp(unsigned char* payload, int payload_len) {
+    printf("    SESSION_SET_APP_CONFIG_RSP - Set Application Configuration Response\n");
+    
+    if (payload_len < 2) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned char num_configs = payload[1];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      Number of Config Status: %d\n", num_configs);
+    
+    if (num_configs > 0 && payload_len >= 2) {
+        int offset = 2;
+        for (int i = 0; i < num_configs && offset + 2 <= payload_len; i++) {
+            AppConfigTlvType cfg_id = (AppConfigTlvType)payload[offset];
+            unsigned char cfg_status = payload[offset + 1];
+            offset += 2;
+            
+            printf("      Config %d:\n", i);
+            printf("        Config ID: 0x%02X", cfg_id);
+            // Add common config ID interpretations
+            switch(cfg_id) {
+                case DEVICE_TYPE: printf(" (DEVICE_TYPE)\n"); break;
+                case RANGING_ROUND_USAGE: printf(" (RANGING_ROUND_USAGE)\n"); break;
+                case STS_CONFIG: printf(" (STS_CONFIG)\n"); break;
+                case MULTI_NODE_MODE: printf(" (MULTI_NODE_MODE)\n"); break;
+                case CHANNEL_NUMBER: printf(" (CHANNEL_NUMBER)\n"); break;
+                case NO_OF_CONTROLEE: printf(" (NO_OF_CONTROLEE)\n"); break;
+                case DEVICE_MAC_ADDRESS: printf(" (DEVICE_MAC_ADDRESS)\n"); break;
+                case DST_MAC_ADDRESS: printf(" (DST_MAC_ADDRESS)\n"); break;
+                case SLOT_DURATION: printf(" (SLOT_DURATION)\n"); break;
+                case RANGING_DURATION: printf(" (RANGING_DURATION)\n"); break;
+                case STS_INDEX: printf(" (STS_INDEX)\n"); break;
+                case MAC_FCS_TYPE: printf(" (MAC_FCS_TYPE)\n"); break;
+                case RANGING_ROUND_CONTROL: printf(" (RANGING_ROUND_CONTROL)\n"); break;
+                case AOA_RESULT_REQ: printf(" (AOA_RESULT_REQ)\n"); break;
+                case RNG_DATA_NTF: printf(" (RNG_DATA_NTF)\n"); break;
+                case RNG_DATA_NTF_PROXIMITY_NEAR: printf(" (RNG_DATA_NTF_PROXIMITY_NEAR)\n"); break;
+                case RNG_DATA_NTF_PROXIMITY_FAR: printf(" (RNG_DATA_NTF_PROXIMITY_FAR)\n"); break;
+                case DEVICE_ROLE: printf(" (DEVICE_ROLE)\n"); break;
+                case RFRAME_CONFIG: printf(" (RFRAME_CONFIG)\n"); break;
+                case RSSI_REPORTING: printf(" (RSSI_REPORTING)\n"); break;
+                case PREAMBLE_CODE_INDEX: printf(" (PREAMBLE_CODE_INDEX)\n"); break;
+                case SFD_ID: printf(" (SFD_ID)\n"); break;
+                case PSDU_DATA_RATE: printf(" (PSDU_DATA_RATE)\n"); break;
+                case PREAMBLE_DURATION: printf(" (PREAMBLE_DURATION)\n"); break;
+                case LINK_LAYER_MODE: printf(" (LINK_LAYER_MODE)\n"); break;
+                case DATA_REPETITION_COUNT: printf(" (DATA_REPETITION_COUNT)\n"); break;
+                case RANGING_TIME_STRUCT: printf(" (RANGING_TIME_STRUCT)\n"); break;
+                case SLOTS_PER_RR: printf(" (SLOTS_PER_RR)\n"); break;
+                case TX_ADAPTIVE_PAYLOAD_POWER: printf(" (TX_ADAPTIVE_PAYLOAD_POWER)\n"); break;
+                case RNG_DATA_NTF_AOA_BOUND: printf(" (RNG_DATA_NTF_AOA_BOUND)\n"); break;
+                case RESPONDER_SLOT_INDEX: printf(" (RESPONDER_SLOT_INDEX)\n"); break;
+                case PRF_MODE: printf(" (PRF_MODE)\n"); break;
+                case CAP_SIZE_RANGE: printf(" (CAP_SIZE_RANGE)\n"); break;
+                case TX_JITTER_WINDOW_SIZE: printf(" (TX_JITTER_WINDOW_SIZE)\n"); break;
+                case SCHEDULED_MODE: printf(" (SCHEDULED_MODE)\n"); break;
+                case KEY_ROTATION: printf(" (KEY_ROTATION)\n"); break;
+                case KEY_ROTATION_RATE: printf(" (KEY_ROTATION_RATE)\n"); break;
+                case SESSION_PRIORITY: printf(" (SESSION_PRIORITY)\n"); break;
+                case MAC_ADDRESS_MODE: printf(" (MAC_ADDRESS_MODE)\n"); break;
+                case VENDOR_ID: printf(" (VENDOR_ID)\n"); break;
+                case STATIC_STS_IV: printf(" (STATIC_STS_IV)\n"); break;
+                case NUMBER_OF_STS_SEGMENTS: printf(" (NUMBER_OF_STS_SEGMENTS)\n"); break;
+                case MAX_RR_RETRY: printf(" (MAX_RR_RETRY)\n"); break;
+                case UWB_INITIATION_TIME: printf(" (UWB_INITIATION_TIME)\n"); break;
+                case HOPPING_MODE: printf(" (HOPPING_MODE)\n"); break;
+                case BLOCK_STRIDE_LENGTH: printf(" (BLOCK_STRIDE_LENGTH)\n"); break;
+                case RESULT_REPORT_CONFIG: printf(" (RESULT_REPORT_CONFIG)\n"); break;
+                case IN_BAND_TERMINATION_ATTEMPT_COUNT: printf(" (IN_BAND_TERMINATION_ATTEMPT_COUNT)\n"); break;
+                case SUB_SESSION_ID: printf(" (SUB_SESSION_ID)\n"); break;
+                default: printf(" (UNKNOWN)\n"); break;
+            }
+            
+            printf("        Status: 0x%02X", cfg_status);
+            switch(cfg_status) {
+                case UCI_STATUS_OK: printf(" (OK)\n"); break;
+                case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+                case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+                case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+                case UCI_STATUS_READ_ONLY: printf(" (READ_ONLY)\n"); break;
+                default: printf(" (UNKNOWN)\n"); break;
+            }
+        }
+    }
+}
+
+void decode_session_get_app_config_rsp(unsigned char* payload, int payload_len) {
+    printf("    SESSION_GET_APP_CONFIG_RSP - Get Application Configuration Response\n");
+    
+    if (payload_len < 2) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned char num_tlvs = payload[1];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      Number of TLVs: %d\n", num_tlvs);
+    
+    if (num_tlvs > 0 && payload_len >= 2) {
+        int offset = 2;
+        for (int i = 0; i < num_tlvs && offset + 3 <= payload_len; i++) {
+            AppConfigTlvType cfg_id = (AppConfigTlvType)payload[offset];
+            unsigned char cfg_len = payload[offset + 1];
+            offset += 2;
+            
+            printf("      TLV %d:\n", i);
+            printf("        Config ID: 0x%02X", cfg_id);
+            switch(cfg_id) {
+                case DEVICE_TYPE: printf(" (DEVICE_TYPE)\n"); break;
+                case RANGING_ROUND_USAGE: printf(" (RANGING_ROUND_USAGE)\n"); break;
+                case STS_CONFIG: printf(" (STS_CONFIG)\n"); break;
+                case MULTI_NODE_MODE: printf(" (MULTI_NODE_MODE)\n"); break;
+                case CHANNEL_NUMBER: printf(" (CHANNEL_NUMBER)\n"); break;
+                case NO_OF_CONTROLEE: printf(" (NO_OF_CONTROLEE)\n"); break;
+                case DEVICE_MAC_ADDRESS: printf(" (DEVICE_MAC_ADDRESS)\n"); break;
+                case DST_MAC_ADDRESS: printf(" (DST_MAC_ADDRESS)\n"); break;
+                case SLOT_DURATION: printf(" (SLOT_DURATION)\n"); break;
+                case RANGING_DURATION: printf(" (RANGING_DURATION)\n"); break;
+                case STS_INDEX: printf(" (STS_INDEX)\n"); break;
+                case MAC_FCS_TYPE: printf(" (MAC_FCS_TYPE)\n"); break;
+                case RANGING_ROUND_CONTROL: printf(" (RANGING_ROUND_CONTROL)\n"); break;
+                case AOA_RESULT_REQ: printf(" (AOA_RESULT_REQ)\n"); break;
+                case RNG_DATA_NTF: printf(" (RNG_DATA_NTF)\n"); break;
+                case RNG_DATA_NTF_PROXIMITY_NEAR: printf(" (RNG_DATA_NTF_PROXIMITY_NEAR)\n"); break;
+                case RNG_DATA_NTF_PROXIMITY_FAR: printf(" (RNG_DATA_NTF_PROXIMITY_FAR)\n"); break;
+                case DEVICE_ROLE: printf(" (DEVICE_ROLE)\n"); break;
+                case RFRAME_CONFIG: printf(" (RFRAME_CONFIG)\n"); break;
+                case RSSI_REPORTING: printf(" (RSSI_REPORTING)\n"); break;
+                case PREAMBLE_CODE_INDEX: printf(" (PREAMBLE_CODE_INDEX)\n"); break;
+                case SFD_ID: printf(" (SFD_ID)\n"); break;
+                case PSDU_DATA_RATE: printf(" (PSDU_DATA_RATE)\n"); break;
+                case PREAMBLE_DURATION: printf(" (PREAMBLE_DURATION)\n"); break;
+                case LINK_LAYER_MODE: printf(" (LINK_LAYER_MODE)\n"); break;
+                case DATA_REPETITION_COUNT: printf(" (DATA_REPETITION_COUNT)\n"); break;
+                case RANGING_TIME_STRUCT: printf(" (RANGING_TIME_STRUCT)\n"); break;
+                case SLOTS_PER_RR: printf(" (SLOTS_PER_RR)\n"); break;
+                case TX_ADAPTIVE_PAYLOAD_POWER: printf(" (TX_ADAPTIVE_PAYLOAD_POWER)\n"); break;
+                case RNG_DATA_NTF_AOA_BOUND: printf(" (RNG_DATA_NTF_AOA_BOUND)\n"); break;
+                case RESPONDER_SLOT_INDEX: printf(" (RESPONDER_SLOT_INDEX)\n"); break;
+                case PRF_MODE: printf(" (PRF_MODE)\n"); break;
+                case CAP_SIZE_RANGE: printf(" (CAP_SIZE_RANGE)\n"); break;
+                case TX_JITTER_WINDOW_SIZE: printf(" (TX_JITTER_WINDOW_SIZE)\n"); break;
+                case SCHEDULED_MODE: printf(" (SCHEDULED_MODE)\n"); break;
+                case KEY_ROTATION: printf(" (KEY_ROTATION)\n"); break;
+                case KEY_ROTATION_RATE: printf(" (KEY_ROTATION_RATE)\n"); break;
+                case SESSION_PRIORITY: printf(" (SESSION_PRIORITY)\n"); break;
+                case MAC_ADDRESS_MODE: printf(" (MAC_ADDRESS_MODE)\n"); break;
+                case VENDOR_ID: printf(" (VENDOR_ID)\n"); break;
+                case STATIC_STS_IV: printf(" (STATIC_STS_IV)\n"); break;
+                case NUMBER_OF_STS_SEGMENTS: printf(" (NUMBER_OF_STS_SEGMENTS)\n"); break;
+                case MAX_RR_RETRY: printf(" (MAX_RR_RETRY)\n"); break;
+                case UWB_INITIATION_TIME: printf(" (UWB_INITIATION_TIME)\n"); break;
+                case HOPPING_MODE: printf(" (HOPPING_MODE)\n"); break;
+                case BLOCK_STRIDE_LENGTH: printf(" (BLOCK_STRIDE_LENGTH)\n"); break;
+                case RESULT_REPORT_CONFIG: printf(" (RESULT_REPORT_CONFIG)\n"); break;
+                case IN_BAND_TERMINATION_ATTEMPT_COUNT: printf(" (IN_BAND_TERMINATION_ATTEMPT_COUNT)\n"); break;
+                case SUB_SESSION_ID: printf(" (SUB_SESSION_ID)\n"); break;
+                default: printf(" (UNKNOWN)\n"); break;
+            }
+            
+            printf("        Length: %d\n", cfg_len);
+            
+            if (offset + cfg_len <= payload_len) {
+                printf("        Value: ");
+                for (int j = 0; j < cfg_len; j++) {
+                    printf("%02X ", payload[offset + j]);
+                }
+                printf("\n");
+            } else {
+                printf("        Value: TRUNCATED (expected %d bytes, only %d available)\n", cfg_len, payload_len - offset);
+            }
+            
+            offset += cfg_len;
+        }
+    }
+}
+
+void decode_session_get_count_rsp(unsigned char* payload, int payload_len) {
+    printf("    SESSION_GET_COUNT_RSP - Get Session Count Response\n");
+    
+    if (payload_len < 2) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned char count = payload[1];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      Session Count: %d\n", count);
+}
+
+void decode_session_get_state_rsp(unsigned char* payload, int payload_len) {
+    printf("    SESSION_GET_STATE_RSP - Get Session State Response\n");
+    
+    if (payload_len < 2) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned char state = payload[1];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      Session State: 0x%02X", state);
+    switch(state) {
+        case SESSION_STATE_INIT: printf(" (INIT)\n"); break;
+        case SESSION_STATE_DEINIT: printf(" (DEINIT)\n"); break;
+        case SESSION_STATE_ACTIVE: printf(" (ACTIVE)\n"); break;
+        case SESSION_STATE_IDLE: printf(" (IDLE)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+}
+
+// SESSION_CONTROL Group Payload Decoders
+void decode_session_start_rsp(unsigned char* payload, int payload_len) {
+    printf("    SESSION_START_RSP - Session Start Response\n");
+    
+    if (payload_len < 1) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 1)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
+        case UCI_STATUS_SESSION_ACTIVE: printf(" (SESSION_ACTIVE)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+}
+
+void decode_session_stop_rsp(unsigned char* payload, int payload_len) {
+    printf("    SESSION_STOP_RSP - Session Stop Response\n");
+    
+    if (payload_len < 1) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 1)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+}
+
+void decode_session_get_ranging_count_rsp(unsigned char* payload, int payload_len) {
+    printf("    SESSION_GET_RANGING_COUNT_RSP - Get Ranging Count Response\n");
+    
+    if (payload_len < 3) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 3)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned short count = (payload[1] << 8) | payload[2];
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      Ranging Count: %d\n", count);
+}
+
+// CORE Notification Payload Decoders
+void decode_core_device_status_ntf(unsigned char* payload, int payload_len) {
+    printf("    CORE_DEVICE_STATUS_NTF - Device Status Notification\n");
+    
+    if (payload_len < 1) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 1)\n", payload_len);
+        return;
+    }
+    
+    unsigned char device_state = payload[0];
+    
+    printf("      Device State: 0x%02X", device_state);
+    switch(device_state) {
+        case DEVICE_STATE_READY: printf(" (READY)\n"); break;
+        case DEVICE_STATE_ACTIVE: printf(" (ACTIVE)\n"); break;
+        case DEVICE_STATE_ERROR: printf(" (ERROR)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+}
+
+void decode_core_generic_error_ntf(unsigned char* payload, int payload_len) {
+    printf("    CORE_GENERIC_ERROR_NTF - Generic Error Notification\n");
+    
+    if (payload_len < 1) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 1)\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    
+    printf("      Error Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_SYNTAX_ERROR: printf(" (SYNTAX_ERROR)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        case UCI_STATUS_INVALID_RANGE: printf(" (INVALID_RANGE)\n"); break;
+        case UCI_STATUS_INVALID_MSG_SIZE: printf(" (INVALID_MSG_SIZE)\n"); break;
+        case UCI_STATUS_UNKNOWN_GID: printf(" (UNKNOWN_GID)\n"); break;
+        case UCI_STATUS_UNKNOWN_OID: printf(" (UNKNOWN_OID)\n"); break;
+        case UCI_STATUS_READ_ONLY: printf(" (READ_ONLY)\n"); break;
+        case UCI_STATUS_COMMAND_RETRY: printf(" (COMMAND_RETRY)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+}
+
+// SESSION_CONFIG Notification Payload Decoders
+void decode_session_status_ntf(unsigned char* payload, int payload_len) {
+    printf("    SESSION_STATUS_NTF - Session Status Notification\n");
+    
+    if (payload_len < 6) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 6)\n", payload_len);
+        return;
+    }
+    
+    unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+    unsigned char session_state = payload[4];
+    unsigned char reason_code = payload[5];
+    
+    printf("      Session Token: 0x%08X\n", session_token);
+    printf("      Session State: 0x%02X", session_state);
+    switch(session_state) {
+        case SESSION_STATE_INIT: printf(" (INIT)\n"); break;
+        case SESSION_STATE_DEINIT: printf(" (DEINIT)\n"); break;
+        case SESSION_STATE_ACTIVE: printf(" (ACTIVE)\n"); break;
+        case SESSION_STATE_IDLE: printf(" (IDLE)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      Reason Code: 0x%02X", reason_code);
+    switch(reason_code) {
+        case STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS: printf(" (STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS)\n"); break;
+        case MAX_RANGING_ROUND_RETRY_COUNT_REACHED: printf(" (MAX_RANGING_ROUND_RETRY_COUNT_REACHED)\n"); break;
+        case MAX_NUMBER_OF_MEASUREMENTS_REACHED: printf(" (MAX_NUMBER_OF_MEASUREMENTS_REACHED)\n"); break;
+        case SESSION_SUSPENDED_DUE_TO_INBAND_SIGNAL: printf(" (SESSION_SUSPENDED_DUE_TO_INBAND_SIGNAL)\n"); break;
+        case SESSION_RESUMED_DUE_TO_INBAND_SIGNAL: printf(" (SESSION_RESUMED_DUE_TO_INBAND_SIGNAL)\n"); break;
+        case SESSION_STOPPED_DUE_TO_INBAND_SIGNAL: printf(" (SESSION_STOPPED_DUE_TO_INBAND_SIGNAL)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+}
+
+// SESSION_CONTROL Notification Payload Decoders
+void decode_session_info_ntf(unsigned char* payload, int payload_len) {
+    printf("    SESSION_INFO_NTF - Session Information/Ranging Notification\n");
+    
+    if (payload_len < 20) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 20 for header)\n", payload_len);
+        return;
+    }
+    
+    // Parse header fields
+    unsigned int sequence_number = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+    unsigned int session_token = (payload[4] << 24) | (payload[5] << 16) | (payload[6] << 8) | payload[7];
+    unsigned char rcr_indicator = payload[8];
+    unsigned int current_ranging_interval = (payload[9] << 24) | (payload[10] << 16) | (payload[11] << 8) | payload[12];
+    unsigned char ranging_measurement_type = payload[13];
+    unsigned char reserved = payload[14];
+    unsigned char mac_address_indicator = payload[15];
+    unsigned int hus_primary_session_id = (payload[16] << 24) | (payload[17] << 16) | (payload[18] << 8) | payload[19];
+    
+    printf("      Sequence Number: %u\n", sequence_number);
+    printf("      Session Token: 0x%08X\n", session_token);
+    printf("      RCR Indicator: 0x%02X\n", rcr_indicator);
+    printf("      Current Ranging Interval: %u ms\n", current_ranging_interval);
+    printf("      Ranging Measurement Type: 0x%02X", ranging_measurement_type);
+    switch(ranging_measurement_type) {
+        case 0x00: printf(" (ONE_WAY)\n"); break;
+        case 0x01: printf(" (TWO_WAY)\n"); break;
+        case 0x02: printf(" (DL_TDOA)\n"); break;
+        case 0x03: printf(" (OWR_AOA)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+    
+    printf("      Reserved: 0x%02X\n", reserved);
+    printf("      MAC Address Indicator: 0x%02X", mac_address_indicator);
+    if (mac_address_indicator == 0x00) {
+        printf(" (SHORT_ADDRESS)\n");
+    } else {
+        printf(" (EXTENDED_ADDRESS)\n");
+    }
+    
+    printf("      HUS Primary Session ID: 0x%08X\n", hus_primary_session_id);
+    
+    // Parse ranging measurements
+    int offset = 20;
+    if (offset < payload_len) {
+        if (ranging_measurement_type == 0x01) { // TWO_WAY
+            unsigned char num_measurements = payload[offset];
+            offset += 1;
+            printf("      Number of Two-Way Measurements: %d\n", num_measurements);
+            
+            for (int i = 0; i < num_measurements && offset + 20 <= payload_len; i++) {
+                printf("      Measurement %d:\n", i + 1);
+                
+                if (mac_address_indicator == 0x00) { // SHORT_ADDRESS
+                    unsigned short mac_address = (payload[offset] << 8) | payload[offset + 1];
+                    unsigned char status = payload[offset + 2];
+                    unsigned char nlos = payload[offset + 3];
+                    unsigned short distance = (payload[offset + 4] << 8) | payload[offset + 5];
+                    unsigned short aoa_azimuth = (payload[offset + 6] << 8) | payload[offset + 7];
+                    unsigned char aoa_azimuth_fom = payload[offset + 8];
+                    unsigned short aoa_elevation = (payload[offset + 9] << 8) | payload[offset + 10];
+                    unsigned char aoa_elevation_fom = payload[offset + 11];
+                    unsigned short aoa_destination_azimuth = (payload[offset + 12] << 8) | payload[offset + 13];
+                    unsigned char aoa_destination_azimuth_fom = payload[offset + 14];
+                    unsigned short aoa_destination_elevation = (payload[offset + 15] << 8) | payload[offset + 16];
+                    unsigned char aoa_destination_elevation_fom = payload[offset + 17];
+                    unsigned char slot_index = payload[offset + 18];
+                    unsigned char rssi = payload[offset + 19];
+                    
+                    printf("        MAC Address: 0x%04X\n", mac_address);
+                    printf("        Status: 0x%02X", status);
+                    if (status == 0x00) printf(" (OK)");
+                    printf("\n");
+                    printf("        NLOS: %s\n", nlos ? "YES" : "NO");
+                    printf("        Distance: %u cm\n", distance);
+                    printf("        AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
+                    printf("        AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
+                    printf("        Destination AoA Azimuth: %u degrees (FoM: %u)\n", aoa_destination_azimuth, aoa_destination_azimuth_fom);
+                    printf("        Destination AoA Elevation: %u degrees (FoM: %u)\n", aoa_destination_elevation, aoa_destination_elevation_fom);
+                    printf("        Slot Index: %u\n", slot_index);
+                    printf("        RSSI: %d dBm\n", (signed char)rssi);
+                    
+                    offset += 20;
+                } else { // EXTENDED_ADDRESS
+                    // Extended address format
+                    if (offset + 26 <= payload_len) {
+                        unsigned long long mac_address = ((unsigned long long)payload[offset] << 56) |
+                                                          ((unsigned long long)payload[offset + 1] << 48) |
+                                                          ((unsigned long long)payload[offset + 2] << 40) |
+                                                          ((unsigned long long)payload[offset + 3] << 32) |
+                                                          ((unsigned long long)payload[offset + 4] << 24) |
+                                                          ((unsigned long long)payload[offset + 5] << 16) |
+                                                          ((unsigned long long)payload[offset + 6] << 8) |
+                                                          (unsigned long long)payload[offset + 7];
+                        unsigned char status = payload[offset + 8];
+                        unsigned char nlos = payload[offset + 9];
+                        unsigned short distance = (payload[offset + 10] << 8) | payload[offset + 11];
+                        unsigned short aoa_azimuth = (payload[offset + 12] << 8) | payload[offset + 13];
+                        unsigned char aoa_azimuth_fom = payload[offset + 14];
+                        unsigned short aoa_elevation = (payload[offset + 15] << 8) | payload[offset + 16];
+                        unsigned char aoa_elevation_fom = payload[offset + 17];
+                        unsigned short aoa_destination_azimuth = (payload[offset + 18] << 8) | payload[offset + 19];
+                        unsigned char aoa_destination_azimuth_fom = payload[offset + 20];
+                        unsigned short aoa_destination_elevation = (payload[offset + 21] << 8) | payload[offset + 22];
+                        unsigned char aoa_destination_elevation_fom = payload[offset + 23];
+                        unsigned char slot_index = payload[offset + 24];
+                        unsigned char rssi = payload[offset + 25];
+                        
+                        printf("        MAC Address: 0x%016llX\n", mac_address);
+                        printf("        Status: 0x%02X", status);
+                        if (status == 0x00) printf(" (OK)");
+                        printf("\n");
+                        printf("        NLOS: %s\n", nlos ? "YES" : "NO");
+                        printf("        Distance: %u cm\n", distance);
+                        printf("        AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
+                        printf("        AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
+                        printf("        Destination AoA Azimuth: %u degrees (FoM: %u)\n", aoa_destination_azimuth, aoa_destination_azimuth_fom);
+                        printf("        Destination AoA Elevation: %u degrees (FoM: %u)\n", aoa_destination_elevation, aoa_destination_elevation_fom);
+                        printf("        Slot Index: %u\n", slot_index);
+                        printf("        RSSI: %d dBm\n", (signed char)rssi);
+                        
+                        offset += 26;
+                    } else {
+                        printf("        ERROR: Insufficient data for EXTENDED_ADDRESS measurement\n");
+                        break;
+                    }
+                }
+            }
+        } else if (ranging_measurement_type == 0x03) { // OWR_AOA
+            unsigned char num_measurements = payload[offset];
+            offset += 1;
+            printf("      Number of OWR-AoA Measurements: %d\n", num_measurements);
+            
+            for (int i = 0; i < num_measurements && offset + 13 <= payload_len; i++) {
+                printf("      OWR-AoA Measurement %d:\n", i + 1);
+                
+                if (mac_address_indicator == 0x00) { // SHORT_ADDRESS
+                    unsigned short mac_address = (payload[offset] << 8) | payload[offset + 1];
+                    unsigned char status = payload[offset + 2];
+                    unsigned char nlos = payload[offset + 3];
+                    unsigned char frame_sequence_number = payload[offset + 4];
+                    unsigned short block_index = (payload[offset + 5] << 8) | payload[offset + 6];
+                    unsigned short aoa_azimuth = (payload[offset + 7] << 8) | payload[offset + 8];
+                    unsigned char aoa_azimuth_fom = payload[offset + 9];
+                    unsigned short aoa_elevation = (payload[offset + 10] << 8) | payload[offset + 11];
+                    unsigned char aoa_elevation_fom = payload[offset + 12];
+                    
+                    printf("        MAC Address: 0x%04X\n", mac_address);
+                    printf("        Status: 0x%02X", status);
+                    if (status == 0x00) printf(" (OK)");
+                    printf("\n");
+                    printf("        NLOS: %s\n", nlos ? "YES" : "NO");
+                    printf("        Frame Sequence Number: %u\n", frame_sequence_number);
+                    printf("        Block Index: %u\n", block_index);
+                    printf("        AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
+                    printf("        AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
+                    
+                    offset += 13;
+                } else { // EXTENDED_ADDRESS
+                    if (offset + 19 <= payload_len) {
+                        unsigned long long mac_address = ((unsigned long long)payload[offset] << 56) |
+                                                          ((unsigned long long)payload[offset + 1] << 48) |
+                                                          ((unsigned long long)payload[offset + 2] << 40) |
+                                                          ((unsigned long long)payload[offset + 3] << 32) |
+                                                          ((unsigned long long)payload[offset + 4] << 24) |
+                                                          ((unsigned long long)payload[offset + 5] << 16) |
+                                                          ((unsigned long long)payload[offset + 6] << 8) |
+                                                          (unsigned long long)payload[offset + 7];
+                        unsigned char status = payload[offset + 8];
+                        unsigned char nlos = payload[offset + 9];
+                        unsigned char frame_sequence_number = payload[offset + 10];
+                        unsigned short block_index = (payload[offset + 11] << 8) | payload[offset + 12];
+                        unsigned short aoa_azimuth = (payload[offset + 13] << 8) | payload[offset + 14];
+                        unsigned char aoa_azimuth_fom = payload[offset + 15];
+                        unsigned short aoa_elevation = (payload[offset + 16] << 8) | payload[offset + 17];
+                        unsigned char aoa_elevation_fom = payload[offset + 18];
+                        
+                        printf("        MAC Address: 0x%016llX\n", mac_address);
+                        printf("        Status: 0x%02X", status);
+                        if (status == 0x00) printf(" (OK)");
+                        printf("\n");
+                        printf("        NLOS: %s\n", nlos ? "YES" : "NO");
+                        printf("        Frame Sequence Number: %u\n", frame_sequence_number);
+                        printf("        Block Index: %u\n", block_index);
+                        printf("        AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
+                        printf("        AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
+                        
+                        offset += 19;
+                    } else {
+                        printf("        ERROR: Insufficient data for EXTENDED_ADDRESS OWR-AoA measurement\n");
+                        break;
+                    }
+                }
+            }
+        } else {
+            printf("      Unsupported ranging measurement type: 0x%02X\n", ranging_measurement_type);
+        }
+    }
+}
+
+void decode_session_data_credit_ntf(unsigned char* payload, int payload_len) {
+    printf("    SESSION_DATA_CREDIT_NTF - Data Credit Notification\n");
+    
+    if (payload_len < 5) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 5)\n", payload_len);
+        return;
+    }
+    
+    unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+    unsigned char credit_availability = payload[4];
+    
+    printf("      Session Token: 0x%08X\n", session_token);
+    printf("      Credit Availability: 0x%02X", credit_availability);
+    if (credit_availability == 0x00) {
+        printf(" (NOT_AVAILABLE)\n");
+    } else {
+        printf(" (AVAILABLE)\n");
+    }
+}
+
+void decode_session_data_transfer_status_ntf(unsigned char* payload, int payload_len) {
+    printf("    SESSION_DATA_TRANSFER_STATUS_NTF - Data Transfer Status Notification\n");
+    
+    if (payload_len < 6) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 6)\n", payload_len);
+        return;
+    }
+    
+    unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+    unsigned short uci_sequence_number = (payload[4] << 8) | payload[5];
+    
+    printf("      Session Token: 0x%08X\n", session_token);
+    printf("      UCI Sequence Number: %u\n", uci_sequence_number);
+    
+    if (payload_len >= 8) {
+        unsigned char status = payload[6];
+        unsigned char tx_count = payload[7];
+        
+        printf("      Status: 0x%02X", status);
+        switch(status) {
+            case UCI_DATA_TRANSFER_STATUS_REPETITION_OK: printf(" (REPETITION_OK)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER: printf(" (ERROR_DATA_TRANSFER)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_NO_CREDIT_AVAILABLE: printf(" (ERROR_NO_CREDIT_AVAILABLE)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_REJECTED: printf(" (ERROR_REJECTED)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_SESSION_TYPE_NOT_SUPPORTED: printf(" (SESSION_TYPE_NOT_SUPPORTED)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER_IS_ONGOING: printf(" (ERROR_DATA_TRANSFER_IS_ONGOING)\n"); break;
+            case UCI_DATA_TRANSFER_STATUS_INVALID_FORMAT: printf(" (INVALID_FORMAT)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        
+        printf("      TX Count: %d\n", tx_count);
+    }
+    
+    if (payload_len > 8) {
+        printf("      Additional Data (%d bytes): ", payload_len - 8);
+        for (int i = 8; i < payload_len; i++) {
+            printf("%02X ", payload[i]);
+        }
+        printf("\n");
+    }
+}
+
+// Simple response decoders (basic implementations)

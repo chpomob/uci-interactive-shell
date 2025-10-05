@@ -68,4 +68,38 @@ static inline unsigned char get_opcode(const struct uci_packet_header *header) {
 // UCI packet analysis function
 void analyze_uci_packet(unsigned char* packet, size_t packet_len);
 
+// Payload decoding functions
+// CORE group decoders
+void decode_core_device_info_rsp(unsigned char* payload, int payload_len);
+void decode_core_get_caps_info_rsp(unsigned char* payload, int payload_len);
+void decode_core_set_config_rsp(unsigned char* payload, int payload_len);
+void decode_core_get_config_rsp(unsigned char* payload, int payload_len);
+void decode_core_device_reset_rsp(unsigned char* payload, int payload_len);
+void decode_core_device_suspend_rsp(unsigned char* payload, int payload_len);
+
+// SESSION_CONFIG group decoders
+void decode_session_init_rsp(unsigned char* payload, int payload_len);
+void decode_session_deinit_rsp(unsigned char* payload, int payload_len);
+void decode_session_set_app_config_rsp(unsigned char* payload, int payload_len);
+void decode_session_get_app_config_rsp(unsigned char* payload, int payload_len);
+void decode_session_get_count_rsp(unsigned char* payload, int payload_len);
+void decode_session_get_state_rsp(unsigned char* payload, int payload_len);
+
+// SESSION_CONTROL group decoders
+void decode_session_start_rsp(unsigned char* payload, int payload_len);
+void decode_session_stop_rsp(unsigned char* payload, int payload_len);
+void decode_session_get_ranging_count_rsp(unsigned char* payload, int payload_len);
+
+// CORE notification decoders
+void decode_core_device_status_ntf(unsigned char* payload, int payload_len);
+void decode_core_generic_error_ntf(unsigned char* payload, int payload_len);
+
+// SESSION_CONFIG notification decoders
+void decode_session_status_ntf(unsigned char* payload, int payload_len);
+
+// SESSION_CONTROL notification decoders
+void decode_session_info_ntf(unsigned char* payload, int payload_len);
+void decode_session_data_credit_ntf(unsigned char* payload, int payload_len);
+void decode_session_data_transfer_status_ntf(unsigned char* payload, int payload_len);
+
 #endif // UCI_H

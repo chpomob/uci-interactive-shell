@@ -10,3 +10,4 @@ test_session_manager
 *.gcno
 *.gcov
 coverage/
+test_uci_functions

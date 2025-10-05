@@ -81,6 +81,214 @@ void uci_process_pending_notifications() {
     }
 }
 
+// Function to analyze and display a UCI packet in human-readable format
+void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
+    if (packet_len < sizeof(struct uci_packet_header)) {
+        printf("Error: UCI packet too short to contain a header (need at least %zu bytes, got %zu)\n", 
+               sizeof(struct uci_packet_header), packet_len);
+        return;
+    }
+
+    struct uci_packet_header* header = (struct uci_packet_header*)packet;
+
+    printf("=== UCI Packet Analysis ===\n");
+    printf("Total Packet Length: %zu bytes\n", packet_len);
+    printf("Header Bytes: %02X %02X %02X %02X\n", 
+           packet[0], packet[1], packet[2], packet[3]);
+
+    // Extract header fields
+    unsigned char gid = get_gid(header);
+    unsigned char pbf = get_pbf(header);
+    unsigned char mt = get_mt(header);
+    unsigned char opcode = get_opcode(header);
+    unsigned char payload_len = header->payload_len;
+
+    printf("  Message Type (MT): 0x%01X", mt);
+    switch(mt) {
+        case DATA: printf(" (DATA)"); break;
+        case COMMAND: printf(" (COMMAND)"); break;
+        case RESPONSE: printf(" (RESPONSE)"); break;
+        case NOTIFICATION: printf(" (NOTIFICATION)"); break;
+        default: printf(" (UNKNOWN)"); break;
+    }
+    printf("\n");
+
+    printf("  Packet Boundary Flag (PBF): 0x%01X", pbf);
+    switch(pbf) {
+        case COMPLETE: printf(" (COMPLETE)"); break;
+        case NOT_COMPLETE: printf(" (NOT_COMPLETE)"); break;
+        default: printf(" (UNKNOWN)"); break;
+    }
+    printf("\n");
+
+    printf("  Group ID (GID): 0x%01X", gid);
+    switch(gid) {
+        case CORE: printf(" (CORE)"); break;
+        case SESSION_CONFIG: printf(" (SESSION_CONFIG)"); break;
+        case SESSION_CONTROL: printf(" (SESSION_CONTROL)"); break;
+        case DATA_CONTROL: printf(" (DATA_CONTROL)"); break;
+        case TEST: printf(" (TEST)"); break;
+        case VENDOR_ANDROID: printf(" (VENDOR_ANDROID)"); break;
+        default: printf(" (UNKNOWN)"); break;
+    }
+    printf("\n");
+
+    printf("  Opcode: 0x%02X", opcode);
+    // Show opcode meaning based on GID
+    if (gid == CORE) {
+        switch(opcode) {
+            case CORE_DEVICE_INFO: printf(" (CORE_DEVICE_INFO)"); break;
+            case CORE_DEVICE_RESET: printf(" (CORE_DEVICE_RESET)"); break;
+            case CORE_GET_CAPS_INFO: printf(" (CORE_GET_CAPS_INFO)"); break;
+            case CORE_SET_CONFIG: printf(" (CORE_SET_CONFIG)"); break;
+            case CORE_GET_CONFIG: printf(" (CORE_GET_CONFIG)"); break;
+            case CORE_DEVICE_SUSPEND: printf(" (CORE_DEVICE_SUSPEND)"); break;
+            case CORE_DEVICE_STATUS_NTF: printf(" (CORE_DEVICE_STATUS_NTF)"); break;
+            case CORE_GENERIC_ERROR_NTF: printf(" (CORE_GENERIC_ERROR_NTF)"); break;
+            default: printf(" (CORE_UNKNOWN)"); break;
+        }
+    } else if (gid == SESSION_CONFIG) {
+        switch(opcode) {
+            case SESSION_INIT: printf(" (SESSION_INIT)"); break;
+            case SESSION_DEINIT: printf(" (SESSION_DEINIT)"); break;
+            case SESSION_STATUS_NTF: printf(" (SESSION_STATUS_NTF)"); break;
+            case SESSION_SET_APP_CONFIG: printf(" (SESSION_SET_APP_CONFIG)"); break;
+            case SESSION_GET_APP_CONFIG: printf(" (SESSION_GET_APP_CONFIG)"); break;
+            case SESSION_GET_COUNT: printf(" (SESSION_GET_COUNT)"); break;
+            case SESSION_GET_STATE: printf(" (SESSION_GET_STATE)"); break;
+            default: printf(" (SESSION_CONFIG_UNKNOWN)"); break;
+        }
+    } else if (gid == SESSION_CONTROL) {
+        switch(opcode) {
+            case SESSION_START: printf(" (SESSION_START/SESSION_INFO_NTF)"); break;
+            case SESSION_STOP: printf(" (SESSION_STOP)"); break;
+            case SESSION_GET_RANGING_COUNT: printf(" (SESSION_GET_RANGING_COUNT)"); break;
+            case SESSION_DATA_CREDIT_NTF: printf(" (SESSION_DATA_CREDIT_NTF)"); break;
+            case SESSION_DATA_TRANSFER_STATUS_NTF: printf(" (SESSION_DATA_TRANSFER_STATUS_NTF)"); break;
+            default: printf(" (SESSION_CONTROL_UNKNOWN)"); break;
+        }
+    } else if (gid == TEST) {
+        printf(" (TEST_CMD_0x%02X)", opcode);
+    } else if (gid == VENDOR_ANDROID) {
+        printf(" (VENDOR_ANDROID_CMD_0x%02X)", opcode);
+    } else {
+        printf(" (UNKNOWN_OPCODE)");
+    }
+    printf("\n");
+
+    printf("  Reserved Byte 2: 0x%02X\n", header->reserved2);
+    printf("  Payload Length: %u\n", payload_len);
+
+    // Check if payload length matches actual available data
+    if (payload_len > packet_len - sizeof(struct uci_packet_header)) {
+        printf("  ERROR: Header payload length (%u) exceeds available data (%zu bytes after header)\n", 
+               payload_len, packet_len - sizeof(struct uci_packet_header));
+        printf("  Actual available payload: %zu bytes\n", packet_len - sizeof(struct uci_packet_header));
+        payload_len = (unsigned char)(packet_len - sizeof(struct uci_packet_header));
+    }
+
+    if (payload_len > 0) {
+        printf("  Payload (%u bytes): ", payload_len);
+        for (unsigned char i = 0; i < payload_len; i++) {
+            printf("%02X ", packet[sizeof(struct uci_packet_header) + i]);
+        }
+        printf("\n");
+        
+        // Try to interpret payload based on message type and opcode
+        printf("  Payload Interpretation:\n");
+        if (mt == RESPONSE && gid == CORE && opcode == CORE_DEVICE_INFO) {
+            if (payload_len >= 9) {
+                unsigned char status = packet[sizeof(struct uci_packet_header) + 0];
+                unsigned short uci_version = (packet[sizeof(struct uci_packet_header) + 1] << 8) | 
+                                            packet[sizeof(struct uci_packet_header) + 2];
+                unsigned short mac_version = (packet[sizeof(struct uci_packet_header) + 3] << 8) | 
+                                           packet[sizeof(struct uci_packet_header) + 4];
+                unsigned short phy_version = (packet[sizeof(struct uci_packet_header) + 5] << 8) | 
+                                           packet[sizeof(struct uci_packet_header) + 6];
+                unsigned short uci_test_version = (packet[sizeof(struct uci_packet_header) + 7] << 8) | 
+                                                packet[sizeof(struct uci_packet_header) + 8];
+                
+                printf("    Status: 0x%02X\n", status);
+                printf("    UCI Version: 0x%04X\n", uci_version);
+                printf("    MAC Version: 0x%04X\n", mac_version);
+                printf("    PHY Version: 0x%04X\n", phy_version);
+                printf("    UCI Test Version: 0x%04X\n", uci_test_version);
+                if (payload_len > 9) {
+                    printf("    Additional vendor-specific data: %u bytes\n", payload_len - 9);
+                }
+            } else {
+                printf("    ERROR: CORE_DEVICE_INFO response too short (%u bytes, need at least 9)\n", payload_len);
+            }
+        } else if (mt == NOTIFICATION && gid == CORE && opcode == CORE_DEVICE_STATUS_NTF) {
+            if (payload_len >= 1) {
+                unsigned char device_state = packet[sizeof(struct uci_packet_header)];
+                printf("    Device State: 0x%02X", device_state);
+                switch(device_state) {
+                    case DEVICE_STATE_READY: printf(" (READY)"); break;
+                    case DEVICE_STATE_ACTIVE: printf(" (ACTIVE)"); break;
+                    case DEVICE_STATE_ERROR: printf(" (ERROR)"); break;
+                    default: printf(" (UNKNOWN)"); break;
+                }
+                printf("\n");
+            } else {
+                printf("    ERROR: CORE_DEVICE_STATUS_NTF requires 1 byte payload, got %u\n", payload_len);
+            }
+        } else if (mt == RESPONSE && gid == CORE && opcode == CORE_SET_CONFIG) {
+            if (payload_len >= 2) {
+                unsigned char status = packet[sizeof(struct uci_packet_header)];
+                unsigned char num_configs = packet[sizeof(struct uci_packet_header) + 1];
+                printf("    Status: 0x%02X\n", status);
+                printf("    Number of Config Status: %u\n", num_configs);
+            } else {
+                printf("    ERROR: CORE_SET_CONFIG response requires at least 2 bytes, got %u\n", payload_len);
+            }
+        } else if (mt == RESPONSE && gid == CORE && opcode == CORE_GET_CONFIG) {
+            if (payload_len >= 2) {
+                unsigned char status = packet[sizeof(struct uci_packet_header)];
+                unsigned char num_tlvs = packet[sizeof(struct uci_packet_header) + 1];
+                printf("    Status: 0x%02X\n", status);
+                printf("    Number of TLVs: %u\n", num_tlvs);
+            } else {
+                printf("    ERROR: CORE_GET_CONFIG response requires at least 2 bytes, got %u\n", payload_len);
+            }
+        } else if (mt == NOTIFICATION && gid == SESSION_CONFIG && opcode == SESSION_STATUS_NTF) {
+            if (payload_len >= 6) {
+                unsigned int token = (packet[sizeof(struct uci_packet_header)] << 24) |
+                                   (packet[sizeof(struct uci_packet_header) + 1] << 16) |
+                                   (packet[sizeof(struct uci_packet_header) + 2] << 8) |
+                                   packet[sizeof(struct uci_packet_header) + 3];
+                unsigned char state = packet[sizeof(struct uci_packet_header) + 4];
+                unsigned char reason = packet[sizeof(struct uci_packet_header) + 5];
+                
+                printf("    Session Token: 0x%08X\n", token);
+                printf("    Session State: 0x%02X", state);
+                switch(state) {
+                    case SESSION_STATE_INIT: printf(" (INIT)"); break;
+                    case SESSION_STATE_DEINIT: printf(" (DEINIT)"); break;
+                    case SESSION_STATE_ACTIVE: printf(" (ACTIVE)"); break;
+                    case SESSION_STATE_IDLE: printf(" (IDLE)"); break;
+                    default: printf(" (UNKNOWN)"); break;
+                }
+                printf("\n");
+                
+                printf("    Reason Code: 0x%02X", reason);
+                switch(reason) {
+                    case STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS: printf(" (MGMT_CMD)"); break;
+                    case MAX_RANGING_ROUND_RETRY_COUNT_REACHED: printf(" (MAX_RETRY)"); break;
+                    case MAX_NUMBER_OF_MEASUREMENTS_REACHED: printf(" (MAX_MEASUREMENTS)"); break;
+                    default: printf(" (UNKNOWN)"); break;
+                }
+                printf("\n");
+            } else {
+                printf("    ERROR: SESSION_STATUS_NTF requires at least 6 bytes, got %u\n", payload_len);
+            }
+        }
+    } else {
+        printf("  No payload data\n");
+    }
+    printf("========================\n");
+}
+
 // Function to enable hardware mode
 void uci_enable_hardware_mode(const char* device_path) {
     g_hardware_mode = 1;

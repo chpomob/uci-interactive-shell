@@ -272,7 +272,7 @@ int main() {
             "session_stop", "stop_ranging", "get_session_state", "session_status",
             "set_app_config", "get_app_config", "simulate_notification", "simulate_session_status",
             "simulate_data_credit", "simulate_ranging", "simulate_multi_target_ranging", "demo_session_flow",
-            "set_power", "device_on", "device_off", "complete", "history", "alias", "unalias"
+            "set_power", "device_on", "device_off", "analyze_packet", "complete", "history", "alias", "unalias"
         };
         int num_commands = sizeof(commands) / sizeof(commands[0]);
 
@@ -1929,6 +1929,42 @@ int main() {
             parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + sizeof(multi_ranging_ntf_payload));
             
             printf("=== Multi-Target Ranging Simulation Complete ===\n");
+        } else if (strcmp(command, "analyze_packet") == 0) {
+            // Parse hex bytes from command line
+            char* hex_byte_str = strtok(NULL, " ");
+            if (!hex_byte_str) {
+                printf("Usage: analyze_packet <hex_bytes...>\n");
+                printf("Example: analyze_packet 20 08 00 00\n");
+                printf("         analyze_packet 21 00 00 05 00 00 00 01 00\n");
+                continue;
+            }
+            
+            unsigned char packet[256];
+            int packet_len = 0;
+            
+            // Parse hex bytes
+            do {
+                if (packet_len >= (int)sizeof(packet)) {
+                    printf("Error: Packet too long (max %zu bytes)\n", sizeof(packet));
+                    break;
+                }
+                char* endptr;
+                unsigned long value = strtoul(hex_byte_str, &endptr, 16);
+                if (*endptr != '\0' || value > 0xFF) {
+                    printf("Error: Invalid hex byte '%s'\n", hex_byte_str);
+                    break;
+                }
+                packet[packet_len++] = (unsigned char)value;
+            } while ((hex_byte_str = strtok(NULL, " ")) != NULL);
+            
+            if (packet_len > 0) {
+                printf("Analyzing UCI packet (%d bytes):\n", packet_len);
+                for (int i = 0; i < packet_len; i++) {
+                    printf("%02X ", packet[i]);
+                }
+                printf("\n\n");
+                analyze_uci_packet(packet, packet_len);
+            }
         } else {
             printf("Unknown command: %s\n", command);
         }
@@ -1963,6 +1999,7 @@ static char* command_generator(const char* text, int state) {
         "hw_session_init", "hw_session_new", "hw_session_deinit", "hw_session_close",
         "hw_session_start", "hw_start_ranging", "hw_session_stop", "hw_stop_ranging",
         "hw_get_session_state", "hw_session_status", "hw_set_app_config", "hw_get_app_config",
+        "analyze_packet",
         NULL
     };
 

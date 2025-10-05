@@ -65,4 +65,7 @@ static inline unsigned char get_opcode(const struct uci_packet_header *header) {
     return (header->second_byte >> 2) & 0x3F;
 }
 
+// UCI packet analysis function
+void analyze_uci_packet(unsigned char* packet, size_t packet_len);
+
 #endif // UCI_H

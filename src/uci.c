@@ -1469,6 +1469,105 @@ void handle_core_set_config_rsp(unsigned char* payload, int payload_len) {
     }
 }
 
+// Helper function to map application config TLV IDs to human-readable names
+static const char* get_app_config_name(AppConfigTlvType cfg_id) {
+    switch (cfg_id) {
+        case DEVICE_TYPE: return "DEVICE_TYPE";
+        case RANGING_ROUND_USAGE: return "RANGING_ROUND_USAGE";
+        case STS_CONFIG: return "STS_CONFIG";
+        case MULTI_NODE_MODE: return "MULTI_NODE_MODE";
+        case CHANNEL_NUMBER: return "CHANNEL_NUMBER";
+        case NO_OF_CONTROLEE: return "NO_OF_CONTROLEE";
+        case DEVICE_MAC_ADDRESS: return "DEVICE_MAC_ADDRESS";
+        case DST_MAC_ADDRESS: return "DST_MAC_ADDRESS";
+        case SLOT_DURATION: return "SLOT_DURATION";
+        case RANGING_DURATION: return "RANGING_DURATION";
+        case STS_INDEX: return "STS_INDEX";
+        case MAC_FCS_TYPE: return "MAC_FCS_TYPE";
+        case RANGING_ROUND_CONTROL: return "RANGING_ROUND_CONTROL";
+        case AOA_RESULT_REQ: return "AOA_RESULT_REQ";
+        case RNG_DATA_NTF: return "RNG_DATA_NTF";
+        case RNG_DATA_NTF_PROXIMITY_NEAR: return "RNG_DATA_NTF_PROXIMITY_NEAR";
+        case RNG_DATA_NTF_PROXIMITY_FAR: return "RNG_DATA_NTF_PROXIMITY_FAR";
+        case DEVICE_ROLE: return "DEVICE_ROLE";
+        case RFRAME_CONFIG: return "RFRAME_CONFIG";
+        case RSSI_REPORTING: return "RSSI_REPORTING";
+        case PREAMBLE_CODE_INDEX: return "PREAMBLE_CODE_INDEX";
+        case SFD_ID: return "SFD_ID";
+        case PSDU_DATA_RATE: return "PSDU_DATA_RATE";
+        case PREAMBLE_DURATION: return "PREAMBLE_DURATION";
+        case LINK_LAYER_MODE: return "LINK_LAYER_MODE";
+        case DATA_REPETITION_COUNT: return "DATA_REPETITION_COUNT";
+        case RANGING_TIME_STRUCT: return "RANGING_TIME_STRUCT";
+        case SLOTS_PER_RR: return "SLOTS_PER_RR";
+        case TX_ADAPTIVE_PAYLOAD_POWER: return "TX_ADAPTIVE_PAYLOAD_POWER";
+        case RNG_DATA_NTF_AOA_BOUND: return "RNG_DATA_NTF_AOA_BOUND";
+        case RESPONDER_SLOT_INDEX: return "RESPONDER_SLOT_INDEX";
+        case PRF_MODE: return "PRF_MODE";
+        case CAP_SIZE_RANGE: return "CAP_SIZE_RANGE";
+        case TX_JITTER_WINDOW_SIZE: return "TX_JITTER_WINDOW_SIZE";
+        case SCHEDULED_MODE: return "SCHEDULED_MODE";
+        case KEY_ROTATION: return "KEY_ROTATION";
+        case KEY_ROTATION_RATE: return "KEY_ROTATION_RATE";
+        case SESSION_PRIORITY: return "SESSION_PRIORITY";
+        case MAC_ADDRESS_MODE: return "MAC_ADDRESS_MODE";
+        case VENDOR_ID: return "VENDOR_ID";
+        case STATIC_STS_IV: return "STATIC_STS_IV";
+        case NUMBER_OF_STS_SEGMENTS: return "NUMBER_OF_STS_SEGMENTS";
+        case MAX_RR_RETRY: return "MAX_RR_RETRY";
+        case UWB_INITIATION_TIME: return "UWB_INITIATION_TIME";
+        case HOPPING_MODE: return "HOPPING_MODE";
+        case BLOCK_STRIDE_LENGTH: return "BLOCK_STRIDE_LENGTH";
+        case RESULT_REPORT_CONFIG: return "RESULT_REPORT_CONFIG";
+        case IN_BAND_TERMINATION_ATTEMPT_COUNT: return "IN_BAND_TERMINATION_ATTEMPT_COUNT";
+        case SUB_SESSION_ID: return "SUB_SESSION_ID";
+        case BPRF_PHR_DATA_RATE: return "BPRF_PHR_DATA_RATE";
+        case MAX_NUMBER_OF_MEASUREMENTS: return "MAX_NUMBER_OF_MEASUREMENTS";
+        case UL_TDOA_TX_INTERVAL: return "UL_TDOA_TX_INTERVAL";
+        case UL_TDOA_RANDOM_WINDOW: return "UL_TDOA_RANDOM_WINDOW";
+        case STS_LENGTH: return "STS_LENGTH";
+        case SUSPEND_RANGING_ROUNDS: return "SUSPEND_RANGING_ROUNDS";
+        case UL_TDOA_NTF_REPORT_CONFIG: return "UL_TDOA_NTF_REPORT_CONFIG";
+        case UL_TDOA_DEVICE_ID: return "UL_TDOA_DEVICE_ID";
+        case UL_TDOA_TX_TIMESTAMP: return "UL_TDOA_TX_TIMESTAMP";
+        case MIN_FRAMES_PER_RR: return "MIN_FRAMES_PER_RR";
+        case MTU_SIZE: return "MTU_SIZE";
+        case INTER_FRAME_INTERVAL: return "INTER_FRAME_INTERVAL";
+        case DL_TDOA_RANGING_METHOD: return "DL_TDOA_RANGING_METHOD";
+        case DL_TDOA_TX_TIMESTAMP_CONF: return "DL_TDOA_TX_TIMESTAMP_CONF";
+        case DL_TDOA_HOP_COUNT: return "DL_TDOA_HOP_COUNT";
+        case DL_TDOA_ANCHOR_CFO: return "DL_TDOA_ANCHOR_CFO";
+        case DL_TDOA_ANCHOR_LOCATION: return "DL_TDOA_ANCHOR_LOCATION";
+        case DL_TDOA_TX_ACTIVE_RANGING_ROUNDS: return "DL_TDOA_TX_ACTIVE_RANGING_ROUNDS";
+        case DL_TDOA_BLOCK_STRIDING: return "DL_TDOA_BLOCK_STRIDING";
+        case DL_TDOA_TIME_REFERENCE_ANCHOR: return "DL_TDOA_TIME_REFERENCE_ANCHOR";
+        case SESSION_KEY: return "SESSION_KEY";
+        case SUBSESSION_KEY: return "SUBSESSION_KEY";
+        case SESSION_DATA_TRANSFER_STATUS_NTF_CONFIG: return "SESSION_DATA_TRANSFER_STATUS_NTF_CONFIG";
+        case SESSION_TIME_BASE: return "SESSION_TIME_BASE";
+        case DL_TDOA_RESPONDER_TOF: return "DL_TDOA_RESPONDER_TOF";
+        case SECURE_RANGING_NEFA_LEVEL: return "SECURE_RANGING_NEFA_LEVEL";
+        case SECURE_RANGING_CSW_LENGTH: return "SECURE_RANGING_CSW_LENGTH";
+        case APPLICATION_DATA_ENDPOINT: return "APPLICATION_DATA_ENDPOINT";
+        case OWR_AOA_MEASUREMENT_NTF_PERIOD: return "OWR_AOA_MEASUREMENT_NTF_PERIOD";
+        case CCC_HOP_MODE_KEY: return "CCC_HOP_MODE_KEY";
+        case CCC_UWB_TIME0: return "CCC_UWB_TIME0";
+        case CCC_RANGING_PROTOCOL_VER: return "CCC_RANGING_PROTOCOL_VER";
+        case CCC_UWB_CONFIG_ID: return "CCC_UWB_CONFIG_ID";
+        case CCC_PULSESHAPE_COMBO: return "CCC_PULSESHAPE_COMBO";
+        case CCC_URSK_TTL: return "CCC_URSK_TTL";
+        case CCC_LAST_INDEX_USED: return "CCC_LAST_INDEX_USED";
+        case ALIRO_MAC_MODE: return "ALIRO_MAC_MODE";
+        case NB_OF_RANGE_MEASUREMENTS: return "NB_OF_RANGE_MEASUREMENTS";
+        case NB_OF_AZIMUTH_MEASUREMENTS: return "NB_OF_AZIMUTH_MEASUREMENTS";
+        case NB_OF_ELEVATION_MEASUREMENTS: return "NB_OF_ELEVATION_MEASUREMENTS";
+        case ENABLE_DIAGNOSTICS: return "ENABLE_DIAGNOSTICS";
+        case DIAGRAMS_FRAME_REPORTS_FIELDS: return "DIAGRAMS_FRAME_REPORTS_FIELDS";
+        case ANTENNA_MODE: return "ANTENNA_MODE";
+        default: return NULL;
+    }
+}
+
 // Helper function to print device config ID name
 const char* get_device_config_name(DeviceConfigId cfg_id) {
     switch(cfg_id) {
@@ -2466,60 +2565,14 @@ void decode_session_set_app_config_rsp(unsigned char* payload, int payload_len) 
             offset += 2;
             
             printf("      Config %d:\n", i);
+            const char* cfg_name = get_app_config_name(cfg_id);
             printf("        Config ID: 0x%02X", cfg_id);
-            // Add common config ID interpretations
-            switch(cfg_id) {
-                case DEVICE_TYPE: printf(" (DEVICE_TYPE)\n"); break;
-                case RANGING_ROUND_USAGE: printf(" (RANGING_ROUND_USAGE)\n"); break;
-                case STS_CONFIG: printf(" (STS_CONFIG)\n"); break;
-                case MULTI_NODE_MODE: printf(" (MULTI_NODE_MODE)\n"); break;
-                case CHANNEL_NUMBER: printf(" (CHANNEL_NUMBER)\n"); break;
-                case NO_OF_CONTROLEE: printf(" (NO_OF_CONTROLEE)\n"); break;
-                case DEVICE_MAC_ADDRESS: printf(" (DEVICE_MAC_ADDRESS)\n"); break;
-                case DST_MAC_ADDRESS: printf(" (DST_MAC_ADDRESS)\n"); break;
-                case SLOT_DURATION: printf(" (SLOT_DURATION)\n"); break;
-                case RANGING_DURATION: printf(" (RANGING_DURATION)\n"); break;
-                case STS_INDEX: printf(" (STS_INDEX)\n"); break;
-                case MAC_FCS_TYPE: printf(" (MAC_FCS_TYPE)\n"); break;
-                case RANGING_ROUND_CONTROL: printf(" (RANGING_ROUND_CONTROL)\n"); break;
-                case AOA_RESULT_REQ: printf(" (AOA_RESULT_REQ)\n"); break;
-                case RNG_DATA_NTF: printf(" (RNG_DATA_NTF)\n"); break;
-                case RNG_DATA_NTF_PROXIMITY_NEAR: printf(" (RNG_DATA_NTF_PROXIMITY_NEAR)\n"); break;
-                case RNG_DATA_NTF_PROXIMITY_FAR: printf(" (RNG_DATA_NTF_PROXIMITY_FAR)\n"); break;
-                case DEVICE_ROLE: printf(" (DEVICE_ROLE)\n"); break;
-                case RFRAME_CONFIG: printf(" (RFRAME_CONFIG)\n"); break;
-                case RSSI_REPORTING: printf(" (RSSI_REPORTING)\n"); break;
-                case PREAMBLE_CODE_INDEX: printf(" (PREAMBLE_CODE_INDEX)\n"); break;
-                case SFD_ID: printf(" (SFD_ID)\n"); break;
-                case PSDU_DATA_RATE: printf(" (PSDU_DATA_RATE)\n"); break;
-                case PREAMBLE_DURATION: printf(" (PREAMBLE_DURATION)\n"); break;
-                case LINK_LAYER_MODE: printf(" (LINK_LAYER_MODE)\n"); break;
-                case DATA_REPETITION_COUNT: printf(" (DATA_REPETITION_COUNT)\n"); break;
-                case RANGING_TIME_STRUCT: printf(" (RANGING_TIME_STRUCT)\n"); break;
-                case SLOTS_PER_RR: printf(" (SLOTS_PER_RR)\n"); break;
-                case TX_ADAPTIVE_PAYLOAD_POWER: printf(" (TX_ADAPTIVE_PAYLOAD_POWER)\n"); break;
-                case RNG_DATA_NTF_AOA_BOUND: printf(" (RNG_DATA_NTF_AOA_BOUND)\n"); break;
-                case RESPONDER_SLOT_INDEX: printf(" (RESPONDER_SLOT_INDEX)\n"); break;
-                case PRF_MODE: printf(" (PRF_MODE)\n"); break;
-                case CAP_SIZE_RANGE: printf(" (CAP_SIZE_RANGE)\n"); break;
-                case TX_JITTER_WINDOW_SIZE: printf(" (TX_JITTER_WINDOW_SIZE)\n"); break;
-                case SCHEDULED_MODE: printf(" (SCHEDULED_MODE)\n"); break;
-                case KEY_ROTATION: printf(" (KEY_ROTATION)\n"); break;
-                case KEY_ROTATION_RATE: printf(" (KEY_ROTATION_RATE)\n"); break;
-                case SESSION_PRIORITY: printf(" (SESSION_PRIORITY)\n"); break;
-                case MAC_ADDRESS_MODE: printf(" (MAC_ADDRESS_MODE)\n"); break;
-                case VENDOR_ID: printf(" (VENDOR_ID)\n"); break;
-                case STATIC_STS_IV: printf(" (STATIC_STS_IV)\n"); break;
-                case NUMBER_OF_STS_SEGMENTS: printf(" (NUMBER_OF_STS_SEGMENTS)\n"); break;
-                case MAX_RR_RETRY: printf(" (MAX_RR_RETRY)\n"); break;
-                case UWB_INITIATION_TIME: printf(" (UWB_INITIATION_TIME)\n"); break;
-                case HOPPING_MODE: printf(" (HOPPING_MODE)\n"); break;
-                case BLOCK_STRIDE_LENGTH: printf(" (BLOCK_STRIDE_LENGTH)\n"); break;
-                case RESULT_REPORT_CONFIG: printf(" (RESULT_REPORT_CONFIG)\n"); break;
-                case IN_BAND_TERMINATION_ATTEMPT_COUNT: printf(" (IN_BAND_TERMINATION_ATTEMPT_COUNT)\n"); break;
-                case SUB_SESSION_ID: printf(" (SUB_SESSION_ID)\n"); break;
-                default: printf(" (UNKNOWN)\n"); break;
+            if (cfg_name) {
+                printf(" (%s)", cfg_name);
+            } else {
+                printf(" (UNKNOWN)");
             }
+            printf("\n");
             
             printf("        Status: 0x%02X", cfg_status);
             switch(cfg_status) {
@@ -2565,59 +2618,14 @@ void decode_session_get_app_config_rsp(unsigned char* payload, int payload_len) 
             offset += 2;
             
             printf("      TLV %d:\n", i);
+            const char* cfg_name = get_app_config_name(cfg_id);
             printf("        Config ID: 0x%02X", cfg_id);
-            switch(cfg_id) {
-                case DEVICE_TYPE: printf(" (DEVICE_TYPE)\n"); break;
-                case RANGING_ROUND_USAGE: printf(" (RANGING_ROUND_USAGE)\n"); break;
-                case STS_CONFIG: printf(" (STS_CONFIG)\n"); break;
-                case MULTI_NODE_MODE: printf(" (MULTI_NODE_MODE)\n"); break;
-                case CHANNEL_NUMBER: printf(" (CHANNEL_NUMBER)\n"); break;
-                case NO_OF_CONTROLEE: printf(" (NO_OF_CONTROLEE)\n"); break;
-                case DEVICE_MAC_ADDRESS: printf(" (DEVICE_MAC_ADDRESS)\n"); break;
-                case DST_MAC_ADDRESS: printf(" (DST_MAC_ADDRESS)\n"); break;
-                case SLOT_DURATION: printf(" (SLOT_DURATION)\n"); break;
-                case RANGING_DURATION: printf(" (RANGING_DURATION)\n"); break;
-                case STS_INDEX: printf(" (STS_INDEX)\n"); break;
-                case MAC_FCS_TYPE: printf(" (MAC_FCS_TYPE)\n"); break;
-                case RANGING_ROUND_CONTROL: printf(" (RANGING_ROUND_CONTROL)\n"); break;
-                case AOA_RESULT_REQ: printf(" (AOA_RESULT_REQ)\n"); break;
-                case RNG_DATA_NTF: printf(" (RNG_DATA_NTF)\n"); break;
-                case RNG_DATA_NTF_PROXIMITY_NEAR: printf(" (RNG_DATA_NTF_PROXIMITY_NEAR)\n"); break;
-                case RNG_DATA_NTF_PROXIMITY_FAR: printf(" (RNG_DATA_NTF_PROXIMITY_FAR)\n"); break;
-                case DEVICE_ROLE: printf(" (DEVICE_ROLE)\n"); break;
-                case RFRAME_CONFIG: printf(" (RFRAME_CONFIG)\n"); break;
-                case RSSI_REPORTING: printf(" (RSSI_REPORTING)\n"); break;
-                case PREAMBLE_CODE_INDEX: printf(" (PREAMBLE_CODE_INDEX)\n"); break;
-                case SFD_ID: printf(" (SFD_ID)\n"); break;
-                case PSDU_DATA_RATE: printf(" (PSDU_DATA_RATE)\n"); break;
-                case PREAMBLE_DURATION: printf(" (PREAMBLE_DURATION)\n"); break;
-                case LINK_LAYER_MODE: printf(" (LINK_LAYER_MODE)\n"); break;
-                case DATA_REPETITION_COUNT: printf(" (DATA_REPETITION_COUNT)\n"); break;
-                case RANGING_TIME_STRUCT: printf(" (RANGING_TIME_STRUCT)\n"); break;
-                case SLOTS_PER_RR: printf(" (SLOTS_PER_RR)\n"); break;
-                case TX_ADAPTIVE_PAYLOAD_POWER: printf(" (TX_ADAPTIVE_PAYLOAD_POWER)\n"); break;
-                case RNG_DATA_NTF_AOA_BOUND: printf(" (RNG_DATA_NTF_AOA_BOUND)\n"); break;
-                case RESPONDER_SLOT_INDEX: printf(" (RESPONDER_SLOT_INDEX)\n"); break;
-                case PRF_MODE: printf(" (PRF_MODE)\n"); break;
-                case CAP_SIZE_RANGE: printf(" (CAP_SIZE_RANGE)\n"); break;
-                case TX_JITTER_WINDOW_SIZE: printf(" (TX_JITTER_WINDOW_SIZE)\n"); break;
-                case SCHEDULED_MODE: printf(" (SCHEDULED_MODE)\n"); break;
-                case KEY_ROTATION: printf(" (KEY_ROTATION)\n"); break;
-                case KEY_ROTATION_RATE: printf(" (KEY_ROTATION_RATE)\n"); break;
-                case SESSION_PRIORITY: printf(" (SESSION_PRIORITY)\n"); break;
-                case MAC_ADDRESS_MODE: printf(" (MAC_ADDRESS_MODE)\n"); break;
-                case VENDOR_ID: printf(" (VENDOR_ID)\n"); break;
-                case STATIC_STS_IV: printf(" (STATIC_STS_IV)\n"); break;
-                case NUMBER_OF_STS_SEGMENTS: printf(" (NUMBER_OF_STS_SEGMENTS)\n"); break;
-                case MAX_RR_RETRY: printf(" (MAX_RR_RETRY)\n"); break;
-                case UWB_INITIATION_TIME: printf(" (UWB_INITIATION_TIME)\n"); break;
-                case HOPPING_MODE: printf(" (HOPPING_MODE)\n"); break;
-                case BLOCK_STRIDE_LENGTH: printf(" (BLOCK_STRIDE_LENGTH)\n"); break;
-                case RESULT_REPORT_CONFIG: printf(" (RESULT_REPORT_CONFIG)\n"); break;
-                case IN_BAND_TERMINATION_ATTEMPT_COUNT: printf(" (IN_BAND_TERMINATION_ATTEMPT_COUNT)\n"); break;
-                case SUB_SESSION_ID: printf(" (SUB_SESSION_ID)\n"); break;
-                default: printf(" (UNKNOWN)\n"); break;
+            if (cfg_name) {
+                printf(" (%s)", cfg_name);
+            } else {
+                printf(" (UNKNOWN)");
             }
+            printf("\n");
             
             printf("        Length: %d\n", cfg_len);
             

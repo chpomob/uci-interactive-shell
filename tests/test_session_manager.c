@@ -224,6 +224,48 @@ int main() {
     }
     test_case_end_9:;
 
+    TEST_CASE(store_extended_app_config_values);
+    {
+        init_uci_sessions();
+
+        uci_sessions[0].is_allocated = 1;
+        uci_sessions[0].session_id = 2001;
+        uci_sessions[0].session_state = SESSION_STATE_ACTIVE;
+        uci_sessions[0].num_configs = 0;
+
+        unsigned char session_key_value[4] = {0x10, 0x20, 0x30, 0x40};
+        unsigned char endpoint_value[3] = {0x01, 0x23, 0x45};
+        unsigned char vendor_value = 0x77;
+
+        store_session_config(0, SESSION_KEY, session_key_value, (unsigned char)sizeof(session_key_value));
+        store_session_config(0, APPLICATION_DATA_ENDPOINT, endpoint_value, (unsigned char)sizeof(endpoint_value));
+        store_session_config(0, CCC_HOP_MODE_KEY, &vendor_value, 1);
+
+        unsigned char buffer[MAX_SESSION_CONFIG_VALUE_SIZE] = {0};
+        unsigned char buffer_len = (unsigned char)sizeof(buffer);
+
+        ASSERT_EQUAL(1, get_session_config(0, SESSION_KEY, buffer, &buffer_len));
+        ASSERT_EQUAL(sizeof(session_key_value), buffer_len);
+        for (size_t i = 0; i < sizeof(session_key_value); i++) {
+            ASSERT_EQUAL(session_key_value[i], buffer[i]);
+        }
+
+        buffer_len = (unsigned char)sizeof(buffer);
+        ASSERT_EQUAL(1, get_session_config(0, APPLICATION_DATA_ENDPOINT, buffer, &buffer_len));
+        ASSERT_EQUAL(sizeof(endpoint_value), buffer_len);
+        for (size_t i = 0; i < sizeof(endpoint_value); i++) {
+            ASSERT_EQUAL(endpoint_value[i], buffer[i]);
+        }
+
+        buffer_len = (unsigned char)sizeof(buffer);
+        ASSERT_EQUAL(1, get_session_config(0, CCC_HOP_MODE_KEY, buffer, &buffer_len));
+        ASSERT_EQUAL(1, buffer_len);
+        ASSERT_EQUAL(vendor_value, buffer[0]);
+
+        TEST_PASS();
+    }
+    test_case_end_10:;
+
     // Test finding a session by handle
     TEST_CASE(find_session_by_handle);
     {
@@ -239,7 +281,7 @@ int main() {
         ASSERT_EQUAL(-1, result);
         TEST_PASS();
     }
-    test_case_end_10:;
+    test_case_end_11:;
 
     // Test counting allocated sessions
     TEST_CASE(get_allocated_session_count_basic);
@@ -252,7 +294,7 @@ int main() {
         ASSERT_EQUAL(2, get_allocated_session_count());
         TEST_PASS();
     }
-    test_case_end_11:;
+    test_case_end_12:;
 
     // Test incrementing ranging count saturation
     TEST_CASE(increment_session_ranging_count_basic);
@@ -269,7 +311,7 @@ int main() {
         ASSERT_EQUAL(0xFFFF, uci_sessions[0].ranging_count);
         TEST_PASS();
     }
-    test_case_end_12:;
-    
+    test_case_end_13:;
+
     TEST_SUITE_END();
 }

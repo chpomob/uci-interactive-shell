@@ -416,6 +416,59 @@ int main() {
 
         TEST_PASS();
     }
+    // Exercise extended TLV handling via session commands
+    TEST_CASE(session_app_config_extended_tlvs_command_path);
+    {
+        init_uci_sessions();
+
+        uci_sessions[0].is_allocated = 1;
+        uci_sessions[0].session_state = SESSION_STATE_ACTIVE;
+        uci_sessions[0].session_handle = 0xAABBCCDD;
+        uci_sessions[0].session_id = 0xAABBCCDD;
+        uci_sessions[0].num_configs = 0;
+
+        unsigned char set_payload[16] = {0};
+        write_u32_le(set_payload, uci_sessions[0].session_handle);
+        set_payload[4] = 2; // number of TLVs
+        set_payload[5] = SESSION_TIME_BASE;
+        set_payload[6] = 4;
+        set_payload[7] = 0x11;
+        set_payload[8] = 0x22;
+        set_payload[9] = 0x33;
+        set_payload[10] = 0x44;
+        set_payload[11] = NB_OF_ELEVATION_MEASUREMENTS;
+        set_payload[12] = 1;
+        set_payload[13] = 0x05;
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_SET_APP_CONFIG, set_payload, 14);
+
+        unsigned char value_buffer[MAX_SESSION_CONFIG_VALUE_SIZE] = {0};
+        unsigned char value_len = (unsigned char)sizeof(value_buffer);
+
+        ASSERT_EQUAL(1, get_session_config(0, SESSION_TIME_BASE, value_buffer, &value_len));
+        ASSERT_EQUAL(4, value_len);
+        ASSERT_EQUAL(0x11, value_buffer[0]);
+        ASSERT_EQUAL(0x22, value_buffer[1]);
+        ASSERT_EQUAL(0x33, value_buffer[2]);
+        ASSERT_EQUAL(0x44, value_buffer[3]);
+
+        value_len = (unsigned char)sizeof(value_buffer);
+        ASSERT_EQUAL(1, get_session_config(0, NB_OF_ELEVATION_MEASUREMENTS, value_buffer, &value_len));
+        ASSERT_EQUAL(1, value_len);
+        ASSERT_EQUAL(0x05, value_buffer[0]);
+
+        unsigned char get_payload[7] = {0};
+        write_u32_le(get_payload, uci_sessions[0].session_handle);
+        get_payload[4] = 2; // number of requested IDs
+        get_payload[5] = SESSION_TIME_BASE;
+        get_payload[6] = NB_OF_ELEVATION_MEASUREMENTS;
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_GET_APP_CONFIG, get_payload, sizeof(get_payload));
+
+        uci_process_pending_notifications();
+
+        TEST_PASS();
+    }
     // Test session edge cases and invalid parameter handling
     TEST_CASE(session_command_edge_cases);
     {

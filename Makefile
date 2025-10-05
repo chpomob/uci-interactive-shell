@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Iinclude -Wall -Wextra -std=c11
+CFLAGS=-Iinclude -Wall -Wextra -std=c11 -Wno-unused-label
 LIBS=-lreadline
 
 SRC=$(wildcard src/*.c)

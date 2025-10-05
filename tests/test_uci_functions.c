@@ -932,5 +932,106 @@ int main() {
         TEST_PASS();
     }
 
+#define test_case_end test_case_end_real_world_packets
+    // Test real UCI packets from logs and PDL specifications
+    TEST_CASE(real_world_uci_packets);
+    {
+        // Test real range notification packet from logs
+        // Raw: 6b0300212a0000000800000006030100000001000001000000020100000401000005000000
+        unsigned char real_packet[] = {
+            0x6b, 0x03, 0x00, 0x21,  // Header: RANGING_DATA notification, opcode 0x03, payload length 33
+            0x2a, 0x00, 0x00, 0x00,  // Session token (little endian)
+            0x08, 0x00, 0x00, 0x00,  // Sequence number (little endian)
+            0x06, 0x03, 0x01, 0x00,  // Control field and more
+            0x00, 0x00, 0x01, 0x00,  // More payload
+            0x00, 0x01, 0x00, 0x00,  // More payload
+            0x00, 0x02, 0x01, 0x00,  // More payload
+            0x00, 0x04, 0x01, 0x00,  // More payload
+            0x00, 0x05  // Remaining payload
+        };
+
+        struct uci_packet_header* header = (struct uci_packet_header*)real_packet;
+        
+        // Verify header fields from real packet
+        ASSERT_EQUAL(RANGING_DATA, get_gid(header));
+        ASSERT_EQUAL(NOTIFICATION, get_mt(header));
+        ASSERT_EQUAL(33, header->payload_len);
+
+        // Test PDL specification packet: DeviceResetCmd
+        // Raw: 2000000100000000
+        unsigned char pdl_device_reset[] = {
+            0x20, 0x00, 0x00, 0x01,  // Header: CORE command, opcode 0x00, payload length 1
+            0x00  // reset_config payload
+        };
+
+        header = (struct uci_packet_header*)pdl_device_reset;
+        ASSERT_EQUAL(CORE, get_gid(header));
+        ASSERT_EQUAL(COMMAND, get_mt(header));
+        ASSERT_EQUAL(0x00, get_opcode(header));  // CORE_DEVICE_RESET
+        ASSERT_EQUAL(1, header->payload_len);
+
+        // Test PDL specification packet: GetDeviceInfoRsp
+        // Raw: 4002000b000000010100020003000400010a
+        unsigned char pdl_device_info_rsp[] = {
+            0x40, 0x02, 0x00, 0x0b,  // Header: CORE response, opcode 0x02, payload length 11
+            0x00, 0x00, 0x00, 0x01,  // status = UCI_STATUS_OK
+            0x01, 0x00,              // uci_version = 0x0001
+            0x02, 0x00,              // mac_version = 0x0002  
+            0x03, 0x00,              // phy_version = 0x0003
+            0x04, 0x00,              // uci_test_version = 0x0004
+            0x01,                    // vendor_spec_info count = 1
+            0x0a                     // vendor_spec_info[0] = 0x0a
+        };
+
+        header = (struct uci_packet_header*)pdl_device_info_rsp;
+        ASSERT_EQUAL(CORE, get_gid(header));
+        ASSERT_EQUAL(RESPONSE, get_mt(header));
+        ASSERT_EQUAL(0x02, get_opcode(header));  // CORE_DEVICE_INFO
+        ASSERT_EQUAL(11, header->payload_len);
+        ASSERT_EQUAL(0, pdl_device_info_rsp[4]); // status = UCI_STATUS_OK
+
+        // Test PDL specification packet: SessionInfoNtf
+        // Raw: 620000190000000002030405060708000a010101010000000000000000000000
+        unsigned char pdl_session_info[] = {
+            0x62, 0x00, 0x00, 0x19,  // Header: SESSION_CONTROL notification, opcode 0x00, payload length 25
+            0x00, 0x00, 0x00, 0x00,  // sequence number
+            0x02, 0x03, 0x04, 0x05,  // session token 
+            0x06,                    // rcr_indicator
+            0x07, 0x08, 0x00, 0x00,  // current_ranging_interval
+            0x0a,                    // ranging_measurement_type
+            0x01,                    // reserved field
+            0x01,                    // mac_address_indicator
+            0x00, 0x00, 0x00, 0x00,  // hus_primary_session_id
+            0x00, 0x00, 0x00, 0x00, 0x00  // remaining payload
+        };
+
+        header = (struct uci_packet_header*)pdl_session_info;
+        ASSERT_EQUAL(SESSION_CONTROL, get_gid(header));
+        ASSERT_EQUAL(NOTIFICATION, get_mt(header));
+        ASSERT_EQUAL(0x00, get_opcode(header));  // SESSION_INFO_NTF
+        ASSERT_EQUAL(25, header->payload_len);
+
+        // Test PDL specification packet: AndroidRangeDiagnosticsNtf
+        // Raw: 6c0200110000000101010102020202010001020100010000
+        unsigned char pdl_android_diag[] = {
+            0x6c, 0x02, 0x00, 0x11,  // Header: VENDOR_ANDROID notification, opcode 0x02, payload length 17
+            0x00, 0x00, 0x00, 0x01,  // session_token
+            0x01, 0x01, 0x01, 0x02,  // sequence_number
+            0x02, 0x02, 0x02, 0x01,  // frame reports data
+            0x00, 0x01, 0x02, 0x01,  // more frame reports
+            0x00, 0x01, 0x00, 0x00   // end of frame reports
+        };
+
+        header = (struct uci_packet_header*)pdl_android_diag;
+        ASSERT_EQUAL(VENDOR_ANDROID, get_gid(header));
+        ASSERT_EQUAL(NOTIFICATION, get_mt(header));
+        ASSERT_EQUAL(0x02, get_opcode(header));  // ANDROID_FIRA_RANGE_DIAGNOSTICS
+        ASSERT_EQUAL(17, header->payload_len);
+
+        TEST_PASS();
+    }
+
+    test_case_end:;
+
     TEST_SUITE_END();
 }

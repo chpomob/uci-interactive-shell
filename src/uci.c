@@ -34,6 +34,14 @@ static inline void write_u32_le(unsigned char* buffer, uint32_t value) {
     buffer[3] = (value >> 24) & 0xFF;
 }
 
+static double q8_8_to_double(int16_t raw) {
+    return (double)raw / 256.0;
+}
+
+static double q6_9_to_double(int16_t raw) {
+    return (double)raw / 512.0;
+}
+
 static inline void write_u64_le(unsigned char* buffer, uint64_t value) {
     for (int i = 0; i < 8; i++) {
         buffer[i] = (value >> (i * 8)) & 0xFF;
@@ -1588,6 +1596,17 @@ static const char* get_frame_report_tlv_name(FrameReportTlvType tlv_type) {
     }
 }
 
+static const char* get_segment_id_name(unsigned char segment_id) {
+    switch (segment_id) {
+        case 0: return "IPATOV";
+        case 1: return "STS0";
+        case 2: return "STS1";
+        case 3: return "STS2";
+        case 4: return "STS3";
+        default: return "UNKNOWN";
+    }
+}
+
 static void decode_frame_report_tlv(FrameReportTlvType tlv_type,
                                     const unsigned char* value,
                                     unsigned short length) {
@@ -1691,15 +1710,58 @@ static void decode_frame_report_tlv(FrameReportTlvType tlv_type,
             break;
         }
         case FRAME_REPORT_TLV_SEGMENT_METRICS: {
-            printf("          Segment metrics payload (%u bytes): ", length);
-            unsigned short preview = length < 32 ? length : 32;
-            for (unsigned short i = 0; i < preview; i++) {
-                printf("%02X ", value[i]);
+            unsigned short offset = 0;
+            unsigned int metric_index = 0;
+            const unsigned short entry_size = 17; // Derived from SegmentMetricsValue layout
+
+            while (offset + entry_size <= length) {
+                unsigned char ras = value[offset++];
+                unsigned char segment_id = ras & 0x07;
+                unsigned char receiver_is_controller = (ras >> 3) & 0x01;
+                unsigned char receiver_id = (ras >> 4) & 0x0F;
+
+                int16_t rf_noise_floor_raw = (int16_t)read_u16_le(&value[offset]);
+                offset += 2;
+                int16_t segment_rsl_raw = (int16_t)read_u16_le(&value[offset]);
+                offset += 2;
+
+                uint16_t first_path_index = read_u16_le(&value[offset]);
+                offset += 2;
+                int16_t first_path_rsl_raw = (int16_t)read_u16_le(&value[offset]);
+                offset += 2;
+                int16_t first_path_time_raw = (int16_t)read_u16_le(&value[offset]);
+                offset += 2;
+
+                uint16_t peak_path_index = read_u16_le(&value[offset]);
+                offset += 2;
+                int16_t peak_path_rsl_raw = (int16_t)read_u16_le(&value[offset]);
+                offset += 2;
+                int16_t peak_path_time_raw = (int16_t)read_u16_le(&value[offset]);
+                offset += 2;
+
+                printf("          Segment Metrics %u:\n", metric_index++);
+                printf("            Segment: %s (ID=%u)\n", get_segment_id_name(segment_id), segment_id);
+                printf("            Receiver: %s (ID=%u)\n",
+                       receiver_is_controller ? "Controller" : "Controlee",
+                       receiver_id);
+                printf("            RF Noise Floor: %.2f dBm (raw 0x%04X)\n",
+                       q8_8_to_double(rf_noise_floor_raw), (unsigned int)(uint16_t)rf_noise_floor_raw);
+                printf("            Segment RSL: %.2f dBm (raw 0x%04X)\n",
+                       q8_8_to_double(segment_rsl_raw), (unsigned int)(uint16_t)segment_rsl_raw);
+                printf("            First Path -> index=%u, RSL=%.2f dBm, time=%.3f ns\n",
+                       first_path_index,
+                       q8_8_to_double(first_path_rsl_raw),
+                       q6_9_to_double(first_path_time_raw));
+                printf("            Peak  Path -> index=%u, RSL=%.2f dBm, time=%.3f ns\n",
+                       peak_path_index,
+                       q8_8_to_double(peak_path_rsl_raw),
+                       q6_9_to_double(peak_path_time_raw));
             }
-            if (length > preview) {
-                printf("... (+%u bytes)", length - preview);
+
+            if (offset < length) {
+                printf("          WARNING: %u trailing bytes remain after parsing segment metrics.\n",
+                       (unsigned int)(length - offset));
             }
-            printf("\n");
             break;
         }
         default: {

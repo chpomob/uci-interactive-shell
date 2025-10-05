@@ -646,7 +646,7 @@ int main() {
         payload[payload_len++] = 0x10; // UWB message ID
         payload[payload_len++] = 0x01; // action
         payload[payload_len++] = 0x02; // antenna set
-        payload[payload_len++] = 0x03; // TLV count
+        payload[payload_len++] = 0x04; // TLV count
 
         // TLV 0: RSSI samples
         payload[payload_len++] = FRAME_REPORT_TLV_RSSI;
@@ -699,6 +699,17 @@ int main() {
 
         size_t cir_length = payload_len - cir_start;
         write_u16_le(&payload[cir_len_index], (uint16_t)cir_length);
+
+        // TLV 3: Segment metrics
+        payload[payload_len++] = FRAME_REPORT_TLV_SEGMENT_METRICS;
+        write_u16_le(&payload[payload_len], 17);
+        payload_len += 2;
+        const unsigned char segment_metrics_sample[17] = {
+            0x08, 0xB0, 0xFF, 0x04, 0x3C, 0xE1, 0x02, 0xA1,
+            0xFF, 0x52, 0xB8, 0xE3, 0x02, 0xC4, 0xFF, 0xC0, 0xB8
+        };
+        memcpy(&payload[payload_len], segment_metrics_sample, sizeof(segment_metrics_sample));
+        payload_len += sizeof(segment_metrics_sample);
 
         struct uci_packet_header header;
         set_header_values(&header, NOTIFICATION, COMPLETE, VENDOR_ANDROID,

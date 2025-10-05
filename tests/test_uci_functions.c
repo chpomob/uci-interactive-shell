@@ -448,7 +448,7 @@ int main() {
         }
 
         unsigned char num_tlvs = caps_payload[1];
-        if (num_tlvs < 10) {
+        if (num_tlvs < 30) {
             TEST_FAIL("Expected at least 10 capability TLVs");
             goto test_case_end_caps_info_payload_shape;
         }
@@ -459,6 +459,11 @@ int main() {
         int found_sts = 0;
         int found_max_msg = 0;
         int found_max_data = 0;
+        int found_v2_ext_mac = 0;
+        int found_psdu_support = 0;
+        int found_power_stats = 0;
+        int found_ccc_channels = 0;
+        int found_aoa_interleave = 0;
 
         for (unsigned char tlv_index = 0; tlv_index < num_tlvs; tlv_index++) {
             if (offset + 2 > payload_len) {
@@ -515,6 +520,41 @@ int main() {
                     }
                     found_max_data = 1;
                     break;
+                case SUPPORTED_V2_EXTENDED_MAC_ADDRESS:
+                    if (tlv_len != 1 || value[0] != 0x01) {
+                        TEST_FAIL("Unexpected V2 extended MAC flag");
+                        goto test_case_end_caps_info_payload_shape;
+                    }
+                    found_v2_ext_mac = 1;
+                    break;
+                case SUPPORTED_V2_PSDU_LENGTH_SUPPORT:
+                    if (tlv_len != 2 || value[0] != 0xFF || value[1] != 0x0F) {
+                        TEST_FAIL("Unexpected PSDU length support values");
+                        goto test_case_end_caps_info_payload_shape;
+                    }
+                    found_psdu_support = 1;
+                    break;
+                case SUPPORTED_POWER_STATS:
+                    if (tlv_len != 1 || value[0] != 0x01) {
+                        TEST_FAIL("Unexpected power stats flag");
+                        goto test_case_end_caps_info_payload_shape;
+                    }
+                    found_power_stats = 1;
+                    break;
+                case CCC_SUPPORTED_CHANNELS:
+                    if (tlv_len != 3 || value[0] != 0x20 || value[1] != 0x08 || value[2] != 0x00) {
+                        TEST_FAIL("Unexpected CCC channel mask");
+                        goto test_case_end_caps_info_payload_shape;
+                    }
+                    found_ccc_channels = 1;
+                    break;
+                case SUPPORTED_AOA_RESULT_REQ_ANTENNA_INTERLEAVING:
+                    if (tlv_len != 1 || value[0] != 0x01) {
+                        TEST_FAIL("Unexpected AOA interleaving flag");
+                        goto test_case_end_caps_info_payload_shape;
+                    }
+                    found_aoa_interleave = 1;
+                    break;
                 default:
                     break;
             }
@@ -522,7 +562,9 @@ int main() {
             offset += tlv_len;
         }
 
-        if (!found_phy || !found_mac || !found_sts || !found_max_msg || !found_max_data) {
+        if (!found_phy || !found_mac || !found_sts || !found_max_msg || !found_max_data ||
+            !found_v2_ext_mac || !found_psdu_support || !found_power_stats ||
+            !found_ccc_channels || !found_aoa_interleave) {
             TEST_FAIL("Missing expected capability TLVs");
             goto test_case_end_caps_info_payload_shape;
         }

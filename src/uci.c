@@ -88,6 +88,35 @@ static const uint8_t kCapAoaSupport[] = {0x07};
 static const uint8_t kCapExtendedMacAddress[] = {0x01};
 static const uint8_t kCapMaxMessageSize[] = {0x00, 0x04};
 static const uint8_t kCapMaxDataPayloadSize[] = {0x10, 0x01};
+static const uint8_t kCapV2ExtendedMacAddress[] = {0x01};
+static const uint8_t kCapV2Assigned[] = {0x00};
+static const uint8_t kCapV2SessionKeyLength[] = {0x10, 0x20};
+static const uint8_t kCapV2DtAnchorMaxActiveRr[] = {0x04};
+static const uint8_t kCapV2DtTagMaxActiveRr[] = {0x04};
+static const uint8_t kCapV2DtTagBlockShipping[] = {0x01};
+static const uint8_t kCapV2PsduLengthSupport[] = {0xFF, 0x0F};
+static const uint8_t kCapCccChapsPerSlot[] = {0x04};
+static const uint8_t kCapCccSyncCodes[] = {0xFF, 0x00};
+static const uint8_t kCapCccHoppingModes[] = {0x03};
+static const uint8_t kCapCccChannels[] = {0x20, 0x08, 0x00};
+static const uint8_t kCapCccVersions[] = {0x01};
+static const uint8_t kCapCccUwbConfigs[] = {0x01};
+static const uint8_t kCapCccPulseShapeCombos[] = {0x03};
+static const uint8_t kCapCccRanMultiplier[] = {0x01};
+static const uint8_t kCapCccMaxRangingSessions[] = {0x08};
+static const uint8_t kCapCccMinUwbInitiationTimeMs[] = {0x14, 0x00};
+static const uint8_t kCapCccPrioritizedChannelList[] = {0x09, 0x0D};
+static const uint8_t kCapCccUwbsMaxPpm[] = {0x19};
+static const uint8_t kCapAliroMacModes[] = {0x07};
+static const uint8_t kCapRadarSupport[] = {0x01};
+static const uint8_t kCapPowerStats[] = {0x01};
+static const uint8_t kCapAoaResultReqInterleaving[] = {0x01};
+static const uint8_t kCapMinRangingIntervalMs[] = {0x32, 0x00};
+static const uint8_t kCapRangeDataNtfConfig[] = {0x03};
+static const uint8_t kCapRssiReporting[] = {0x01};
+static const uint8_t kCapDiagnostics[] = {0x01};
+static const uint8_t kCapMinSlotDurationRstu[] = {0x10};
+static const uint8_t kCapMaxRangingSessionNumber[] = {0x08};
 
 static const capability_tlv_entry_t kDefaultCapabilityTlvs[] = {
     CAP_ENTRY(SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE, kCapPhyVersionRange),
@@ -110,6 +139,35 @@ static const capability_tlv_entry_t kDefaultCapabilityTlvs[] = {
     CAP_ENTRY(SUPPORTED_V1_EXTENDED_MAC_ADDRESS_V2_EXTENDED_MAC_ADDRESS, kCapExtendedMacAddress),
     CAP_ENTRY(SUPPORTED_V1_MAX_MESSAGE_SIZE_V2_ASSIGNED, kCapMaxMessageSize),
     CAP_ENTRY(SUPPORTED_V1_MAX_DATA_PACKET_PAYLOAD_SIZE_V2_SESSION_KEY_LENGTH, kCapMaxDataPayloadSize),
+    CAP_ENTRY(SUPPORTED_V2_EXTENDED_MAC_ADDRESS, kCapV2ExtendedMacAddress),
+    CAP_ENTRY(SUPPORTED_V2_ASSIGNED, kCapV2Assigned),
+    CAP_ENTRY(SUPPORTED_V2_SESSION_KEY_LENGTH, kCapV2SessionKeyLength),
+    CAP_ENTRY(SUPPORTED_V2_DT_ANCHOR_MAX_ACTIVE_RR, kCapV2DtAnchorMaxActiveRr),
+    CAP_ENTRY(SUPPORTED_V2_DT_TAG_MAX_ACTIVE_RR, kCapV2DtTagMaxActiveRr),
+    CAP_ENTRY(SUPPORTED_V2_DT_TAG_BLOCK_SHIPPING, kCapV2DtTagBlockShipping),
+    CAP_ENTRY(SUPPORTED_V2_PSDU_LENGTH_SUPPORT, kCapV2PsduLengthSupport),
+    CAP_ENTRY(CCC_SUPPORTED_CHAPS_PER_SLOT, kCapCccChapsPerSlot),
+    CAP_ENTRY(CCC_SUPPORTED_SYNC_CODES, kCapCccSyncCodes),
+    CAP_ENTRY(CCC_SUPPORTED_HOPPING_CONFIG_MODES_AND_SEQUENCES, kCapCccHoppingModes),
+    CAP_ENTRY(CCC_SUPPORTED_CHANNELS, kCapCccChannels),
+    CAP_ENTRY(CCC_SUPPORTED_VERSIONS, kCapCccVersions),
+    CAP_ENTRY(CCC_SUPPORTED_UWB_CONFIGS, kCapCccUwbConfigs),
+    CAP_ENTRY(CCC_SUPPORTED_PULSE_SHAPE_COMBOS, kCapCccPulseShapeCombos),
+    CAP_ENTRY(CCC_SUPPORTED_RAN_MULTIPLIER, kCapCccRanMultiplier),
+    CAP_ENTRY(CCC_SUPPORTED_MAX_RANGING_SESSION_NUMBER, kCapCccMaxRangingSessions),
+    CAP_ENTRY(CCC_SUPPORTED_MIN_UWB_INITIATION_TIME_MS, kCapCccMinUwbInitiationTimeMs),
+    CAP_ENTRY(CCC_PRIORITIZED_CHANNEL_LIST, kCapCccPrioritizedChannelList),
+    CAP_ENTRY(CCC_SUPPORTED_UWBS_MAX_PPM, kCapCccUwbsMaxPpm),
+    CAP_ENTRY(ALIRO_SUPPORTED_MAC_MODES, kCapAliroMacModes),
+    CAP_ENTRY(RADAR_SUPPORT, kCapRadarSupport),
+    CAP_ENTRY(SUPPORTED_POWER_STATS, kCapPowerStats),
+    CAP_ENTRY(SUPPORTED_AOA_RESULT_REQ_ANTENNA_INTERLEAVING, kCapAoaResultReqInterleaving),
+    CAP_ENTRY(SUPPORTED_MIN_RANGING_INTERVAL_MS, kCapMinRangingIntervalMs),
+    CAP_ENTRY(SUPPORTED_RANGE_DATA_NTF_CONFIG, kCapRangeDataNtfConfig),
+    CAP_ENTRY(SUPPORTED_RSSI_REPORTING, kCapRssiReporting),
+    CAP_ENTRY(SUPPORTED_DIAGNOSTICS, kCapDiagnostics),
+    CAP_ENTRY(SUPPORTED_MIN_SLOT_DURATION_RSTU, kCapMinSlotDurationRstu),
+    CAP_ENTRY(SUPPORTED_MAX_RANGING_SESSION_NUMBER, kCapMaxRangingSessionNumber),
 };
 
 static const size_t kDefaultCapabilityTlvsCount = sizeof(kDefaultCapabilityTlvs) / sizeof(kDefaultCapabilityTlvs[0]);
@@ -2132,6 +2190,28 @@ void decode_core_get_caps_info_rsp(unsigned char* payload, int payload_len) {
                 case SUPPORTED_V2_DT_TAG_MAX_ACTIVE_RR: printf(" (DT_TAG_MAX_ACTIVE_RR)\n"); break;
                 case SUPPORTED_V2_DT_TAG_BLOCK_SHIPPING: printf(" (DT_TAG_BLOCK_SHIPPING)\n"); break;
                 case SUPPORTED_V2_PSDU_LENGTH_SUPPORT: printf(" (PSDU_LENGTH_SUPPORT)\n"); break;
+                case CCC_SUPPORTED_CHAPS_PER_SLOT: printf(" (CCC_CHAPS_PER_SLOT)\n"); break;
+                case CCC_SUPPORTED_SYNC_CODES: printf(" (CCC_SYNC_CODES)\n"); break;
+                case CCC_SUPPORTED_HOPPING_CONFIG_MODES_AND_SEQUENCES: printf(" (CCC_HOPPING_CONFIGS)\n"); break;
+                case CCC_SUPPORTED_CHANNELS: printf(" (CCC_CHANNELS)\n"); break;
+                case CCC_SUPPORTED_VERSIONS: printf(" (CCC_VERSIONS)\n"); break;
+                case CCC_SUPPORTED_UWB_CONFIGS: printf(" (CCC_UWB_CONFIGS)\n"); break;
+                case CCC_SUPPORTED_PULSE_SHAPE_COMBOS: printf(" (CCC_PULSE_SHAPES)\n"); break;
+                case CCC_SUPPORTED_RAN_MULTIPLIER: printf(" (CCC_RAN_MULTIPLIER)\n"); break;
+                case CCC_SUPPORTED_MAX_RANGING_SESSION_NUMBER: printf(" (CCC_MAX_RANGING_SESSIONS)\n"); break;
+                case CCC_SUPPORTED_MIN_UWB_INITIATION_TIME_MS: printf(" (CCC_MIN_INIT_TIME_MS)\n"); break;
+                case CCC_PRIORITIZED_CHANNEL_LIST: printf(" (CCC_PRIORITY_CHANNELS)\n"); break;
+                case CCC_SUPPORTED_UWBS_MAX_PPM: printf(" (CCC_MAX_PPM)\n"); break;
+                case ALIRO_SUPPORTED_MAC_MODES: printf(" (ALIRO_MAC_MODES)\n"); break;
+                case RADAR_SUPPORT: printf(" (RADAR_SUPPORT)\n"); break;
+                case SUPPORTED_POWER_STATS: printf(" (POWER_STATS)\n"); break;
+                case SUPPORTED_AOA_RESULT_REQ_ANTENNA_INTERLEAVING: printf(" (AOA_REQ_ANTENNA_INTERLEAVE)\n"); break;
+                case SUPPORTED_MIN_RANGING_INTERVAL_MS: printf(" (MIN_RANGING_INTERVAL_MS)\n"); break;
+                case SUPPORTED_RANGE_DATA_NTF_CONFIG: printf(" (RANGE_DATA_NTF_CONFIG)\n"); break;
+                case SUPPORTED_RSSI_REPORTING: printf(" (RSSI_REPORTING)\n"); break;
+                case SUPPORTED_DIAGNOSTICS: printf(" (DIAGNOSTICS_SUPPORT)\n"); break;
+                case SUPPORTED_MIN_SLOT_DURATION_RSTU: printf(" (MIN_SLOT_DURATION_RSTU)\n"); break;
+                case SUPPORTED_MAX_RANGING_SESSION_NUMBER: printf(" (MAX_RANGING_SESSIONS)\n"); break;
                 default: printf(" (UNKNOWN)\n"); break;
             }
             

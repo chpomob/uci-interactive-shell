@@ -72,10 +72,7 @@ static void enqueue_notification(unsigned char gid, unsigned char oid, const uns
 
 static void enqueue_session_status_notification(const struct uci_session* session, unsigned char new_state, unsigned char reason_code) {
     unsigned char payload[6];
-    payload[0] = (unsigned char)((session->session_handle >> 24) & 0xFF);
-    payload[1] = (unsigned char)((session->session_handle >> 16) & 0xFF);
-    payload[2] = (unsigned char)((session->session_handle >> 8) & 0xFF);
-    payload[3] = (unsigned char)(session->session_handle & 0xFF);
+    write_u32_le(payload, session->session_handle);
     payload[4] = new_state;
     payload[5] = reason_code;
     enqueue_notification(SESSION_CONFIG, SESSION_STATUS_NTF, payload, sizeof(payload));
@@ -235,14 +232,10 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
         if (mt == RESPONSE && gid == CORE && opcode == CORE_DEVICE_INFO) {
             if (payload_len >= 9) {
                 unsigned char status = packet[sizeof(struct uci_packet_header) + 0];
-                unsigned short uci_version = (packet[sizeof(struct uci_packet_header) + 1] << 8) | 
-                                            packet[sizeof(struct uci_packet_header) + 2];
-                unsigned short mac_version = (packet[sizeof(struct uci_packet_header) + 3] << 8) | 
-                                           packet[sizeof(struct uci_packet_header) + 4];
-                unsigned short phy_version = (packet[sizeof(struct uci_packet_header) + 5] << 8) | 
-                                           packet[sizeof(struct uci_packet_header) + 6];
-                unsigned short uci_test_version = (packet[sizeof(struct uci_packet_header) + 7] << 8) | 
-                                                packet[sizeof(struct uci_packet_header) + 8];
+                unsigned short uci_version = read_u16_le(&packet[sizeof(struct uci_packet_header) + 1]);
+                unsigned short mac_version = read_u16_le(&packet[sizeof(struct uci_packet_header) + 3]);
+                unsigned short phy_version = read_u16_le(&packet[sizeof(struct uci_packet_header) + 5]);
+                unsigned short uci_test_version = read_u16_le(&packet[sizeof(struct uci_packet_header) + 7]);
                 
                 printf("    Status: 0x%02X\n", status);
                 printf("    UCI Version: 0x%04X\n", uci_version);
@@ -289,10 +282,7 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
             }
         } else if (mt == NOTIFICATION && gid == SESSION_CONFIG && opcode == SESSION_STATUS_NTF) {
             if (payload_len >= 6) {
-                unsigned int token = (packet[sizeof(struct uci_packet_header)] << 24) |
-                                   (packet[sizeof(struct uci_packet_header) + 1] << 16) |
-                                   (packet[sizeof(struct uci_packet_header) + 2] << 8) |
-                                   packet[sizeof(struct uci_packet_header) + 3];
+                unsigned int token = read_u32_le(&packet[sizeof(struct uci_packet_header)]);
                 unsigned char state = packet[sizeof(struct uci_packet_header) + 4];
                 unsigned char reason = packet[sizeof(struct uci_packet_header) + 5];
                 
@@ -477,7 +467,7 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
                 printf("%02X ", payload_ptr[i]);
             }
             if (payload_len > 32) {
-                printf("...(and %u more bytes)", (unsigned int)(payload_len - 32));
+                printf("... (and %u more bytes)", (unsigned int)(payload_len - 32));
             }
             printf("\n");
         }
@@ -593,13 +583,12 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     
     if (gid == CORE && oid == CORE_DEVICE_INFO) {
         // Simulate a CORE_DEVICE_INFO_RSP according to Android UWB specification
-        unsigned char device_info_rsp_payload[] = {
-            UCI_STATUS_OK,      // status
-            0x01, 0x00,         // uci_version (1.0)
-            0x02, 0x00,         // mac_version (2.0) 
-            0x02, 0x00,         // phy_version (2.0)
-            0x01, 0x00          // uci_test_version (1.0)
-        };
+        unsigned char device_info_rsp_payload[9];
+        device_info_rsp_payload[0] = UCI_STATUS_OK;
+        write_u16_le(&device_info_rsp_payload[1], 0x0100);
+        write_u16_le(&device_info_rsp_payload[3], 0x0200);
+        write_u16_le(&device_info_rsp_payload[5], 0x0200);
+        write_u16_le(&device_info_rsp_payload[7], 0x0100);
         memcpy(response_packet + sizeof(struct uci_packet_header), device_info_rsp_payload, sizeof(device_info_rsp_payload));
         response_header->payload_len = sizeof(device_info_rsp_payload);
     } else if (gid == CORE && oid == CORE_GET_CAPS_INFO) {
@@ -611,9 +600,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         unsigned char timestamp_rsp[9];
         timestamp_rsp[0] = UCI_STATUS_OK;
         unsigned long long timestamp = g_fake_timestamp++;
-        for (int i = 0; i < 8; i++) {
-            timestamp_rsp[1 + i] = (unsigned char)((timestamp >> (56 - (i * 8))) & 0xFF);
-        }
+        write_u64_le(&timestamp_rsp[1], timestamp);
         memcpy(response_packet + sizeof(struct uci_packet_header), timestamp_rsp, sizeof(timestamp_rsp));
         response_header->payload_len = sizeof(timestamp_rsp);
     } else if (gid == CORE && oid == CORE_GET_CONFIG) {
@@ -776,7 +763,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned int session_id = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned int session_id = read_u32_le(payload);
         SessionType session_type = (SessionType)payload[4];
 
         int session_idx = find_free_session_slot();
@@ -798,13 +785,9 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             uci_sessions[session_idx].session_handle = session_handle;
             uci_sessions[session_idx].ranging_count = 0;
 
-            unsigned char session_init_rsp_payload[] = {
-                UCI_STATUS_OK,
-                (unsigned char)((session_handle >> 24) & 0xFF),
-                (unsigned char)((session_handle >> 16) & 0xFF),
-                (unsigned char)((session_handle >> 8) & 0xFF),
-                (unsigned char)(session_handle & 0xFF)
-            };
+            unsigned char session_init_rsp_payload[5];
+            session_init_rsp_payload[0] = UCI_STATUS_OK;
+            write_u32_le(&session_init_rsp_payload[1], session_handle);
             memcpy(response_packet + sizeof(struct uci_packet_header), session_init_rsp_payload, sizeof(session_init_rsp_payload));
             response_header->payload_len = sizeof(session_init_rsp_payload);
 
@@ -819,7 +802,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned int identifier = read_u32_le(payload);
 
         int session_idx = find_session_by_token_or_id(identifier);
         if (session_idx >= 0) {
@@ -851,7 +834,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned int identifier = read_u32_le(payload);
 
         int session_idx = find_session_by_token_or_id(identifier);
         if (session_idx >= 0) {
@@ -876,7 +859,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned int identifier = read_u32_le(payload);
 
         int session_idx = find_session_by_token_or_id(identifier);
         if (session_idx >= 0) {
@@ -901,7 +884,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned int identifier = read_u32_le(payload);
 
         int session_idx = find_session_by_token_or_id(identifier);
         unsigned char session_state;
@@ -929,7 +912,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned int identifier = read_u32_le(payload);
         int session_idx = find_session_by_token_or_id(identifier);
         unsigned short ranging_count = 0;
         unsigned char status = UCI_STATUS_OK;
@@ -939,11 +922,9 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             status = UCI_STATUS_INVALID_PARAM;
         }
 
-        unsigned char ranging_rsp_payload[] = {
-            status,
-            (unsigned char)((ranging_count >> 8) & 0xFF),
-            (unsigned char)(ranging_count & 0xFF)
-        };
+        unsigned char ranging_rsp_payload[3];
+        ranging_rsp_payload[0] = status;
+        write_u16_le(&ranging_rsp_payload[1], ranging_count);
         memcpy(response_packet + sizeof(struct uci_packet_header), ranging_rsp_payload, sizeof(ranging_rsp_payload));
         response_header->payload_len = sizeof(ranging_rsp_payload);
     } else if (gid == SESSION_CONFIG && oid == SESSION_QUERY_DATA_SIZE_IN_RANGING) {
@@ -955,16 +936,14 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             return;
         }
 
-        unsigned int identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned int identifier = read_u32_le(payload);
         int session_idx = find_session_by_token_or_id(identifier);
         unsigned short max_data_size = 0x0200;
         unsigned char status = (session_idx >= 0) ? UCI_STATUS_OK : UCI_STATUS_INVALID_PARAM;
 
-        unsigned char query_rsp_payload[] = {
-            status,
-            (unsigned char)((max_data_size >> 8) & 0xFF),
-            (unsigned char)(max_data_size & 0xFF)
-        };
+        unsigned char query_rsp_payload[3];
+        query_rsp_payload[0] = status;
+        write_u16_le(&query_rsp_payload[1], max_data_size);
         memcpy(response_packet + sizeof(struct uci_packet_header), query_rsp_payload, sizeof(query_rsp_payload));
         response_header->payload_len = sizeof(query_rsp_payload);
         if (status != UCI_STATUS_OK) {
@@ -987,7 +966,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         int session_idx = -1;
 
         if (payload && payload_len >= 5) {
-            identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+            identifier = read_u32_le(payload);
             declared_tlvs = payload[4];
             session_idx = find_session_by_token_or_id(identifier);
 
@@ -1049,7 +1028,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         unsigned char cfg_count = 0;
 
         if (payload && payload_len >= 5) {
-            identifier = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+            identifier = read_u32_le(payload);
             declared_cfgs = payload[4];
             session_idx = find_session_by_token_or_id(identifier);
 
@@ -1165,10 +1144,10 @@ void handle_core_device_info_rsp(unsigned char* payload, int payload_len) {
     }
 
     unsigned char status = payload[0];
-    unsigned short uci_version = (payload[1] << 8) | payload[2];
-    unsigned short mac_version = (payload[3] << 8) | payload[4];
-    unsigned short phy_version = (payload[5] << 8) | payload[6];
-    unsigned short uci_test_version = (payload[7] << 8) | payload[8];
+    unsigned short uci_version = read_u16_le(&payload[1]);
+    unsigned short mac_version = read_u16_le(&payload[3]);
+    unsigned short phy_version = read_u16_le(&payload[5]);
+    unsigned short uci_test_version = read_u16_le(&payload[7]);
     // Remaining bytes are vendor_spec_info (may be 0 or more bytes)
 
     printf("  Status: 0x%02X\n", status);
@@ -1413,25 +1392,25 @@ void increment_session_ranging_count(int session_idx) {
 // Helper function to store configuration value in session
 void store_session_config(int session_idx, unsigned char cfg_id, unsigned char* value, unsigned char len) {
     if (session_idx < 0 || session_idx >= MAX_SESSIONS) {
-        printf("Error: Invalid session index %d in store_session_config\\n", session_idx);
+        printf("Error: Invalid session index %d in store_session_config\n", session_idx);
         return;
     }
     if (!value) {
-        printf("Error: Null value pointer in store_session_config\\n");
+        printf("Error: Null value pointer in store_session_config\n");
         return;
     }
     if (len == 0) {
-        printf("Error: Zero length configuration value in store_session_config\\n");
+        printf("Error: Zero length configuration value in store_session_config\n");
         return;
     }
     if (cfg_id >= sizeof(uci_sessions[session_idx].config_values)) {
-        printf("Error: Invalid configuration ID 0x%02X in store_session_config\\n", cfg_id);
+        printf("Error: Invalid configuration ID 0x%02X in store_session_config\n", cfg_id);
         return;
     }
 
     // Only store first byte as per current design (single-byte placeholder)
     if (len > 1) {
-        printf("Warning: Configuration value length %d exceeds 1 byte, storing only first byte\\n", len);
+        printf("Warning: Configuration value length %d exceeds 1 byte, storing only first byte\n", len);
     }
 
     if (uci_sessions[session_idx].num_configs < MAX_SESSION_CONFIGS &&
@@ -1446,19 +1425,19 @@ void store_session_config(int session_idx, unsigned char cfg_id, unsigned char* 
 // Helper function to get configuration value from session
 int get_session_config(int session_idx, unsigned char cfg_id, unsigned char* value, unsigned char* len) {
     if (session_idx < 0 || session_idx >= MAX_SESSIONS) {
-        printf("Error: Invalid session index %d in get_session_config\\n", session_idx);
+        printf("Error: Invalid session index %d in get_session_config\n", session_idx);
         return 0;
     }
     if (!value) {
-        printf("Error: Null value pointer in get_session_config\\n");
+        printf("Error: Null value pointer in get_session_config\n");
         return 0;
     }
     if (!len) {
-        printf("Error: Null length pointer in get_session_config\\n");
+        printf("Error: Null length pointer in get_session_config\n");
         return 0;
     }
     if (cfg_id >= sizeof(uci_sessions[session_idx].config_values)) {
-        printf("Error: Invalid configuration ID 0x%02X in get_session_config\\n", cfg_id);
+        printf("Error: Invalid configuration ID 0x%02X in get_session_config\n", cfg_id);
         return 0;
     }
 
@@ -1524,7 +1503,7 @@ void handle_session_config_ntf(unsigned char opcode, unsigned char* payload, int
             return;
         }
         
-        unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned int session_token = read_u32_le(payload);
         unsigned char session_state = payload[4];
         unsigned char reason_code = payload[5];
         
@@ -1562,7 +1541,7 @@ void handle_session_control_ntf(unsigned char opcode, unsigned char* payload, in
             return;
         }
         
-        unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+        unsigned int session_token = read_u32_le(payload);
         unsigned char credit_availability = payload[4];
         
         printf("  Session Token: 0x%08X\n", session_token);
@@ -1573,8 +1552,8 @@ void handle_session_control_ntf(unsigned char opcode, unsigned char* payload, in
             return;
         }
         
-        unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
-        unsigned short uci_sequence_number = (payload[4] << 8) | payload[5];
+        unsigned int session_token = read_u32_le(payload);
+        unsigned short uci_sequence_number = read_u16_le(&payload[4]);
         unsigned char status = payload[6];
         unsigned char tx_count = payload[7];
         
@@ -1588,7 +1567,7 @@ void handle_session_control_ntf(unsigned char opcode, unsigned char* payload, in
             case UCI_DATA_TRANSFER_STATUS_ERROR_NO_CREDIT_AVAILABLE: printf(" (ERROR_NO_CREDIT_AVAILABLE)"); break;
             case UCI_DATA_TRANSFER_STATUS_ERROR_REJECTED: printf(" (ERROR_REJECTED)"); break;
             case UCI_DATA_TRANSFER_STATUS_SESSION_TYPE_NOT_SUPPORTED: printf(" (SESSION_TYPE_NOT_SUPPORTED)"); break;
-            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER_IS_ONGOING: printf(" (ERROR_DATA_TRANSFER_ONGOING)"); break;
+            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER_IS_ONGOING: printf(" (ERROR_DATA_TRANSFER_IS_ONGOING)"); break;
             case UCI_DATA_TRANSFER_STATUS_INVALID_FORMAT: printf(" (INVALID_FORMAT)"); break;
             default: printf(" (UNKNOWN)"); break;
         }
@@ -1610,13 +1589,13 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
     }
     
     // Parse header fields
-    unsigned int sequence_number = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
-    unsigned int session_token = (payload[4] << 24) | (payload[5] << 16) | (payload[6] << 8) | payload[7];
+    unsigned int sequence_number = read_u32_le(&payload[0]);
+    unsigned int session_token = read_u32_le(&payload[4]);
     unsigned char rcr_indicator = payload[8];
-    unsigned int current_ranging_interval = (payload[9] << 24) | (payload[10] << 16) | (payload[11] << 8) | payload[12];
+    unsigned int current_ranging_interval = read_u32_le(&payload[9]);
     unsigned char ranging_measurement_type = payload[13];
     unsigned char mac_address_indicator = payload[15]; // Skip reserved byte at position 14
-    unsigned int hus_primary_session_id = (payload[16] << 24) | (payload[17] << 16) | (payload[18] << 8) | payload[19];
+    unsigned int hus_primary_session_id = read_u32_le(&payload[16]);
     
     printf("  Sequence Number: %u\n", sequence_number);
     printf("  Session Token: 0x%08X\n", session_token);
@@ -1663,17 +1642,17 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
                     break;
                 }
                 
-                unsigned short mac_address = (payload[offset] << 8) | payload[offset + 1];
+                unsigned short mac_address = read_u16_le(&payload[offset]);
                 unsigned char status = payload[offset + 2];
                 unsigned char nlos = payload[offset + 3];
-                unsigned short distance = (payload[offset + 4] << 8) | payload[offset + 5];
-                unsigned short aoa_azimuth = (payload[offset + 6] << 8) | payload[offset + 7];
+                unsigned short distance = read_u16_le(&payload[offset + 4]);
+                unsigned short aoa_azimuth = read_u16_le(&payload[offset + 6]);
                 unsigned char aoa_azimuth_fom = payload[offset + 8];
-                unsigned short aoa_elevation = (payload[offset + 9] << 8) | payload[offset + 10];
+                unsigned short aoa_elevation = read_u16_le(&payload[offset + 9]);
                 unsigned char aoa_elevation_fom = payload[offset + 11];
-                unsigned short aoa_destination_azimuth = (payload[offset + 12] << 8) | payload[offset + 13];
+                unsigned short aoa_destination_azimuth = read_u16_le(&payload[offset + 12]);
                 unsigned char aoa_destination_azimuth_fom = payload[offset + 14];
-                unsigned short aoa_destination_elevation = (payload[offset + 15] << 8) | payload[offset + 16];
+                unsigned short aoa_destination_elevation = read_u16_le(&payload[offset + 15]);
                 unsigned char aoa_destination_elevation_fom = payload[offset + 17];
                 unsigned char slot_index = payload[offset + 18];
                 unsigned char rssi = payload[offset + 19];
@@ -1698,24 +1677,17 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
                     break;
                 }
                 
-                unsigned long long mac_address = ((unsigned long long)payload[offset] << 56) |
-                                                  ((unsigned long long)payload[offset + 1] << 48) |
-                                                  ((unsigned long long)payload[offset + 2] << 40) |
-                                                  ((unsigned long long)payload[offset + 3] << 32) |
-                                                  ((unsigned long long)payload[offset + 4] << 24) |
-                                                  ((unsigned long long)payload[offset + 5] << 16) |
-                                                  ((unsigned long long)payload[offset + 6] << 8) |
-                                                  (unsigned long long)payload[offset + 7];
+                unsigned long long mac_address = read_u64_le(&payload[offset]);
                 unsigned char status = payload[offset + 8];
                 unsigned char nlos = payload[offset + 9];
-                unsigned short distance = (payload[offset + 10] << 8) | payload[offset + 11];
-                unsigned short aoa_azimuth = (payload[offset + 12] << 8) | payload[offset + 13];
+                unsigned short distance = read_u16_le(&payload[offset + 10]);
+                unsigned short aoa_azimuth = read_u16_le(&payload[offset + 12]);
                 unsigned char aoa_azimuth_fom = payload[offset + 14];
-                unsigned short aoa_elevation = (payload[offset + 15] << 8) | payload[offset + 16];
+                unsigned short aoa_elevation = read_u16_le(&payload[offset + 15]);
                 unsigned char aoa_elevation_fom = payload[offset + 17];
-                unsigned short aoa_destination_azimuth = (payload[offset + 18] << 8) | payload[offset + 19];
+                unsigned short aoa_destination_azimuth = read_u16_le(&payload[offset + 18]);
                 unsigned char aoa_destination_azimuth_fom = payload[offset + 20];
-                unsigned short aoa_destination_elevation = (payload[offset + 21] << 8) | payload[offset + 22];
+                unsigned short aoa_destination_elevation = read_u16_le(&payload[offset + 21]);
                 unsigned char aoa_destination_elevation_fom = payload[offset + 23];
                 unsigned char slot_index = payload[offset + 24];
                 unsigned char rssi = payload[offset + 25];
@@ -1741,23 +1713,18 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
         offset += 1;
         printf("    Number of OWR-AoA Measurements: %d\n", num_measurements);
         
-        for (int i = 0; i < num_measurements && offset < payload_len; i++) {
-            printf("    OWR-AoA Measurement %d:\n", i+1);
+        for (int i = 0; i < num_measurements && offset + 13 <= payload_len; i++) {
+            printf("    OWR-AoA Measurement %d:\n", i + 1);
             
-            if (mac_address_indicator == 0) { // SHORT_ADDRESS
-                if (offset + 13 > payload_len) {
-                    printf("      Error: Insufficient data for SHORT_ADDRESS OWR-AoA measurement\n");
-                    break;
-                }
-                
-                unsigned short mac_address = (payload[offset] << 8) | payload[offset + 1];
+            if (mac_address_indicator == 0x00) { // SHORT_ADDRESS
+                unsigned short mac_address = read_u16_le(&payload[offset]);
                 unsigned char status = payload[offset + 2];
                 unsigned char nlos = payload[offset + 3];
                 unsigned char frame_sequence_number = payload[offset + 4];
-                unsigned short block_index = (payload[offset + 5] << 8) | payload[offset + 6];
-                unsigned short aoa_azimuth = (payload[offset + 7] << 8) | payload[offset + 8];
+                unsigned short block_index = read_u16_le(&payload[offset + 5]);
+                unsigned short aoa_azimuth = read_u16_le(&payload[offset + 7]);
                 unsigned char aoa_azimuth_fom = payload[offset + 9];
-                unsigned short aoa_elevation = (payload[offset + 10] << 8) | payload[offset + 11];
+                unsigned short aoa_elevation = read_u16_le(&payload[offset + 10]);
                 unsigned char aoa_elevation_fom = payload[offset + 12];
                 
                 printf("      MAC Address: 0x%04X\n", mac_address);
@@ -1770,41 +1737,34 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
                 printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
                 printf("      AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
                 
-                offset += 13; // Move to next measurement
+                offset += 13;
             } else { // EXTENDED_ADDRESS
-                if (offset + 19 > payload_len) {
-                    printf("      Error: Insufficient data for EXTENDED_ADDRESS OWR-AoA measurement\n");
+                if (offset + 19 <= payload_len) {
+                    unsigned long long mac_address = read_u64_le(&payload[offset]);
+                    unsigned char status = payload[offset + 8];
+                    unsigned char nlos = payload[offset + 9];
+                    unsigned char frame_sequence_number = payload[offset + 10];
+                    unsigned short block_index = read_u16_le(&payload[offset + 11]);
+                    unsigned short aoa_azimuth = read_u16_le(&payload[offset + 13]);
+                    unsigned char aoa_azimuth_fom = payload[offset + 15];
+                    unsigned short aoa_elevation = read_u16_le(&payload[offset + 16]);
+                    unsigned char aoa_elevation_fom = payload[offset + 18];
+                    
+                    printf("      MAC Address: 0x%016llX\n", mac_address);
+                    printf("      Status: 0x%02X", status);
+                    if (status == 0x00) printf(" (OK)");
+                    printf("\n");
+                    printf("      NLOS: %s\n", nlos ? "YES" : "NO");
+                    printf("      Frame Sequence Number: %u\n", frame_sequence_number);
+                    printf("      Block Index: %u\n", block_index);
+                    printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
+                    printf("      AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
+                    
+                    offset += 19;
+                } else {
+                    printf("        ERROR: Insufficient data for EXTENDED_ADDRESS OWR-AoA measurement\n");
                     break;
                 }
-                
-                unsigned long long mac_address = ((unsigned long long)payload[offset] << 56) |
-                                                  ((unsigned long long)payload[offset + 1] << 48) |
-                                                  ((unsigned long long)payload[offset + 2] << 40) |
-                                                  ((unsigned long long)payload[offset + 3] << 32) |
-                                                  ((unsigned long long)payload[offset + 4] << 24) |
-                                                  ((unsigned long long)payload[offset + 5] << 16) |
-                                                  ((unsigned long long)payload[offset + 6] << 8) |
-                                                  (unsigned long long)payload[offset + 7];
-                unsigned char status = payload[offset + 8];
-                unsigned char nlos = payload[offset + 9];
-                unsigned char frame_sequence_number = payload[offset + 10];
-                unsigned short block_index = (payload[offset + 11] << 8) | payload[offset + 12];
-                unsigned short aoa_azimuth = (payload[offset + 13] << 8) | payload[offset + 14];
-                unsigned char aoa_azimuth_fom = payload[offset + 15];
-                unsigned short aoa_elevation = (payload[offset + 16] << 8) | payload[offset + 17];
-                unsigned char aoa_elevation_fom = payload[offset + 18];
-                
-                printf("      MAC Address: 0x%016llX\n", mac_address);
-                printf("      Status: 0x%02X", status);
-                if (status == 0x00) printf(" (OK)");
-                printf("\n");
-                printf("      NLOS: %s\n", nlos ? "YES" : "NO");
-                printf("      Frame Sequence Number: %u\n", frame_sequence_number);
-                printf("      Block Index: %u\n", block_index);
-                printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
-                printf("      AoA Elevation: %u degrees (FoM: %u)\n", aoa_elevation, aoa_elevation_fom);
-                
-                offset += 19; // Move to next measurement
             }
         }
     } else {
@@ -1888,10 +1848,10 @@ void decode_core_device_info_rsp(unsigned char* payload, int payload_len) {
     }
     
     unsigned char status = payload[0];
-    unsigned short uci_version = (payload[1] << 8) | payload[2];
-    unsigned short mac_version = (payload[3] << 8) | payload[4];
-    unsigned short phy_version = (payload[5] << 8) | payload[6];
-    unsigned short uci_test_version = (payload[7] << 8) | payload[8];
+    unsigned short uci_version = read_u16_le(&payload[1]);
+    unsigned short mac_version = read_u16_le(&payload[3]);
+    unsigned short phy_version = read_u16_le(&payload[5]);
+    unsigned short uci_test_version = read_u16_le(&payload[7]);
     
     printf("      Status: 0x%02X", status);
     switch(status) {
@@ -2165,7 +2125,7 @@ void decode_session_init_rsp(unsigned char* payload, int payload_len) {
     }
     
     unsigned char status = payload[0];
-    unsigned int session_handle = (payload[1] << 24) | (payload[2] << 16) | (payload[3] << 8) | payload[4];
+    unsigned int session_handle = read_u32_le(&payload[1]);
     
     printf("      Status: 0x%02X", status);
     switch(status) {
@@ -2507,7 +2467,7 @@ void decode_session_get_ranging_count_rsp(unsigned char* payload, int payload_le
     }
     
     unsigned char status = payload[0];
-    unsigned short count = (payload[1] << 8) | payload[2];
+    unsigned short count = read_u16_le(&payload[1]);
     
     printf("      Status: 0x%02X", status);
     switch(status) {
@@ -2578,7 +2538,7 @@ void decode_session_status_ntf(unsigned char* payload, int payload_len) {
         return;
     }
     
-    unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
+    unsigned int session_token = read_u32_le(payload);
     unsigned char session_state = payload[4];
     unsigned char reason_code = payload[5];
     
@@ -2614,14 +2574,14 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
     }
     
     // Parse header fields
-    unsigned int sequence_number = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
-    unsigned int session_token = (payload[4] << 24) | (payload[5] << 16) | (payload[6] << 8) | payload[7];
+    unsigned int sequence_number = read_u32_le(&payload[0]);
+    unsigned int session_token = read_u32_le(&payload[4]);
     unsigned char rcr_indicator = payload[8];
-    unsigned int current_ranging_interval = (payload[9] << 24) | (payload[10] << 16) | (payload[11] << 8) | payload[12];
+    unsigned int current_ranging_interval = read_u32_le(&payload[9]);
     unsigned char ranging_measurement_type = payload[13];
     unsigned char reserved = payload[14];
     unsigned char mac_address_indicator = payload[15];
-    unsigned int hus_primary_session_id = (payload[16] << 24) | (payload[17] << 16) | (payload[18] << 8) | payload[19];
+    unsigned int hus_primary_session_id = read_u32_le(&payload[16]);
     
     printf("      Sequence Number: %u\n", sequence_number);
     printf("      Session Token: 0x%08X\n", session_token);
@@ -2658,17 +2618,17 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
                 printf("      Measurement %d:\n", i + 1);
                 
                 if (mac_address_indicator == 0x00) { // SHORT_ADDRESS
-                    unsigned short mac_address = (payload[offset] << 8) | payload[offset + 1];
+                    unsigned short mac_address = read_u16_le(&payload[offset]);
                     unsigned char status = payload[offset + 2];
                     unsigned char nlos = payload[offset + 3];
-                    unsigned short distance = (payload[offset + 4] << 8) | payload[offset + 5];
-                    unsigned short aoa_azimuth = (payload[offset + 6] << 8) | payload[offset + 7];
+                    unsigned short distance = read_u16_le(&payload[offset + 4]);
+                    unsigned short aoa_azimuth = read_u16_le(&payload[offset + 6]);
                     unsigned char aoa_azimuth_fom = payload[offset + 8];
-                    unsigned short aoa_elevation = (payload[offset + 9] << 8) | payload[offset + 10];
+                    unsigned short aoa_elevation = read_u16_le(&payload[offset + 9]);
                     unsigned char aoa_elevation_fom = payload[offset + 11];
-                    unsigned short aoa_destination_azimuth = (payload[offset + 12] << 8) | payload[offset + 13];
+                    unsigned short aoa_destination_azimuth = read_u16_le(&payload[offset + 12]);
                     unsigned char aoa_destination_azimuth_fom = payload[offset + 14];
-                    unsigned short aoa_destination_elevation = (payload[offset + 15] << 8) | payload[offset + 16];
+                    unsigned short aoa_destination_elevation = read_u16_le(&payload[offset + 15]);
                     unsigned char aoa_destination_elevation_fom = payload[offset + 17];
                     unsigned char slot_index = payload[offset + 18];
                     unsigned char rssi = payload[offset + 19];
@@ -2688,26 +2648,18 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
                     
                     offset += 20;
                 } else { // EXTENDED_ADDRESS
-                    // Extended address format
                     if (offset + 26 <= payload_len) {
-                        unsigned long long mac_address = ((unsigned long long)payload[offset] << 56) |
-                                                          ((unsigned long long)payload[offset + 1] << 48) |
-                                                          ((unsigned long long)payload[offset + 2] << 40) |
-                                                          ((unsigned long long)payload[offset + 3] << 32) |
-                                                          ((unsigned long long)payload[offset + 4] << 24) |
-                                                          ((unsigned long long)payload[offset + 5] << 16) |
-                                                          ((unsigned long long)payload[offset + 6] << 8) |
-                                                          (unsigned long long)payload[offset + 7];
+                        unsigned long long mac_address = read_u64_le(&payload[offset]);
                         unsigned char status = payload[offset + 8];
                         unsigned char nlos = payload[offset + 9];
-                        unsigned short distance = (payload[offset + 10] << 8) | payload[offset + 11];
-                        unsigned short aoa_azimuth = (payload[offset + 12] << 8) | payload[offset + 13];
+                        unsigned short distance = read_u16_le(&payload[offset + 10]);
+                        unsigned short aoa_azimuth = read_u16_le(&payload[offset + 12]);
                         unsigned char aoa_azimuth_fom = payload[offset + 14];
-                        unsigned short aoa_elevation = (payload[offset + 15] << 8) | payload[offset + 16];
+                        unsigned short aoa_elevation = read_u16_le(&payload[offset + 15]);
                         unsigned char aoa_elevation_fom = payload[offset + 17];
-                        unsigned short aoa_destination_azimuth = (payload[offset + 18] << 8) | payload[offset + 19];
+                        unsigned short aoa_destination_azimuth = read_u16_le(&payload[offset + 18]);
                         unsigned char aoa_destination_azimuth_fom = payload[offset + 20];
-                        unsigned short aoa_destination_elevation = (payload[offset + 21] << 8) | payload[offset + 22];
+                        unsigned short aoa_destination_elevation = read_u16_le(&payload[offset + 21]);
                         unsigned char aoa_destination_elevation_fom = payload[offset + 23];
                         unsigned char slot_index = payload[offset + 24];
                         unsigned char rssi = payload[offset + 25];
@@ -2725,7 +2677,7 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
                         printf("        Slot Index: %u\n", slot_index);
                         printf("        RSSI: %d dBm\n", (signed char)rssi);
                         
-                        offset += 26;
+                        offset += 26; // Move to next measurement
                     } else {
                         printf("        ERROR: Insufficient data for EXTENDED_ADDRESS measurement\n");
                         break;
@@ -2741,14 +2693,14 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
                 printf("      OWR-AoA Measurement %d:\n", i + 1);
                 
                 if (mac_address_indicator == 0x00) { // SHORT_ADDRESS
-                    unsigned short mac_address = (payload[offset] << 8) | payload[offset + 1];
+                    unsigned short mac_address = read_u16_le(&payload[offset]);
                     unsigned char status = payload[offset + 2];
                     unsigned char nlos = payload[offset + 3];
                     unsigned char frame_sequence_number = payload[offset + 4];
-                    unsigned short block_index = (payload[offset + 5] << 8) | payload[offset + 6];
-                    unsigned short aoa_azimuth = (payload[offset + 7] << 8) | payload[offset + 8];
+                    unsigned short block_index = read_u16_le(&payload[offset + 5]);
+                    unsigned short aoa_azimuth = read_u16_le(&payload[offset + 7]);
                     unsigned char aoa_azimuth_fom = payload[offset + 9];
-                    unsigned short aoa_elevation = (payload[offset + 10] << 8) | payload[offset + 11];
+                    unsigned short aoa_elevation = read_u16_le(&payload[offset + 10]);
                     unsigned char aoa_elevation_fom = payload[offset + 12];
                     
                     printf("        MAC Address: 0x%04X\n", mac_address);
@@ -2764,21 +2716,14 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
                     offset += 13;
                 } else { // EXTENDED_ADDRESS
                     if (offset + 19 <= payload_len) {
-                        unsigned long long mac_address = ((unsigned long long)payload[offset] << 56) |
-                                                          ((unsigned long long)payload[offset + 1] << 48) |
-                                                          ((unsigned long long)payload[offset + 2] << 40) |
-                                                          ((unsigned long long)payload[offset + 3] << 32) |
-                                                          ((unsigned long long)payload[offset + 4] << 24) |
-                                                          ((unsigned long long)payload[offset + 5] << 16) |
-                                                          ((unsigned long long)payload[offset + 6] << 8) |
-                                                          (unsigned long long)payload[offset + 7];
+                        unsigned long long mac_address = read_u64_le(&payload[offset]);
                         unsigned char status = payload[offset + 8];
                         unsigned char nlos = payload[offset + 9];
                         unsigned char frame_sequence_number = payload[offset + 10];
-                        unsigned short block_index = (payload[offset + 11] << 8) | payload[offset + 12];
-                        unsigned short aoa_azimuth = (payload[offset + 13] << 8) | payload[offset + 14];
+                        unsigned short block_index = read_u16_le(&payload[offset + 11]);
+                        unsigned short aoa_azimuth = read_u16_le(&payload[offset + 13]);
                         unsigned char aoa_azimuth_fom = payload[offset + 15];
-                        unsigned short aoa_elevation = (payload[offset + 16] << 8) | payload[offset + 17];
+                        unsigned short aoa_elevation = read_u16_le(&payload[offset + 16]);
                         unsigned char aoa_elevation_fom = payload[offset + 18];
                         
                         printf("        MAC Address: 0x%016llX\n", mac_address);
@@ -2801,68 +2746,5 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
         } else {
             printf("      Unsupported ranging measurement type: 0x%02X\n", ranging_measurement_type);
         }
-    }
-}
-
-void decode_session_data_credit_ntf(unsigned char* payload, int payload_len) {
-    printf("    SESSION_DATA_CREDIT_NTF - Data Credit Notification\n");
-    
-    if (payload_len < 5) {
-        printf("      ERROR: Payload too short (%d bytes, need at least 5)\n", payload_len);
-        return;
-    }
-    
-    unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
-    unsigned char credit_availability = payload[4];
-    
-    printf("      Session Token: 0x%08X\n", session_token);
-    printf("      Credit Availability: 0x%02X", credit_availability);
-    if (credit_availability == 0x00) {
-        printf(" (NOT_AVAILABLE)\n");
-    } else {
-        printf(" (AVAILABLE)\n");
-    }
-}
-
-void decode_session_data_transfer_status_ntf(unsigned char* payload, int payload_len) {
-    printf("    SESSION_DATA_TRANSFER_STATUS_NTF - Data Transfer Status Notification\n");
-    
-    if (payload_len < 6) {
-        printf("      ERROR: Payload too short (%d bytes, need at least 6)\n", payload_len);
-        return;
-    }
-    
-    unsigned int session_token = (payload[0] << 24) | (payload[1] << 16) | (payload[2] << 8) | payload[3];
-    unsigned short uci_sequence_number = (payload[4] << 8) | payload[5];
-    
-    printf("      Session Token: 0x%08X\n", session_token);
-    printf("      UCI Sequence Number: %u\n", uci_sequence_number);
-    
-    if (payload_len >= 8) {
-        unsigned char status = payload[6];
-        unsigned char tx_count = payload[7];
-        
-        printf("      Status: 0x%02X", status);
-        switch(status) {
-            case UCI_DATA_TRANSFER_STATUS_REPETITION_OK: printf(" (REPETITION_OK)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_OK: printf(" (OK)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER: printf(" (ERROR_DATA_TRANSFER)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_ERROR_NO_CREDIT_AVAILABLE: printf(" (ERROR_NO_CREDIT_AVAILABLE)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_ERROR_REJECTED: printf(" (ERROR_REJECTED)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_SESSION_TYPE_NOT_SUPPORTED: printf(" (SESSION_TYPE_NOT_SUPPORTED)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER_IS_ONGOING: printf(" (ERROR_DATA_TRANSFER_IS_ONGOING)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_INVALID_FORMAT: printf(" (INVALID_FORMAT)\n"); break;
-            default: printf(" (UNKNOWN)\n"); break;
-        }
-        
-        printf("      TX Count: %d\n", tx_count);
-    }
-    
-    if (payload_len > 8) {
-        printf("      Additional Data (%d bytes): ", payload_len - 8);
-        for (int i = 8; i < payload_len; i++) {
-            printf("%02X ", payload[i]);
-        }
-        printf("\n");
     }
 }

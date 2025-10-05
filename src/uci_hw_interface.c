@@ -12,6 +12,162 @@ static int g_hw_initialized = 0;
 static int g_verbose_mode = 0;
 static char g_device_path[256] = "/dev/ttyUSB0";  // Default device path
 
+#define UCI_HAL_MAX_FRAGMENT_PAYLOAD 255
+#define UCI_MAX_REASSEMBLED_PAYLOAD 1024
+
+typedef struct {
+    int active;
+    unsigned char mt;
+    unsigned char gid;
+    unsigned char opcode;
+    unsigned char payload[UCI_MAX_REASSEMBLED_PAYLOAD];
+    size_t payload_len;
+} uci_fragment_buffer_t;
+
+static uci_fragment_buffer_t g_fragment_buffer = {0};
+
+static void uci_fragment_reset(void) {
+    g_fragment_buffer.active = 0;
+    g_fragment_buffer.payload_len = 0;
+}
+
+static int uci_fragment_process(const unsigned char* fragment,
+                                size_t fragment_len,
+                                unsigned char* out_buffer,
+                                size_t out_capacity) {
+    if (fragment_len < sizeof(struct uci_packet_header)) {
+        if (g_verbose_mode) {
+            printf("Received fragment too short (%zu bytes)\n", fragment_len);
+        }
+        return -1;
+    }
+
+    const struct uci_packet_header* header = (const struct uci_packet_header*)fragment;
+    size_t payload_len = header->payload_len;
+    size_t expected_len = sizeof(struct uci_packet_header) + payload_len;
+    if (fragment_len < expected_len) {
+        if (g_verbose_mode) {
+            printf("Incomplete fragment: expected %zu bytes, got %zu\n", expected_len, fragment_len);
+        }
+        return -1;
+    }
+    if (fragment_len > expected_len && g_verbose_mode) {
+        printf("Warning: fragment contains %zu surplus bytes; ignoring trailing data\n",
+               fragment_len - expected_len);
+    }
+
+    unsigned char mt = get_mt(header);
+    unsigned char gid = get_gid(header);
+    unsigned char opcode = get_opcode(header);
+    unsigned char pbf = get_pbf(header);
+
+    const unsigned char* payload_ptr = fragment + sizeof(struct uci_packet_header);
+
+    if (g_verbose_mode) {
+        printf("  Fragment header: MT=0x%02X GID=0x%02X OID=0x%02X PBF=%s len=%zu\n",
+               mt, gid, opcode, (pbf == COMPLETE) ? "COMPLETE" : "NOT_COMPLETE", payload_len);
+    }
+
+    if (pbf == NOT_COMPLETE) {
+        if (!g_fragment_buffer.active) {
+            g_fragment_buffer.active = 1;
+            g_fragment_buffer.mt = mt;
+            g_fragment_buffer.gid = gid;
+            g_fragment_buffer.opcode = opcode;
+            g_fragment_buffer.payload_len = 0;
+        } else if (g_fragment_buffer.mt != mt || g_fragment_buffer.gid != gid ||
+                   g_fragment_buffer.opcode != opcode) {
+            if (g_verbose_mode) {
+                printf("Fragment sequence mismatch; resetting reassembly buffer\n");
+            }
+            uci_fragment_reset();
+            g_fragment_buffer.active = 1;
+            g_fragment_buffer.mt = mt;
+            g_fragment_buffer.gid = gid;
+            g_fragment_buffer.opcode = opcode;
+        }
+
+        if (g_fragment_buffer.payload_len + payload_len > sizeof(g_fragment_buffer.payload)) {
+            if (g_verbose_mode) {
+                printf("Fragment payload overflow (%zu + %zu)\n",
+                       g_fragment_buffer.payload_len, payload_len);
+            }
+            uci_fragment_reset();
+            return -1;
+        }
+        memcpy(g_fragment_buffer.payload + g_fragment_buffer.payload_len, payload_ptr, payload_len);
+        g_fragment_buffer.payload_len += payload_len;
+        return 0; // waiting for more fragments
+    }
+
+    if (g_fragment_buffer.active) {
+        if (g_fragment_buffer.mt != mt || g_fragment_buffer.gid != gid ||
+            g_fragment_buffer.opcode != opcode) {
+            if (g_verbose_mode) {
+                printf("Final fragment mismatch; dropping buffered data\n");
+            }
+            uci_fragment_reset();
+            return -1;
+        }
+
+        if (g_fragment_buffer.payload_len + payload_len > sizeof(g_fragment_buffer.payload)) {
+            if (g_verbose_mode) {
+                printf("Reassembled payload exceeds buffer (%zu + %zu)\n",
+                       g_fragment_buffer.payload_len, payload_len);
+            }
+            uci_fragment_reset();
+            return -1;
+        }
+
+        size_t total_len = g_fragment_buffer.payload_len + payload_len;
+        if (total_len > UCI_HAL_MAX_FRAGMENT_PAYLOAD) {
+            if (g_verbose_mode) {
+                printf("Reassembled payload %zu exceeds HAL limit %d\n",
+                       total_len, UCI_HAL_MAX_FRAGMENT_PAYLOAD);
+            }
+            uci_fragment_reset();
+            return -1;
+        }
+
+        if (out_capacity < sizeof(struct uci_packet_header) + total_len) {
+            if (g_verbose_mode) {
+                printf("Output buffer too small for reassembled payload (%zu needed)\n",
+                       sizeof(struct uci_packet_header) + total_len);
+            }
+            uci_fragment_reset();
+            return -1;
+        }
+
+        struct uci_packet_header final_header;
+        set_header_values(&final_header, mt, COMPLETE, gid, opcode, (unsigned char)total_len);
+        memcpy(out_buffer, &final_header, sizeof(final_header));
+        memcpy(out_buffer + sizeof(final_header), g_fragment_buffer.payload, g_fragment_buffer.payload_len);
+        memcpy(out_buffer + sizeof(final_header) + g_fragment_buffer.payload_len,
+               payload_ptr, payload_len);
+
+        if (g_verbose_mode) {
+            printf("  Reassembled payload (%zu bytes)\n", total_len);
+        }
+
+        uci_fragment_reset();
+        return (int)(sizeof(final_header) + total_len);
+    }
+
+    // Single-fragment complete packet
+    if (out_capacity < expected_len) {
+        if (g_verbose_mode) {
+            printf("Output buffer too small (%zu needed)\n", expected_len);
+        }
+        return -1;
+    }
+
+    memcpy(out_buffer, fragment, expected_len);
+    if (g_verbose_mode) {
+        printf("  Single-fragment payload (%zu bytes)\n", payload_len);
+    }
+    return (int)expected_len;
+}
+
 // Enable verbose mode for hardware interface
 void uci_hw_interface_set_verbose(int verbose) {
     g_verbose_mode = verbose ? 1 : 0;
@@ -23,7 +179,9 @@ int uci_hw_interface_init(const char* device_path) {
     if (g_hw_initialized) {
         return 0; // Already initialized
     }
-    
+
+    uci_fragment_reset();
+
     if (g_verbose_mode) {
         printf("Initializing UCI hardware interface with device: %s\n", device_path);
     }
@@ -38,6 +196,7 @@ int uci_hw_interface_init(const char* device_path) {
             if (g_verbose_mode) {
                 printf("Character device interface initialized successfully\n");
             }
+            uci_fragment_reset();
             g_hw_initialized = 1;
             return 0;
         } else {
@@ -63,59 +222,71 @@ int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned 
         }
         return -1;
     }
-    
+
     if (!uci_hw_chardev_is_connected(&g_uwb_chardev)) {
         if (g_verbose_mode) {
             printf("Hardware device not connected\n");
         }
         return -1;
     }
-    
-    // Create UCI packet
-    size_t packet_size = sizeof(struct uci_packet_header) + (payload_len > 0 ? payload_len : 0);
-    unsigned char* packet = malloc(packet_size);
-    if (!packet) {
-        if (g_verbose_mode) {
-            printf("Failed to allocate memory for UCI packet\n");
+
+    size_t remaining = (payload_len > 0) ? (size_t)payload_len : 0;
+    size_t offset = 0;
+    int fragment_index = 0;
+
+    do {
+        size_t chunk = remaining;
+        if (chunk > UCI_HAL_MAX_FRAGMENT_PAYLOAD) {
+            chunk = UCI_HAL_MAX_FRAGMENT_PAYLOAD;
         }
-        return -1;
-    }
-    
-    // Set up packet header
-    struct uci_packet_header* header = (struct uci_packet_header*)packet;
-    set_header_values(header, mt, pbf, gid, oid, payload_len);
-    
-    // Copy payload if present
-    if (payload && payload_len > 0) {
-        memcpy(packet + sizeof(struct uci_packet_header), payload, payload_len);
-    }
-    
-    if (g_verbose_mode) {
-        printf("Sending UCI packet to hardware (%s):\n", g_device_path);
-        printf("  Header: %02X %02X %02X %02X\n", 
-               ((unsigned char*)header)[0], ((unsigned char*)header)[1], 
-               ((unsigned char*)header)[2], ((unsigned char*)header)[3]);
-        if (payload_len > 0) {
-            printf("  Payload: ");
-            for (int i = 0; i < payload_len; i++) {
-                printf("%02X ", payload[i]);
+
+        unsigned char fragment_pbf = (remaining > UCI_HAL_MAX_FRAGMENT_PAYLOAD) ? NOT_COMPLETE : COMPLETE;
+        // honour caller-provided PBF only for single-fragment sends
+        if (payload_len <= UCI_HAL_MAX_FRAGMENT_PAYLOAD) {
+            fragment_pbf = pbf;
+        } else if (fragment_index == 0 && g_verbose_mode && pbf != COMPLETE) {
+            printf("Ignoring caller PBF for multi-fragment send; using NOT_COMPLETE/COMPLETE automatically\n");
+        }
+
+        size_t fragment_size = sizeof(struct uci_packet_header) + chunk;
+        unsigned char fragment[sizeof(struct uci_packet_header) + UCI_HAL_MAX_FRAGMENT_PAYLOAD];
+        struct uci_packet_header* header = (struct uci_packet_header*)fragment;
+        set_header_values(header, mt, fragment_pbf, gid, oid, (unsigned char)chunk);
+
+        if (chunk > 0 && payload) {
+            memcpy(fragment + sizeof(struct uci_packet_header), payload + offset, chunk);
+        }
+
+        if (g_verbose_mode) {
+            printf("Sending UCI fragment to hardware (%s):\n", g_device_path);
+            printf("  Header: %02X %02X %02X %02X\n",
+                   fragment[0], fragment[1], fragment[2], fragment[3]);
+            if (chunk > 0) {
+                printf("  Payload: ");
+                for (size_t i = 0; i < chunk; i++) {
+                    printf("%02X ", fragment[sizeof(struct uci_packet_header) + i]);
+                }
+                printf("\n");
             }
-            printf("\n");
         }
-    }
-    
-    // Send packet to hardware using character device interface
-    int result = uci_hw_chardev_send(&g_uwb_chardev, packet, packet_size);
-    
-    free(packet);
-    
-    if (result < 0) {
-        if (g_verbose_mode) {
-            printf("Failed to send UCI command to hardware\n");
+
+        int result = uci_hw_chardev_send(&g_uwb_chardev, fragment, fragment_size);
+        if (result < 0) {
+            if (g_verbose_mode) {
+                printf("Failed to send UCI fragment to hardware\n");
+            }
+            return -1;
         }
-        return -1;
-    }
-    
+
+        if (remaining > chunk) {
+            remaining -= chunk;
+            offset += chunk;
+            fragment_index++;
+        } else {
+            remaining = 0;
+        }
+    } while (remaining > 0);
+
     return 0;
 }
 
@@ -142,9 +313,9 @@ int uci_hw_interface_receive_response(unsigned char* buffer, size_t buffer_size,
         return -1;
     }
     
-    // Receive data from hardware using character device interface
-    int bytes_received = uci_hw_chardev_receive(&g_uwb_chardev, buffer, buffer_size, timeout_ms);
-    
+    unsigned char fragment[sizeof(struct uci_packet_header) + UCI_HAL_MAX_FRAGMENT_PAYLOAD];
+    int bytes_received = uci_hw_chardev_receive(&g_uwb_chardev, fragment, sizeof(fragment), timeout_ms);
+
     if (bytes_received < 0) {
         if (g_verbose_mode) {
             printf("Failed to receive UCI response from hardware\n");
@@ -152,15 +323,21 @@ int uci_hw_interface_receive_response(unsigned char* buffer, size_t buffer_size,
         return -1;
     }
     
-    if (g_verbose_mode && bytes_received > 0) {
-        printf("Received %d bytes from UCI hardware (%s):\n  ", bytes_received, g_device_path);
-        for (int i = 0; i < bytes_received; i++) {
-            printf("%02X ", buffer[i]);
-        }
-        printf("\n");
+    if (bytes_received == 0) {
+        return 0; // timeout/no data
     }
-    
-    return bytes_received;
+
+    if (g_verbose_mode) {
+        printf("Received fragment (%d bytes) from UCI hardware (%s)\n",
+               bytes_received, g_device_path);
+    }
+
+    int assembled_len = uci_fragment_process(fragment, (size_t)bytes_received, buffer, buffer_size);
+    if (assembled_len < 0) {
+        return -1;
+    }
+
+    return assembled_len;
 }
 
 // Cleanup hardware interface
@@ -170,6 +347,7 @@ void uci_hw_interface_cleanup(void) {
             printf("Cleaning up UCI hardware interface\n");
         }
         uci_hw_chardev_close(&g_uwb_chardev);
+        uci_fragment_reset();
         g_hw_initialized = 0;
     }
 }

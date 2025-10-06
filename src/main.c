@@ -114,7 +114,7 @@ int main() {
                 // Both alias name and command provided, create new alias
                 cli_alias_result_t result = cli_alias_add(alias_name, alias_cmd);
                 if (result == CLI_ALIAS_FULL) {
-                    printf("Error: Maximum number of aliases reached\n");
+                    ui_print_error("Maximum number of aliases reached");
                 } else if (result == CLI_ALIAS_UPDATED) {
                     printf("Alias '%s' updated to '%s'\n", alias_name, alias_cmd);
                 } else if (result == CLI_ALIAS_SUCCESS) {
@@ -145,12 +145,12 @@ int main() {
             // Initialize both the legacy hardware interface and the new character device interface
             if (uci_hw_interface_init(device_path) == 0) {
                 g_hardware_mode = 1;
-                printf("Hardware mode initialized successfully with device: %s\n", device_path);
+                ui_print_hardware_mode_initialized(device_path);
                 
                 // Also initialize the character device interface
                 if (uci_hw_chardev_init(&g_uwb_chardev, device_path) == 0) {
                     if (uci_hw_chardev_open(&g_uwb_chardev) == 0) {
-                        printf("Character device interface initialized successfully\n");
+                        ui_print_success("Character device interface initialized successfully");
                     } else {
                         printf("Warning: Failed to open character device interface\n");
                     }
@@ -959,7 +959,7 @@ int main() {
             char* token = hex_bytes_str;
             do {
                 if (packet_len >= (int)sizeof(packet)) {
-                    printf("Error: Packet too long (max %zu bytes)\n", sizeof(packet));
+                    ui_print_error("Packet too long");
                     break;
                 }
                 packet[packet_len++] = (unsigned char)strtol(token, NULL, 16);
@@ -1004,7 +1004,7 @@ int main() {
             }
         } else if (strcmp(command, "hw_info") == 0) {
             if (!g_hardware_mode) {
-                printf("Hardware mode not initialized. Use 'hw_init <device_path>' first.\n");
+                ui_print_hardware_mode_not_initialized();
             } else {
                 printf("=== UCI Hardware Information ===\n");
                 printf("Device: %s\n", uci_hw_interface_get_device_path());

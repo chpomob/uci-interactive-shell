@@ -1215,6 +1215,9 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
 
             enqueue_session_status_notification(&uci_sessions[session_idx], SESSION_STATE_INIT, STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS);
         }
+        
+        // Add the missing parse_uci_packet call for successful response
+        parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
     } else if (gid == SESSION_CONFIG && oid == SESSION_DEINIT) {
         if (!payload || payload_len < 4) {
             unsigned char session_deinit_error_rsp[] = {UCI_STATUS_INVALID_PARAM};
@@ -1255,6 +1258,9 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         unsigned char session_deinit_rsp_payload[] = {UCI_STATUS_OK};
         memcpy(response_packet + sizeof(struct uci_packet_header), session_deinit_rsp_payload, sizeof(session_deinit_rsp_payload));
         response_header->payload_len = sizeof(session_deinit_rsp_payload);
+        
+        // Add missing parse_uci_packet call for successful response
+        parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
     } else if (gid == SESSION_CONTROL && oid == SESSION_START) {
         if (!payload || payload_len < 4) {
             unsigned char session_start_error_rsp[] = {UCI_STATUS_INVALID_PARAM};
@@ -1280,6 +1286,9 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         unsigned char session_start_rsp_payload[] = {UCI_STATUS_OK};
         memcpy(response_packet + sizeof(struct uci_packet_header), session_start_rsp_payload, sizeof(session_start_rsp_payload));
         response_header->payload_len = sizeof(session_start_rsp_payload);
+        
+        // Add missing parse_uci_packet call for successful response
+        parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
     } else if (gid == SESSION_CONTROL && oid == SESSION_STOP) {
         if (!payload || payload_len < 4) {
             unsigned char session_stop_error_rsp[] = {UCI_STATUS_INVALID_PARAM};
@@ -1305,6 +1314,9 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         unsigned char session_stop_rsp_payload[] = {UCI_STATUS_OK};
         memcpy(response_packet + sizeof(struct uci_packet_header), session_stop_rsp_payload, sizeof(session_stop_rsp_payload));
         response_header->payload_len = sizeof(session_stop_rsp_payload);
+        
+        // Add missing parse_uci_packet call for successful response
+        parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
     } else if (gid == SESSION_CONFIG && oid == SESSION_GET_STATE) {
         if (!payload || payload_len < 4) {
             unsigned char get_state_error_rsp[] = {UCI_STATUS_INVALID_PARAM};
@@ -1328,11 +1340,17 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         unsigned char get_state_rsp_payload[] = {UCI_STATUS_OK, session_state};
         memcpy(response_packet + sizeof(struct uci_packet_header), get_state_rsp_payload, sizeof(get_state_rsp_payload));
         response_header->payload_len = sizeof(get_state_rsp_payload);
+        
+        // Add missing parse_uci_packet call for successful response
+        parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
     } else if (gid == SESSION_CONFIG && oid == SESSION_GET_COUNT) {
         unsigned char session_count = (unsigned char)get_allocated_session_count();
         unsigned char get_count_rsp_payload[] = {UCI_STATUS_OK, session_count};
         memcpy(response_packet + sizeof(struct uci_packet_header), get_count_rsp_payload, sizeof(get_count_rsp_payload));
         response_header->payload_len = sizeof(get_count_rsp_payload);
+        
+        // Add missing parse_uci_packet call for successful response
+        parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
     } else if (gid == SESSION_CONTROL && oid == SESSION_GET_RANGING_COUNT) {
         if (!payload || payload_len < 4) {
             unsigned char get_ranging_error_rsp[] = {UCI_STATUS_INVALID_PARAM};
@@ -1357,6 +1375,9 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         write_u16_le(&ranging_rsp_payload[1], ranging_count);
         memcpy(response_packet + sizeof(struct uci_packet_header), ranging_rsp_payload, sizeof(ranging_rsp_payload));
         response_header->payload_len = sizeof(ranging_rsp_payload);
+        
+        // Add missing parse_uci_packet call for successful response
+        parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
     } else if (gid == SESSION_CONFIG && oid == SESSION_QUERY_DATA_SIZE_IN_RANGING) {
         if (!payload || payload_len < 4) {
             unsigned char query_data_error_rsp[] = {UCI_STATUS_INVALID_PARAM};
@@ -1379,6 +1400,9 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         if (status != UCI_STATUS_OK) {
             enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &status, 1);
         }
+        
+        // Add missing parse_uci_packet call for successful response
+        parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + response_header->payload_len);
     } else if (gid == SESSION_CONFIG && oid == SESSION_UPDATE_CONTROLLER_MULTICAST_LIST) {
         typedef struct {
             unsigned short short_address;

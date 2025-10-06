@@ -1372,7 +1372,6 @@ int main() {
             payload[1] = (session_id >> 8) & 0xFF;
             payload[2] = (session_id >> 16) & 0xFF;
             payload[3] = (session_id >> 24) & 0xFF;   // MSB last
-            payload[3] = session_id & 0xFF;
 
             int num_configs = 0;
             char* config_name;

@@ -1695,9 +1695,18 @@ int main() {
             // Parse hex bytes from command line
             char* hex_byte_str = strtok(NULL, " ");
             if (!hex_byte_str) {
-                printf("Usage: analyze_packet <hex_bytes...>\n");
-                printf("Example: analyze_packet 20 08 00 00\n");
-                printf("         analyze_packet 21 00 00 05 00 00 00 01 00\n");
+                if (ui_color_enabled) {
+                    printf("%s%s%sUsage: analyze_packet <hex_bytes...>%s\n", 
+                           ANSI_COLOR_BRIGHT_RED, ANSI_BOLD, ANSI_BG_RED, ANSI_RESET);
+                    printf("%s%s%sExample: analyze_packet 20 08 00 00%s\n", 
+                           ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_BG_BLUE, ANSI_RESET);
+                    printf("%s%s%s         analyze_packet 21 00 00 05 00 00 00 01 00%s\n", 
+                           ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_BG_BLUE, ANSI_RESET);
+                } else {
+                    printf("Usage: analyze_packet <hex_bytes...>\n");
+                    printf("Example: analyze_packet 20 08 00 00\n");
+                    printf("         analyze_packet 21 00 00 05 00 00 00 01 00\n");
+                }
                 continue;
             }
             
@@ -1707,25 +1716,50 @@ int main() {
             // Parse hex bytes
             do {
                 if (packet_len >= (int)sizeof(packet)) {
-                    printf("Error: Packet too long (max %zu bytes)\n", sizeof(packet));
+                    if (ui_color_enabled) {
+                        printf("%s%s%sError: Packet too long (max %zu bytes)%s\n", 
+                               ANSI_COLOR_RED, ANSI_BOLD, ANSI_BG_RED, ANSI_RESET, sizeof(packet));
+                    } else {
+                        printf("Error: Packet too long (max %zu bytes)\n", sizeof(packet));
+                    }
                     break;
                 }
                 char* endptr;
                 unsigned long value = strtoul(hex_byte_str, &endptr, 16);
                 if (*endptr != '\0' || value > 0xFF) {
-                    printf("Error: Invalid hex byte '%s'\n", hex_byte_str);
+                    if (ui_color_enabled) {
+                        printf("%s%s%sError: Invalid hex byte '%s'%s\n", 
+                               ANSI_COLOR_RED, ANSI_BOLD, ANSI_BG_RED, ANSI_RESET, hex_byte_str);
+                    } else {
+                        printf("Error: Invalid hex byte '%s'\n", hex_byte_str);
+                    }
                     break;
                 }
                 packet[packet_len++] = (unsigned char)value;
             } while ((hex_byte_str = strtok(NULL, " ")) != NULL);
             
             if (packet_len > 0) {
-                printf("Analyzing UCI packet (%d bytes):\n", packet_len);
+                if (ui_color_enabled) {
+                    printf("%s%s%sAnalyzing UCI packet (%d bytes):%s\n", 
+                           ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_BG_BLUE, ANSI_RESET, packet_len);
+                } else {
+                    printf("Analyzing UCI packet (%d bytes):\n", packet_len);
+                }
                 for (int i = 0; i < packet_len; i++) {
-                    printf("%02X ", packet[i]);
+                    if (ui_color_enabled) {
+                        printf("%s%02X%s ", ANSI_COLOR_BRIGHT_GREEN, packet[i], ANSI_RESET);
+                    } else {
+                        printf("%02X ", packet[i]);
+                    }
                 }
                 printf("\n\n");
-                analyze_uci_packet(packet, packet_len);
+                
+                // Use UI-enhanced packet analysis if color is enabled
+                if (ui_color_enabled) {
+                    ui_analyze_uci_packet(packet, packet_len);
+                } else {
+                    analyze_uci_packet(packet, packet_len);
+                }
             }
         } else if (strcmp(command, "help") == 0) {
             // Print comprehensive help information with UI enhancements

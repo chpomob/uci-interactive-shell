@@ -57,6 +57,15 @@ void ui_print_command(const char* command);
 void ui_print_response(const char* response);
 void ui_print_notification(const char* notification);
 
+// Additional UI enhancement functions for specific use cases
+void ui_print_sending_uci_packet(const char* destination);
+void ui_print_received_uci_packet();
+void ui_print_simulation_started(const char* simulation_name);
+void ui_print_simulation_completed(const char* simulation_name);
+void ui_print_hardware_mode_initialized(const char* device_path);
+void ui_print_hardware_mode_not_initialized();
+void ui_print_command_not_found(const char* command);
+
 // Conditional color output (can be disabled)
 extern int ui_color_enabled;
 

@@ -1698,86 +1698,276 @@ int main() {
                 printf("Available Commands:\n");
                 printf("------------------\n");
             }
-            printf("General Commands:\n");
-            printf("  help                      - Show this help information\n");
-            printf("  quit                      - Exit the shell\n");
-            printf("  history                   - Show command history\n");
-            printf("  complete <prefix>         - Autocomplete a command or parameter\n");
-            printf("  alias <name> [command]    - Create or list command aliases\n");
-            printf("  unalias <name>            - Remove an alias\n\n");
+            if (ui_color_enabled) {
+                printf("%s%sGeneral Commands:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
+            } else {
+                printf("General Commands:\n");
+            }
+            if (ui_color_enabled) {
+                printf("  %s%s%s                      - %s%sShow this help information%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "help", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                      - %s%sExit the shell%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "quit", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                   - %s%sShow command history%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "history", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <prefix>         - %s%sAutocomplete a command or parameter%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "complete", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <name> [command]    - %s%sCreate or list command aliases%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "alias", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <name>            - %s%sRemove an alias%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "unalias", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+            } else {
+                printf("  help                      - Show this help information\n");
+                printf("  quit                      - Exit the shell\n");
+                printf("  history                   - Show command history\n");
+                printf("  complete <prefix>         - Autocomplete a command or parameter\n");
+                printf("  alias <name> [command]    - Create or list command aliases\n");
+                printf("  unalias <name>            - Remove an alias\n");
+            }
+            printf("\n");
             
-            printf("Device Management Commands:\n");
-            printf("  get_device_info, device_info     - Get device information\n");
-            printf("  device_reset                     - Reset the device\n");
-            printf("  get_caps_info                    - Get device capabilities information\n");
-            printf("  set_config <param> <value>       - Set device configuration\n");
-            printf("  get_config <param>               - Get device configuration\n");
-            printf("  get_device_state                 - Get current device state\n");
-            printf("  set_device_active                - Set device to ACTIVE state\n");
-            printf("  set_device_ready                 - Set device to READY state\n");
-            printf("  device_suspend                   - Suspend the device\n");
-            printf("  set_power <state>                - Set device power state\n");
-            printf("  device_on                        - Turn device on (ACTIVE state)\n");
-            printf("  device_off                       - Turn device off (READY state)\n\n");
+            if (ui_color_enabled) {
+                printf("%s%sDevice Management Commands:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
+            } else {
+                printf("Device Management Commands:\n");
+            }
+            if (ui_color_enabled) {
+                printf("  %s%s%s, %s%s     - %s%sGet device information%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "get_device_info", ANSI_COLOR_BRIGHT_GREEN, "device_info", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                     - %s%sReset the device%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "device_reset", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                    - %s%sGet device capabilities information%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "get_caps_info", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <param> <value>       - %s%sSet device configuration%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "set_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <param>               - %s%sGet device configuration%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "get_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                 - %s%sGet current device state%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "get_device_state", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                - %s%sSet device to ACTIVE state%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "set_device_active", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                 - %s%sSet device to READY state%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "set_device_ready", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                   - %s%sSuspend the device%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "device_suspend", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <state>                - %s%sSet device power state%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "set_power", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                        - %s%sTurn device on (ACTIVE state)%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "device_on", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                       - %s%sTurn device off (READY state)%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "device_off", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+            } else {
+                printf("  get_device_info, device_info     - Get device information\n");
+                printf("  device_reset                     - Reset the device\n");
+                printf("  get_caps_info                    - Get device capabilities information\n");
+                printf("  set_config <param> <value>       - Set device configuration\n");
+                printf("  get_config <param>               - Get device configuration\n");
+                printf("  get_device_state                 - Get current device state\n");
+                printf("  set_device_active                - Set device to ACTIVE state\n");
+                printf("  set_device_ready                 - Set device to READY state\n");
+                printf("  device_suspend                   - Suspend the device\n");
+                printf("  set_power <state>                - Set device power state\n");
+                printf("  device_on                        - Turn device on (ACTIVE state)\n");
+                printf("  device_off                       - Turn device off (READY state)\n");
+            }
+            printf("\n");
             
             printf("Session Management Commands:\n");
-            printf("  session_init <id> <type>         - Initialize a ranging session\n");
-            printf("  session_new <id> <type>          - Alias for session_init\n");
-            printf("  session_deinit <id>              - Deinitialize a ranging session\n");
-            printf("  session_close <id>               - Alias for session_deinit\n");
-            printf("  session_start <id>               - Start a ranging session\n");
-            printf("  start_ranging <id>               - Alias for session_start\n");
-            printf("  session_stop <id>                - Stop a ranging session\n");
-            printf("  stop_ranging <id>                - Alias for session_stop\n");
-            printf("  get_session_state <id>           - Get session state\n");
-            printf("  session_status <id>              - Alias for get_session_state\n");
-            printf("  get_session_count                - Get number of active sessions\n\n");
+            if (ui_color_enabled) {
+                printf("%s%sSession Management Commands:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
+            } else {
+                printf("Session Management Commands:\n");
+            }
+            if (ui_color_enabled) {
+                printf("  %s%s%s <id> <type>         - %s%sInitialize a ranging session%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_init", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <type>          - %s%sAlias for session_init%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_new", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>              - %s%sDeinitialize a ranging session%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_deinit", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>               - %s%sAlias for session_deinit%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_close", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>               - %s%sStart a ranging session%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_start", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>               - %s%sAlias for session_start%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "start_ranging", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>                - %s%sStop a ranging session%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_stop", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>                - %s%sAlias for session_stop%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "stop_ranging", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>           - %s%sGet session state%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "get_session_state", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>              - %s%sAlias for get_session_state%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_status", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                - %s%sGet number of active sessions%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "get_session_count", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+            } else {
+                printf("  session_init <id> <type>         - Initialize a ranging session\n");
+                printf("  session_new <id> <type>          - Alias for session_init\n");
+                printf("  session_deinit <id>              - Deinitialize a ranging session\n");
+                printf("  session_close <id>               - Alias for session_deinit\n");
+                printf("  session_start <id>               - Start a ranging session\n");
+                printf("  start_ranging <id>               - Alias for session_start\n");
+                printf("  session_stop <id>                - Stop a ranging session\n");
+                printf("  stop_ranging <id>                - Alias for session_stop\n");
+                printf("  get_session_state <id>           - Get session state\n");
+                printf("  session_status <id>              - Alias for get_session_state\n");
+                printf("  get_session_count                - Get number of active sessions\n");
+            }
+            printf("\n");
             
-            printf("Application Configuration Commands:\n");
-            printf("  set_app_config <id> <param> <value>  - Set session app configuration\n");
-            printf("  get_app_config <id> <param>          - Get session app configuration\n\n");
+            if (ui_color_enabled) {
+                printf("%s%sApplication Configuration Commands:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
+            } else {
+                printf("Application Configuration Commands:\n");
+            }
+            if (ui_color_enabled) {
+                printf("  %s%s%s <id> <param> <value>  - %s%sSet session app configuration%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "set_app_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <param>          - %s%sGet session app configuration%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "get_app_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+            } else {
+                printf("  set_app_config <id> <param> <value>  - Set session app configuration\n");
+                printf("  get_app_config <id> <param>          - Get session app configuration\n");
+            }
+            printf("\n");
             
-            printf("Hardware Mode Commands:\n");
-            printf("  hw_init <device_path>            - Initialize hardware mode\n");
-            printf("  hw_connect <device_path>         - Connect to hardware device\n");
-            printf("  hw_info                      - Get hardware device information\n");
-            printf("  hw_send <mt> <pbf> <gid> <oid> [payload...]  - Send raw command\n");
-            printf("  hw_send_raw <bytes...>           - Send raw hex bytes\n");
-            printf("  hw_get_device_info, hw_device_info   - Get device info in hardware mode\n");
-            printf("  hw_device_reset                  - Reset device in hardware mode\n");
-            printf("  hw_get_caps_info                 - Get capabilities in hardware mode\n");
-            printf("  hw_set_config <param> <value>    - Set config in hardware mode\n");
-            printf("  hw_get_config <param>            - Get config in hardware mode\n");
-            printf("  hw_get_device_state              - Get device state in hardware mode\n");
-            printf("  hw_set_device_active             - Set device active in hardware mode\n");
-            printf("  hw_set_device_ready              - Set device ready in hardware mode\n");
-            printf("  hw_device_suspend                - Suspend device in hardware mode\n");
-            printf("  hw_session_init <id> <type>      - Initialize session in hardware mode\n");
-            printf("  hw_session_new <id> <type>       - Alias for hw_session_init\n");
-            printf("  hw_session_deinit <id>           - Deinitialize session in hardware mode\n");
-            printf("  hw_session_close <id>            - Alias for hw_session_deinit\n");
-            printf("  hw_session_start <id>            - Start session in hardware mode\n");
-            printf("  hw_start_ranging <id>            - Alias for hw_session_start\n");
-            printf("  hw_session_stop <id>             - Stop session in hardware mode\n");
-            printf("  hw_stop_ranging <id>             - Alias for hw_session_stop\n");
-            printf("  hw_get_session_state <id>        - Get session state in hardware mode\n");
-            printf("  hw_session_status <id>           - Alias for hw_get_session_state\n");
-            printf("  hw_set_app_config <id> <param> <value>  - Set app config in hardware mode\n");
-            printf("  hw_get_app_config <id> <param>   - Get app config in hardware mode\n\n");
+            if (ui_color_enabled) {
+                printf("%s%sHardware Mode Commands:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
+            } else {
+                printf("Hardware Mode Commands:\n");
+            }
+            if (ui_color_enabled) {
+                printf("  %s%s%s <device_path>            - %s%sInitialize hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_init", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <device_path>         - %s%sConnect to hardware device%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_connect", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                      - %s%sGet hardware device information%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_info", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <mt> <pbf> <gid> <oid> [payload...]  - %s%sSend raw command%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_send", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <bytes...>           - %s%sSend raw hex bytes%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_send_raw", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s, %s%s   - %s%sGet device info in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_get_device_info", ANSI_COLOR_BRIGHT_GREEN, "hw_device_info", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                  - %s%sReset device in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_device_reset", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                 - %s%sGet capabilities in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_get_caps_info", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <param> <value>    - %s%sSet config in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_set_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <param>            - %s%sGet config in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_get_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s              - %s%sGet device state in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_get_device_state", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s             - %s%sSet device active in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_set_device_active", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s              - %s%sSet device ready in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_set_device_ready", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                - %s%sSuspend device in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_device_suspend", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <type>      - %s%sInitialize session in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_session_init", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <type>       - %s%sAlias for hw_session_init%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_session_new", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>           - %s%sDeinitialize session in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_session_deinit", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>            - %s%sAlias for hw_session_deinit%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_session_close", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>            - %s%sStart session in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_session_start", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>            - %s%sAlias for hw_session_start%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_start_ranging", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>             - %s%sStop session in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_session_stop", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>             - %s%sAlias for hw_session_stop%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_stop_ranging", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>        - %s%sGet session state in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_get_session_state", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>           - %s%sAlias for hw_get_session_state%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_session_status", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <param> <value>  - %s%sSet app config in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_set_app_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <param>   - %s%sGet app config in hardware mode%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "hw_get_app_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+            } else {
+                printf("  hw_init <device_path>            - Initialize hardware mode\n");
+                printf("  hw_connect <device_path>         - Connect to hardware device\n");
+                printf("  hw_info                      - Get hardware device information\n");
+                printf("  hw_send <mt> <pbf> <gid> <oid> [payload...]  - Send raw command\n");
+                printf("  hw_send_raw <bytes...>           - Send raw hex bytes\n");
+                printf("  hw_get_device_info, hw_device_info   - Get device info in hardware mode\n");
+                printf("  hw_device_reset                  - Reset device in hardware mode\n");
+                printf("  hw_get_caps_info                 - Get capabilities in hardware mode\n");
+                printf("  hw_set_config <param> <value>    - Set config in hardware mode\n");
+                printf("  hw_get_config <param>            - Get config in hardware mode\n");
+                printf("  hw_get_device_state              - Get device state in hardware mode\n");
+                printf("  hw_set_device_active             - Set device active in hardware mode\n");
+                printf("  hw_set_device_ready              - Set device ready in hardware mode\n");
+                printf("  hw_device_suspend                - Suspend device in hardware mode\n");
+                printf("  hw_session_init <id> <type>      - Initialize session in hardware mode\n");
+                printf("  hw_session_new <id> <type>       - Alias for hw_session_init\n");
+                printf("  hw_session_deinit <id>           - Deinitialize session in hardware mode\n");
+                printf("  hw_session_close <id>            - Alias for hw_session_deinit\n");
+                printf("  hw_session_start <id>            - Start session in hardware mode\n");
+                printf("  hw_start_ranging <id>            - Alias for hw_session_start\n");
+                printf("  hw_session_stop <id>             - Stop session in hardware mode\n");
+                printf("  hw_stop_ranging <id>             - Alias for hw_session_stop\n");
+                printf("  hw_get_session_state <id>        - Get session state in hardware mode\n");
+                printf("  hw_session_status <id>           - Alias for hw_get_session_state\n");
+                printf("  hw_set_app_config <id> <param> <value>  - Set app config in hardware mode\n");
+                printf("  hw_get_app_config <id> <param>   - Get app config in hardware mode\n");
+            }
+            printf("\n");
             
-            printf("Simulation & Testing Commands:\n");
-            printf("  simulate_notification            - Simulate a device status notification\n");
-            printf("  simulate_session_status          - Simulate a session status notification\n");
-            printf("  simulate_data_credit             - Simulate a data credit notification\n");
-            printf("  simulate_ranging                 - Simulate ranging measurements\n");
-            printf("  simulate_multi_target_ranging    - Simulate multi-target ranging\n");
-            printf("  demo_session_flow                - Demonstrate a complete session flow\n");
-            printf("  analyze_packet <bytes...>        - Analyze hex packet bytes\n\n");
+            if (ui_color_enabled) {
+                printf("%s%sSimulation & Testing Commands:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
+            } else {
+                printf("Simulation & Testing Commands:\n");
+            }
+            if (ui_color_enabled) {
+                printf("  %s%s%s            - %s%sSimulate a device status notification%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "simulate_notification", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s          - %s%sSimulate a session status notification%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "simulate_session_status", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s             - %s%sSimulate a data credit notification%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "simulate_data_credit", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                 - %s%sSimulate ranging measurements%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "simulate_ranging", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s    - %s%sSimulate multi-target ranging%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "simulate_multi_target_ranging", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s                - %s%sDemonstrate a complete session flow%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "demo_session_flow", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s        - %s%sAnalyze hex packet bytes%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "analyze_packet", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+            } else {
+                printf("  simulate_notification            - Simulate a device status notification\n");
+                printf("  simulate_session_status          - Simulate a session status notification\n");
+                printf("  simulate_data_credit             - Simulate a data credit notification\n");
+                printf("  simulate_ranging                 - Simulate ranging measurements\n");
+                printf("  simulate_multi_target_ranging    - Simulate multi-target ranging\n");
+                printf("  demo_session_flow                - Demonstrate a complete session flow\n");
+                printf("  analyze_packet <bytes...>        - Analyze hex packet bytes\n");
+            }
+            printf("\n");
             
-            printf("For complete documentation, see:\n");
-            printf("  - README.md - Project overview and usage\n");
-            printf("  - FINAL_SUMMARY.md - Complete feature summary and technical details\n");
-            printf("  - uci_analysis/ - Detailed UCI protocol analysis based on Android UWB specification\n");
+            if (ui_color_enabled) {
+                printf("%s%sFor complete documentation, see:%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_BOLD, ANSI_RESET);
+            } else {
+                printf("For complete documentation, see:\n");
+            }
+            if (ui_color_enabled) {
+                printf("  - %s%sREADME.md%s - %s%sProject overview and usage%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_CYAN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  - %s%sFINAL_SUMMARY.md%s - %s%sComplete feature summary and technical details%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_CYAN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  - %s%subi_analysis/%s - %s%sDetailed UCI protocol analysis based on Android UWB specification%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_CYAN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+            } else {
+                printf("  - README.md - Project overview and usage\n");
+                printf("  - FINAL_SUMMARY.md - Complete feature summary and technical details\n");
+                printf("  - uci_analysis/ - Detailed UCI protocol analysis based on Android UWB specification\n");
+            }
         } else {
             ui_print_command_not_found(command);
         }

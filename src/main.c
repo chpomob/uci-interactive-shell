@@ -23,6 +23,7 @@
 #include "../include/uci_hw_chardev.h"
 #include "../include/uci_ui.h"
 #include "../include/uci_ui_main_patch.h"
+#include "../include/uci_ui_packet_decoder.h"
 
 #define MAX_PAYLOAD_LENGTH 255
 
@@ -1536,7 +1537,12 @@ int main() {
             
             printf("\n=== Session Flow Demonstration Complete ===\n");
         } else if (strcmp(command, "simulate_ranging") == 0) {
-            printf("=== Simulating UWB Ranging Notification ===\n");
+            if (ui_color_enabled) {
+                printf("%s%s%s=== Simulating UWB Ranging Notification ===%s\n", 
+                       ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_BG_BLUE, ANSI_RESET);
+            } else {
+                printf("=== Simulating UWB Ranging Notification ===\n");
+            }
             
             // Create a simulated two-way ranging measurement for a nearby device
             unsigned char ranging_ntf_payload[] = {
@@ -1574,9 +1580,43 @@ int main() {
             struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
             set_header_values(ntf_header, NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_INFO_NTF, sizeof(ranging_ntf_payload));
             memcpy(notification_packet + sizeof(struct uci_packet_header), ranging_ntf_payload, sizeof(ranging_ntf_payload));
-            parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + sizeof(ranging_ntf_payload));
             
-            printf("=== Ranging Simulation Complete ===\n");
+            if (ui_color_enabled) {
+                printf("%s%s→ Sending simulated ranging notification packet%s\n", 
+                       ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+            } else {
+                printf("→ Sending simulated ranging notification packet\n");
+            }
+            
+            // Use UI-enhanced decoder directly for better visualization
+            if (ui_color_enabled) {
+                printf("%s%sReceived UCI packet:%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET);
+                printf("  %sMT:%s 0x%01X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, NOTIFICATION);
+                printf("  %sPBF:%s 0x%01X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, COMPLETE);
+                printf("  %sGID:%s 0x%01X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, SESSION_CONTROL);
+                printf("  %sOpcode:%s 0x%02X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, SESSION_INFO_NTF);
+                printf("  %sPayload Length:%s %zu\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, sizeof(ranging_ntf_payload));
+                printf("  %sPayload:%s ", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET);
+                for (size_t i = 0; i < sizeof(ranging_ntf_payload) && i < 32; i++) {
+                    printf("%02X ", ranging_ntf_payload[i]);
+                }
+                if (sizeof(ranging_ntf_payload) > 32) {
+                    printf("... (and %zu more bytes)", sizeof(ranging_ntf_payload) - 32);
+                }
+                printf("\n");
+                
+                // Call the UI-enhanced decoder directly
+                ui_decode_range_data_ntf(ranging_ntf_payload, sizeof(ranging_ntf_payload));
+            } else {
+                parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + sizeof(ranging_ntf_payload));
+            }
+            
+            if (ui_color_enabled) {
+                printf("%s%s%s=== Ranging Simulation Complete ===%s\n", 
+                       ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_BG_GREEN, ANSI_RESET);
+            } else {
+                printf("=== Ranging Simulation Complete ===\n");
+            }
         } else if (strcmp(command, "simulate_multi_target_ranging") == 0) {
             printf("=== Simulating Multi-Target UWB Ranging Notification ===\n");
             

@@ -299,10 +299,11 @@ int main() {
             }
 
             unsigned char payload[5];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             payload[4] = session_type;
             
             // Send SESSION_INIT command (MT=0x01, PBF=0x00, GID=0x01, OID=0x00)
@@ -339,10 +340,11 @@ int main() {
 
             unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
             unsigned char payload[4];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             
             // Send SESSION_START command (MT=0x01, PBF=0x00, GID=0x02, OID=0x00)
             if (uci_hw_interface_send_command(0x01, 0x00, 0x02, 0x00, payload, sizeof(payload)) == 0) {
@@ -476,10 +478,11 @@ int main() {
 
             unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
             unsigned char payload[4];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             
             // Send SESSION_DEINIT command (MT=0x01, PBF=0x00, GID=0x01, OID=0x01)
             if (uci_hw_interface_send_command(0x01, 0x00, 0x01, 0x01, payload, sizeof(payload)) == 0) {
@@ -515,10 +518,11 @@ int main() {
 
             unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
             unsigned char payload[4];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             
             // Send SESSION_GET_STATE command (MT=0x01, PBF=0x00, GID=0x01, OID=0x06)
             if (uci_hw_interface_send_command(0x01, 0x00, 0x01, 0x06, payload, sizeof(payload)) == 0) {
@@ -816,10 +820,11 @@ int main() {
                 continue;
             }
             
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             payload[4] = 1; // Number of TLVs
             payload[5] = cfg_id;
             payload[6] = value_length; // Length
@@ -915,10 +920,11 @@ int main() {
             }
 
             unsigned char payload[6];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             payload[4] = 1; // Number of configs
             payload[5] = cfg_id;
             
@@ -1153,10 +1159,11 @@ int main() {
             }
 
             unsigned char payload[5];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             payload[4] = session_type;
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_INIT, payload, sizeof(payload));
         } else if (strcmp(command, "session_deinit") == 0 || strcmp(command, "session_close") == 0) {
@@ -1167,10 +1174,11 @@ int main() {
             }
             unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
             unsigned char payload[4];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_DEINIT, payload, sizeof(payload));
         } else if (strcmp(command, "session_start") == 0 || strcmp(command, "start_ranging") == 0) {
             char* session_id_str = strtok(NULL, " ");
@@ -1181,10 +1189,11 @@ int main() {
             }
             unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
             unsigned char payload[4];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_START, payload, sizeof(payload));
         } else if (strcmp(command, "session_stop") == 0 || strcmp(command, "stop_ranging") == 0) {
             char* session_id_str = strtok(NULL, " ");
@@ -1195,10 +1204,11 @@ int main() {
             }
             unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
             unsigned char payload[4];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_STOP, payload, sizeof(payload));
         } else if (strcmp(command, "get_session_state") == 0 || strcmp(command, "session_status") == 0) {
             char* session_id_str = strtok(NULL, " ");
@@ -1209,10 +1219,11 @@ int main() {
             }
             unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
             unsigned char payload[4];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_STATE, payload, sizeof(payload));
         } else if (strcmp(command, "set_app_config") == 0) {
             char* session_id_str = strtok(NULL, " ");
@@ -1337,10 +1348,11 @@ int main() {
             }
 
             unsigned char payload[8];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
-            payload[3] = session_id & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             payload[4] = 1; // Number of TLVs
             payload[5] = cfg_id;
             payload[6] = 1; // Length
@@ -1355,9 +1367,11 @@ int main() {
             unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
 
             unsigned char payload[MAX_PAYLOAD_LENGTH];
-            payload[0] = (session_id >> 24) & 0xFF;
-            payload[1] = (session_id >> 16) & 0xFF;
-            payload[2] = (session_id >> 8) & 0xFF;
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             payload[3] = session_id & 0xFF;
 
             int num_configs = 0;
@@ -1466,9 +1480,11 @@ int main() {
             unsigned char notification_packet[sizeof(struct uci_packet_header) + 6];
             struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
             set_header_values(ntf_header, NOTIFICATION, COMPLETE, SESSION_CONFIG, SESSION_STATUS_NTF, 6);
-            notification_packet[sizeof(struct uci_packet_header)] = (session_id >> 24) & 0xFF;
-            notification_packet[sizeof(struct uci_packet_header) + 1] = (session_id >> 16) & 0xFF;
-            notification_packet[sizeof(struct uci_packet_header) + 2] = (session_id >> 8) & 0xFF;
+            // Store session_id in little-endian format to match UCI spec and read_u32_le parsing
+            notification_packet[sizeof(struct uci_packet_header)] = session_id & 0xFF;           // LSB first
+            notification_packet[sizeof(struct uci_packet_header) + 1] = (session_id >> 8) & 0xFF;
+            notification_packet[sizeof(struct uci_packet_header) + 2] = (session_id >> 16) & 0xFF;
+            notification_packet[sizeof(struct uci_packet_header) + 3] = (session_id >> 24) & 0xFF;   // MSB last
             notification_packet[sizeof(struct uci_packet_header) + 3] = session_id & 0xFF;
             notification_packet[sizeof(struct uci_packet_header) + 4] = session_state;
             notification_packet[sizeof(struct uci_packet_header) + 5] = reason_code;

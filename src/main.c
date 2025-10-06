@@ -1718,7 +1718,7 @@ int main() {
                 if (packet_len >= (int)sizeof(packet)) {
                     if (ui_color_enabled) {
                         printf("%s%s%sError: Packet too long (max %zu bytes)%s\n", 
-                               ANSI_COLOR_RED, ANSI_BOLD, ANSI_BG_RED, ANSI_RESET, sizeof(packet));
+                               ANSI_COLOR_RED, ANSI_BOLD, ANSI_BG_RED, sizeof(packet), ANSI_RESET);
                     } else {
                         printf("Error: Packet too long (max %zu bytes)\n", sizeof(packet));
                     }
@@ -1741,7 +1741,7 @@ int main() {
             if (packet_len > 0) {
                 if (ui_color_enabled) {
                     printf("%s%s%sAnalyzing UCI packet (%d bytes):%s\n", 
-                           ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_BG_BLUE, ANSI_RESET, packet_len);
+                           ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_BG_BLUE, packet_len, ANSI_RESET);
                 } else {
                     printf("Analyzing UCI packet (%d bytes):\n", packet_len);
                 }

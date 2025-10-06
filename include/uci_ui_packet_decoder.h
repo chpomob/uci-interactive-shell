@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
+// Enhanced UI packet analysis function
+void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len);
+
 // Enhanced packet decoding functions with UI enhancements
 void ui_decode_core_device_info_rsp(unsigned char* payload, int payload_len);
 void ui_decode_core_get_caps_info_rsp(unsigned char* payload, int payload_len);

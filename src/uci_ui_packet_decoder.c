@@ -19,6 +19,8 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
     }
 
     struct uci_packet_header* header = (struct uci_packet_header*)packet;
+    uci_header_fields_t header_fields;
+    uci_extract_header_fields(header, &header_fields);
 
     if (ui_color_enabled) {
         printf("%s%s%s=== UCI Packet Analysis ===%s\n", 
@@ -36,12 +38,12 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
     }
 
     // Extract header fields
-    unsigned char gid = get_gid(header);
-    unsigned char pbf = get_pbf(header);
-    unsigned char mt = get_mt(header);
-    unsigned char opcode = get_opcode(header);
-    unsigned char opcode_reserved_bits = get_reserved_opcode_bits(header);
-    unsigned char payload_len_field = header->payload_len;
+    unsigned char gid = header_fields.group_id;
+    unsigned char pbf = header_fields.packet_boundary;
+    unsigned char mt = header_fields.message_type;
+    unsigned char opcode = header_fields.opcode_id;
+    unsigned char opcode_reserved_bits = header_fields.reserved_opcode_bits;
+    unsigned char payload_len_field = header_fields.payload_length;
 
     if (ui_color_enabled) {
         printf("  %s%sMessage Type (MT):%s 0x%01X", 
@@ -237,7 +239,116 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
         unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
         int payload_len_int = (int)payload_len_field;
 
-        if (get_mt(header) == RESPONSE && get_gid(header) == CORE) {
+        if (mt == COMMAND && gid == SESSION_CONFIG) {
+            switch(opcode) {
+                case SESSION_INIT:
+                    ui_decode_session_init_cmd(payload_ptr, payload_len_int);
+                    break;
+                case SESSION_DEINIT:
+                    if (ui_color_enabled) {
+                        printf("  %s%sSESSION_DEINIT_CMD - Session Deinitialization Command:%s\n",
+                               ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+                    } else {
+                        printf("  SESSION_DEINIT_CMD - Session Deinitialization Command:\n");
+                    }
+                    if (payload_len_int >= 4) {
+                        unsigned int session_token = (unsigned int)payload_ptr[0] |
+                                                    ((unsigned int)payload_ptr[1] << 8) |
+                                                    ((unsigned int)payload_ptr[2] << 16) |
+                                                    ((unsigned int)payload_ptr[3] << 24);
+                        if (ui_color_enabled) {
+                            printf("    %s%sSession Token:%s 0x%08X\n",
+                                   ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_token);
+                        } else {
+                            printf("    Session Token: 0x%08X\n", session_token);
+                        }
+                    }
+                    break;
+                case SESSION_SET_APP_CONFIG:
+                    if (ui_color_enabled) {
+                        printf("  %s%sSESSION_SET_APP_CONFIG_CMD - Set Application Config Command:%s\n",
+                               ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+                    } else {
+                        printf("  SESSION_SET_APP_CONFIG_CMD - Set Application Config Command:\n");
+                    }
+                    if (payload_len_int >= 5) {
+                        unsigned int session_token = (unsigned int)payload_ptr[0] |
+                                                    ((unsigned int)payload_ptr[1] << 8) |
+                                                    ((unsigned int)payload_ptr[2] << 16) |
+                                                    ((unsigned int)payload_ptr[3] << 24);
+                        unsigned char num_tlvs = payload_ptr[4];
+                        if (ui_color_enabled) {
+                            printf("    %s%sSession Token:%s 0x%08X\n",
+                                   ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_token);
+                            printf("    %s%sNumber of TLVs:%s %u\n",
+                                   ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, num_tlvs);
+                        } else {
+                            printf("    Session Token: 0x%08X\n", session_token);
+                            printf("    Number of TLVs: %u\n", num_tlvs);
+                        }
+                    }
+                    break;
+                default:
+                    if (ui_color_enabled) {
+                        printf("  %s%sNo specific decoder for SESSION_CONFIG_COMMAND opcode 0x%02X%s\n",
+                               ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, opcode, ANSI_RESET);
+                    } else {
+                        printf("  No specific decoder for SESSION_CONFIG_COMMAND opcode 0x%02X\n", opcode);
+                    }
+                    break;
+            }
+        } else if (mt == COMMAND && gid == SESSION_CONTROL) {
+            switch(opcode) {
+                case SESSION_START:
+                    if (ui_color_enabled) {
+                        printf("  %s%sSESSION_START_CMD - Start Session Command:%s\n",
+                               ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+                    } else {
+                        printf("  SESSION_START_CMD - Start Session Command:\n");
+                    }
+                    if (payload_len_int >= 4) {
+                        unsigned int session_token = (unsigned int)payload_ptr[0] |
+                                                    ((unsigned int)payload_ptr[1] << 8) |
+                                                    ((unsigned int)payload_ptr[2] << 16) |
+                                                    ((unsigned int)payload_ptr[3] << 24);
+                        if (ui_color_enabled) {
+                            printf("    %s%sSession Token:%s 0x%08X\n",
+                                   ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_token);
+                        } else {
+                            printf("    Session Token: 0x%08X\n", session_token);
+                        }
+                    }
+                    break;
+                case SESSION_STOP:
+                    if (ui_color_enabled) {
+                        printf("  %s%sSESSION_STOP_CMD - Stop Session Command:%s\n",
+                               ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+                    } else {
+                        printf("  SESSION_STOP_CMD - Stop Session Command:\n");
+                    }
+                    if (payload_len_int >= 4) {
+                        unsigned int session_token = (unsigned int)payload_ptr[0] |
+                                                    ((unsigned int)payload_ptr[1] << 8) |
+                                                    ((unsigned int)payload_ptr[2] << 16) |
+                                                    ((unsigned int)payload_ptr[3] << 24);
+                        if (ui_color_enabled) {
+                            printf("    %s%sSession Token:%s 0x%08X\n",
+                                   ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_token);
+                        } else {
+                            printf("    Session Token: 0x%08X\n", session_token);
+                        }
+                    }
+                    break;
+                default:
+                    if (ui_color_enabled) {
+                        printf("  %s%sNo specific decoder for SESSION_CONTROL_COMMAND opcode 0x%02X%s\n",
+                               ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, opcode, ANSI_RESET);
+                    } else {
+                        printf("  No specific decoder for SESSION_CONTROL_COMMAND opcode 0x%02X\n", opcode);
+                    }
+                    break;
+            }
+        } else if (mt == RESPONSE && gid == CORE) {
             switch(opcode) {
                 case CORE_DEVICE_INFO:
                     ui_decode_core_device_info_rsp(payload_ptr, payload_len_int);
@@ -269,7 +380,7 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
                     }
                     break;
             }
-        } else if (get_mt(header) == NOTIFICATION && get_gid(header) == CORE) {
+        } else if (mt == NOTIFICATION && gid == CORE) {
             switch(opcode) {
                 case CORE_DEVICE_STATUS_NTF:
                     ui_decode_core_device_status_ntf(payload_ptr, payload_len_int);
@@ -286,7 +397,7 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
                     }
                     break;
             }
-        } else if (get_mt(header) == RESPONSE && get_gid(header) == SESSION_CONFIG) {
+        } else if (mt == RESPONSE && gid == SESSION_CONFIG) {
             switch(opcode) {
                 case SESSION_INIT:
                     ui_decode_session_init_rsp(payload_ptr, payload_len_int);
@@ -324,7 +435,7 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
                     }
                     break;
             }
-        } else if (get_mt(header) == NOTIFICATION && get_gid(header) == SESSION_CONFIG) {
+        } else if (mt == NOTIFICATION && gid == SESSION_CONFIG) {
             switch(opcode) {
                 case SESSION_STATUS_NTF:
                     ui_decode_session_status_ntf(payload_ptr, payload_len_int);
@@ -347,7 +458,7 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
                     }
                     break;
             }
-        } else if (get_mt(header) == RESPONSE && get_gid(header) == SESSION_CONTROL) {
+        } else if (mt == RESPONSE && gid == SESSION_CONTROL) {
             switch(opcode) {
                 case SESSION_START:
                     ui_decode_session_start_rsp(payload_ptr, payload_len_int);
@@ -367,7 +478,7 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
                     }
                     break;
             }
-        } else if (get_mt(header) == NOTIFICATION && get_gid(header) == SESSION_CONTROL) {
+        } else if (mt == NOTIFICATION && gid == SESSION_CONTROL) {
             switch(opcode) {
                 case SESSION_STATUS_NTF:
                     ui_decode_session_status_ntf(payload_ptr, payload_len_int);
@@ -390,7 +501,7 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
                     }
                     break;
             }
-        } else if (get_mt(header) == NOTIFICATION && get_gid(header) == VENDOR_ANDROID) {
+        } else if (mt == NOTIFICATION && gid == VENDOR_ANDROID) {
             // Simplified handling for vendor notifications
             if (ui_color_enabled) {
                 printf("  %s%sNo specific decoder for VENDOR_ANDROID_NOTIFICATION opcode 0x%02X%s\n", 
@@ -398,7 +509,7 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
             } else {
                 printf("  No specific decoder for VENDOR_ANDROID_NOTIFICATION opcode 0x%02X\n", opcode);
             }
-        } else if (get_mt(header) == NOTIFICATION && get_gid(header) == RANGING_DATA) {
+        } else if (mt == NOTIFICATION && gid == RANGING_DATA) {
             switch(opcode) {
                 case RANGE_DATA_NTF_OPCODE:
                     ui_decode_range_data_ntf(payload_ptr, payload_len_int);
@@ -415,9 +526,9 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
         } else {
             if (ui_color_enabled) {
                 printf("  %s%sNo specific decoder for MT=%d, GID=%d, OP=0x%02X%s\n", 
-                       ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, get_mt(header), get_gid(header), opcode, ANSI_RESET);
+                       ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, mt, gid, opcode, ANSI_RESET);
             } else {
-                printf("  No specific decoder for MT=%d, GID=%d, OP=0x%02X\n", get_mt(header), get_gid(header), opcode);
+                printf("  No specific decoder for MT=%d, GID=%d, OP=0x%02X\n", mt, gid, opcode);
             }
         }
     }
@@ -611,6 +722,59 @@ void ui_decode_core_generic_error_ntf(unsigned char* payload, int payload_len) {
         printf("  %s%sCORE_GENERIC_ERROR_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  CORE_GENERIC_ERROR_NTF:\n");
+    }
+}
+
+void ui_decode_session_init_cmd(unsigned char* payload, int payload_len) {
+    if (ui_color_enabled) {
+        printf("  %s%sSESSION_INIT_CMD - Session Initialization Command:%s\n",
+               ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+    } else {
+        printf("  SESSION_INIT_CMD - Session Initialization Command:\n");
+    }
+
+    if (payload_len < 5) {
+        if (ui_color_enabled) {
+            printf("    %s%sERROR:%s Payload too short (%d bytes, need at least 5)\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, ANSI_RESET, payload_len);
+        } else {
+            printf("    ERROR: Payload too short (%d bytes, need at least 5)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned int session_id = (unsigned int)payload[0] |
+                             ((unsigned int)payload[1] << 8) |
+                             ((unsigned int)payload[2] << 16) |
+                             ((unsigned int)payload[3] << 24);
+    unsigned char session_type = payload[4];
+
+    if (ui_color_enabled) {
+        printf("    %s%sSession ID:%s 0x%08X\n",
+               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_id);
+    } else {
+        printf("    Session ID: 0x%08X\n", session_id);
+    }
+
+    // Print session type with name
+    const char* type_name = "UNKNOWN";
+    switch(session_type) {
+        case 0x00: type_name = "FIRA_RANGING_SESSION"; break;
+        case 0x01: type_name = "FIRA_RANGING_AND_IN_BAND_DATA_SESSION"; break;
+        case 0x02: type_name = "FIRA_DATA_TRANSFER_SESSION"; break;
+        case 0x03: type_name = "FIRA_RANGING_ONLY_PHASE"; break;
+        case 0x04: type_name = "FIRA_IN_BAND_DATA_PHASE"; break;
+        case 0x05: type_name = "FIRA_RANGING_WITH_DATA_PHASE"; break;
+        case 0xA0: type_name = "CCC_RANGING_SESSION"; break;
+        case 0xD0: type_name = "DEVICE_TEST_MODE"; break;
+    }
+
+    if (ui_color_enabled) {
+        printf("    %s%sSession Type:%s 0x%02X (%s%s%s)\n",
+               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_type,
+               ANSI_COLOR_CYAN, type_name, ANSI_RESET);
+    } else {
+        printf("    Session Type: 0x%02X (%s)\n", session_type, type_name);
     }
 }
 

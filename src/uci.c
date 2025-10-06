@@ -679,10 +679,58 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
         
         // Define payload pointer for easier access
         unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
-        
+
         // Decode payload based on MT, GID, and Opcode
         int decoded = 0;
-        if (mt == RESPONSE && gid == CORE) {
+        if (mt == COMMAND && gid == SESSION_CONFIG) {
+            switch(opcode) {
+                case SESSION_INIT:
+                    decode_session_init_cmd(payload_ptr, (int)payload_len);
+                    decoded = 1;
+                    break;
+                case SESSION_DEINIT:
+                    printf("    SESSION_DEINIT_CMD - Session Deinitialization Command\n");
+                    if (payload_len >= 4) {
+                        unsigned int session_token = read_u32_le(payload_ptr);
+                        printf("      Session Token: 0x%08X\n", session_token);
+                    }
+                    decoded = 1;
+                    break;
+                case SESSION_SET_APP_CONFIG:
+                    printf("    SESSION_SET_APP_CONFIG_CMD - Set Application Config Command\n");
+                    if (payload_len >= 5) {
+                        unsigned int session_token = read_u32_le(payload_ptr);
+                        unsigned char num_tlvs = payload_ptr[4];
+                        printf("      Session Token: 0x%08X\n", session_token);
+                        printf("      Number of TLVs: %u\n", num_tlvs);
+                    }
+                    decoded = 1;
+                    break;
+                default:
+                    break;
+            }
+        } else if (mt == COMMAND && gid == SESSION_CONTROL) {
+            switch(opcode) {
+                case SESSION_START:
+                    printf("    SESSION_START_CMD - Start Session Command\n");
+                    if (payload_len >= 4) {
+                        unsigned int session_token = read_u32_le(payload_ptr);
+                        printf("      Session Token: 0x%08X\n", session_token);
+                    }
+                    decoded = 1;
+                    break;
+                case SESSION_STOP:
+                    printf("    SESSION_STOP_CMD - Stop Session Command\n");
+                    if (payload_len >= 4) {
+                        unsigned int session_token = read_u32_le(payload_ptr);
+                        printf("      Session Token: 0x%08X\n", session_token);
+                    }
+                    decoded = 1;
+                    break;
+                default:
+                    break;
+            }
+        } else if (mt == RESPONSE && gid == CORE) {
             switch(opcode) {
                 case CORE_DEVICE_INFO:
                     decode_core_device_info_rsp(payload_ptr, (int)payload_len);
@@ -3182,6 +3230,32 @@ void decode_core_device_suspend_rsp(unsigned char* payload, int payload_len) {
 }
 
 // SESSION_CONFIG Group Payload Decoders
+void decode_session_init_cmd(unsigned char* payload, int payload_len) {
+    printf("    SESSION_INIT_CMD - Session Initialization Command\n");
+
+    if (payload_len < 5) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 5)\n", payload_len);
+        return;
+    }
+
+    unsigned int session_id = read_u32_le(&payload[0]);
+    unsigned char session_type = payload[4];
+
+    printf("      Session ID: 0x%08X\n", session_id);
+    printf("      Session Type: 0x%02X", session_type);
+    switch(session_type) {
+        case 0x00: printf(" (FIRA_RANGING_SESSION)\n"); break;
+        case 0x01: printf(" (FIRA_RANGING_AND_IN_BAND_DATA_SESSION)\n"); break;
+        case 0x02: printf(" (FIRA_DATA_TRANSFER_SESSION)\n"); break;
+        case 0x03: printf(" (FIRA_RANGING_ONLY_PHASE)\n"); break;
+        case 0x04: printf(" (FIRA_IN_BAND_DATA_PHASE)\n"); break;
+        case 0x05: printf(" (FIRA_RANGING_WITH_DATA_PHASE)\n"); break;
+        case 0xA0: printf(" (CCC_RANGING_SESSION)\n"); break;
+        case 0xD0: printf(" (DEVICE_TEST_MODE)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
+}
+
 void decode_session_init_rsp(unsigned char* payload, int payload_len) {
     printf("    SESSION_INIT_RSP - Session Initialization Response\n");
     

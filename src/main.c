@@ -1687,6 +1687,93 @@ int main() {
                 printf("\n\n");
                 analyze_uci_packet(packet, packet_len);
             }
+        } else if (strcmp(command, "help") == 0) {
+            // Print comprehensive help information
+            printf("UCI Interactive Shell - Enhanced UI\n");
+            printf("==================================\n\n");
+            
+            printf("Available Commands:\n");
+            printf("------------------\n");
+            printf("General Commands:\n");
+            printf("  help                      - Show this help information\n");
+            printf("  quit                      - Exit the shell\n");
+            printf("  history                   - Show command history\n");
+            printf("  complete <prefix>         - Autocomplete a command or parameter\n");
+            printf("  alias <name> [command]    - Create or list command aliases\n");
+            printf("  unalias <name>            - Remove an alias\n\n");
+            
+            printf("Device Management Commands:\n");
+            printf("  get_device_info, device_info     - Get device information\n");
+            printf("  device_reset                     - Reset the device\n");
+            printf("  get_caps_info                    - Get device capabilities information\n");
+            printf("  set_config <param> <value>       - Set device configuration\n");
+            printf("  get_config <param>               - Get device configuration\n");
+            printf("  get_device_state                 - Get current device state\n");
+            printf("  set_device_active                - Set device to ACTIVE state\n");
+            printf("  set_device_ready                 - Set device to READY state\n");
+            printf("  device_suspend                   - Suspend the device\n");
+            printf("  set_power <state>                - Set device power state\n");
+            printf("  device_on                        - Turn device on (ACTIVE state)\n");
+            printf("  device_off                       - Turn device off (READY state)\n\n");
+            
+            printf("Session Management Commands:\n");
+            printf("  session_init <id> <type>         - Initialize a ranging session\n");
+            printf("  session_new <id> <type>          - Alias for session_init\n");
+            printf("  session_deinit <id>              - Deinitialize a ranging session\n");
+            printf("  session_close <id>               - Alias for session_deinit\n");
+            printf("  session_start <id>               - Start a ranging session\n");
+            printf("  start_ranging <id>               - Alias for session_start\n");
+            printf("  session_stop <id>                - Stop a ranging session\n");
+            printf("  stop_ranging <id>                - Alias for session_stop\n");
+            printf("  get_session_state <id>           - Get session state\n");
+            printf("  session_status <id>              - Alias for get_session_state\n");
+            printf("  get_session_count                - Get number of active sessions\n\n");
+            
+            printf("Application Configuration Commands:\n");
+            printf("  set_app_config <id> <param> <value>  - Set session app configuration\n");
+            printf("  get_app_config <id> <param>          - Get session app configuration\n\n");
+            
+            printf("Hardware Mode Commands:\n");
+            printf("  hw_init <device_path>            - Initialize hardware mode\n");
+            printf("  hw_connect <device_path>         - Connect to hardware device\n");
+            printf("  hw_info                      - Get hardware device information\n");
+            printf("  hw_send <mt> <pbf> <gid> <oid> [payload...]  - Send raw command\n");
+            printf("  hw_send_raw <bytes...>           - Send raw hex bytes\n");
+            printf("  hw_get_device_info, hw_device_info   - Get device info in hardware mode\n");
+            printf("  hw_device_reset                  - Reset device in hardware mode\n");
+            printf("  hw_get_caps_info                 - Get capabilities in hardware mode\n");
+            printf("  hw_set_config <param> <value>    - Set config in hardware mode\n");
+            printf("  hw_get_config <param>            - Get config in hardware mode\n");
+            printf("  hw_get_device_state              - Get device state in hardware mode\n");
+            printf("  hw_set_device_active             - Set device active in hardware mode\n");
+            printf("  hw_set_device_ready              - Set device ready in hardware mode\n");
+            printf("  hw_device_suspend                - Suspend device in hardware mode\n");
+            printf("  hw_session_init <id> <type>      - Initialize session in hardware mode\n");
+            printf("  hw_session_new <id> <type>       - Alias for hw_session_init\n");
+            printf("  hw_session_deinit <id>           - Deinitialize session in hardware mode\n");
+            printf("  hw_session_close <id>            - Alias for hw_session_deinit\n");
+            printf("  hw_session_start <id>            - Start session in hardware mode\n");
+            printf("  hw_start_ranging <id>            - Alias for hw_session_start\n");
+            printf("  hw_session_stop <id>             - Stop session in hardware mode\n");
+            printf("  hw_stop_ranging <id>             - Alias for hw_session_stop\n");
+            printf("  hw_get_session_state <id>        - Get session state in hardware mode\n");
+            printf("  hw_session_status <id>           - Alias for hw_get_session_state\n");
+            printf("  hw_set_app_config <id> <param> <value>  - Set app config in hardware mode\n");
+            printf("  hw_get_app_config <id> <param>   - Get app config in hardware mode\n\n");
+            
+            printf("Simulation & Testing Commands:\n");
+            printf("  simulate_notification            - Simulate a device status notification\n");
+            printf("  simulate_session_status          - Simulate a session status notification\n");
+            printf("  simulate_data_credit             - Simulate a data credit notification\n");
+            printf("  simulate_ranging                 - Simulate ranging measurements\n");
+            printf("  simulate_multi_target_ranging    - Simulate multi-target ranging\n");
+            printf("  demo_session_flow                - Demonstrate a complete session flow\n");
+            printf("  analyze_packet <bytes...>        - Analyze hex packet bytes\n\n");
+            
+            printf("For complete documentation, see:\n");
+            printf("  - README.md - Project overview and usage\n");
+            printf("  - FINAL_SUMMARY.md - Complete feature summary and technical details\n");
+            printf("  - uci_analysis/ - Detailed UCI protocol analysis based on Android UWB specification\n");
         } else {
             ui_print_command_not_found(command);
         }

@@ -161,11 +161,312 @@ static char* cli_command_generator(const char* text, int state) {
     return NULL;
 }
 
+// Parameter generator functions for different contexts
+static char* parameter_generator_session_types(const char* text, int state) {
+    static int list_index;
+    static size_t len;
+    static const char* const session_types[] = {
+        "fira_ranging",
+        "ranging", 
+        NULL
+    };
+
+    if (!state) {
+        list_index = 0;
+        len = strlen(text);
+    }
+
+    while (session_types[list_index] != NULL) {
+        const char* name = session_types[list_index++];
+        if (strncmp(name, text, len) == 0) {
+            char* result = malloc(strlen(name) + 1);
+            if (result != NULL) {
+                strcpy(result, name);
+            }
+            return result;
+        }
+    }
+
+    return NULL;
+}
+
+static char* parameter_generator_session_id(const char* text, int state) {
+    static int list_index;
+    static size_t len;
+    // Provide example session IDs - in a real system, these might come from active sessions
+    static const char* const session_ids[] = {
+        "1", "2", "3", "4", "5", "id1", "id2", "session1", "session2",
+        NULL
+    };
+
+    if (!state) {
+        list_index = 0;
+        len = strlen(text);
+    }
+
+    while (session_ids[list_index] != NULL) {
+        const char* name = session_ids[list_index++];
+        if (strncmp(name, text, len) == 0) {
+            char* result = malloc(strlen(name) + 1);
+            if (result != NULL) {
+                strcpy(result, name);
+            }
+            return result;
+        }
+    }
+
+    return NULL;
+}
+
+static char* parameter_generator_config_name(const char* text, int state) {
+    static int list_index;
+    static size_t len;
+    static const char* const config_names[] = {
+        "device_state",
+        "low_power_mode",
+        NULL
+    };
+
+    if (!state) {
+        list_index = 0;
+        len = strlen(text);
+    }
+
+    while (config_names[list_index] != NULL) {
+        const char* name = config_names[list_index++];
+        if (strncmp(name, text, len) == 0) {
+            char* result = malloc(strlen(name) + 1);
+            if (result != NULL) {
+                strcpy(result, name);
+            }
+            return result;
+        }
+    }
+
+    return NULL;
+}
+
+static char* parameter_generator_app_config_name(const char* text, int state) {
+    static int list_index;
+    static size_t len;
+    static const char* const app_config_names[] = {
+        "device_type",
+        "ranging_usage", 
+        "ranging_round_usage",
+        "sts_config",
+        "multi_node_mode",
+        "channel",
+        "channel_number",
+        "device_role",
+        "aoa_request",
+        "aoa_result_req",
+        "scheduled_mode",
+        NULL
+    };
+
+    if (!state) {
+        list_index = 0;
+        len = strlen(text);
+    }
+
+    while (app_config_names[list_index] != NULL) {
+        const char* name = app_config_names[list_index++];
+        if (strncmp(name, text, len) == 0) {
+            char* result = malloc(strlen(name) + 1);
+            if (result != NULL) {
+                strcpy(result, name);
+            }
+            return result;
+        }
+    }
+
+    return NULL;
+}
+
+static char* parameter_generator_device_state(const char* text, int state) {
+    static int list_index;
+    static size_t len;
+    static const char* const device_states[] = {
+        "active",
+        "ready",
+        NULL
+    };
+
+    if (!state) {
+        list_index = 0;
+        len = strlen(text);
+    }
+
+    while (device_states[list_index] != NULL) {
+        const char* name = device_states[list_index++];
+        if (strncmp(name, text, len) == 0) {
+            char* result = malloc(strlen(name) + 1);
+            if (result != NULL) {
+                strcpy(result, name);
+            }
+            return result;
+        }
+    }
+
+    return NULL;
+}
+
+static char* parameter_generator_bool_values(const char* text, int state) {
+    static int list_index;
+    static size_t len;
+    static const char* const bool_values[] = {
+        "on",
+        "off",
+        NULL
+    };
+
+    if (!state) {
+        list_index = 0;
+        len = strlen(text);
+    }
+
+    while (bool_values[list_index] != NULL) {
+        const char* name = bool_values[list_index++];
+        if (strncmp(name, text, len) == 0) {
+            char* result = malloc(strlen(name) + 1);
+            if (result != NULL) {
+                strcpy(result, name);
+            }
+            return result;
+        }
+    }
+
+    return NULL;
+}
+
 static char** cli_completion(const char* text, int start, int end) {
     (void)end;
-    if (start == 0) {
+    
+    // Get the entire line being edited
+    char* line = rl_line_buffer;
+    
+    if (!line) {
+        return NULL;
+    }
+    
+    // Count number of words before the current position to determine context
+    int word_count = 0;
+    int i = 0;
+    int in_word = 0;
+    
+    // Parse the line up to the cursor position to find current word position
+    for (i = 0; i < start; i++) {
+        if (line[i] == ' ') {
+            if (in_word) {
+                word_count++;
+                in_word = 0;
+            }
+        } else if (line[i] != '\t') {
+            in_word = 1;
+        }
+    }
+    
+    // If we're at the first word, complete commands
+    if (word_count == 0 && start == 0) {
         return rl_completion_matches(text, cli_command_generator);
     }
+    
+    // For subsequent words, provide parameter-specific completion
+    if (word_count >= 1) {
+        // Extract the command part (first word) to determine context
+        char command[256];
+        int j = 0;
+        
+        // Find the first word (command)
+        while (j < start && line[j] != ' ') {
+            if (j < sizeof(command) - 1) {
+                command[j] = line[j];
+            }
+            j++;
+        }
+        command[j < sizeof(command) ? j : sizeof(command) - 1] = '\0';
+        
+        // Check if this is a command that we should provide parameter completion for
+        if (strcmp(command, "session_init") == 0 || strcmp(command, "session_new") == 0 || 
+            strcmp(command, "hw_session_init") == 0 || strcmp(command, "hw_session_new") == 0) {
+            // For session_init commands, provide session type completion after the session ID
+            if (word_count == 1) {
+                // After session ID, suggest session types using the generator function
+                return rl_completion_matches(text, parameter_generator_session_types);
+            }
+        }
+        else if (strcmp(command, "session_start") == 0 || strcmp(command, "start_ranging") == 0 ||
+                 strcmp(command, "session_stop") == 0 || strcmp(command, "stop_ranging") == 0 ||
+                 strcmp(command, "get_session_state") == 0 || strcmp(command, "session_status") == 0 ||
+                 strcmp(command, "session_deinit") == 0 || strcmp(command, "session_close") == 0 ||
+                 strcmp(command, "hw_session_start") == 0 || strcmp(command, "hw_start_ranging") == 0 ||
+                 strcmp(command, "hw_session_stop") == 0 || strcmp(command, "hw_stop_ranging") == 0 ||
+                 strcmp(command, "hw_get_session_state") == 0 || strcmp(command, "hw_session_status") == 0 ||
+                 strcmp(command, "hw_session_deinit") == 0 || strcmp(command, "hw_session_close") == 0) {
+            if (word_count == 1) {
+                // For session commands that expect a session ID, provide dummy completion
+                return rl_completion_matches(text, parameter_generator_session_id);
+            }
+        }
+        else if (strcmp(command, "set_config") == 0 || strcmp(command, "hw_set_config") == 0) {
+            if (word_count == 1) {
+                // For the config parameter name
+                return rl_completion_matches(text, parameter_generator_config_name);
+            } else if (word_count == 2) {
+                // For the value - extract parameter name to suggest appropriate values
+                char param_name[256];
+                int pos = 0;
+                int word_idx = 0;
+                
+                // Skip command
+                while (line[pos] != ' ' && line[pos] != '\0') pos++;
+                // Skip space
+                while (line[pos] == ' ') pos++;
+                // Get parameter name
+                int start_param = pos;
+                while (line[pos] != ' ' && line[pos] != '\0' && word_idx == 0) {
+                    if (line[pos+1] == ' ' || line[pos+1] == '\0') word_idx = 1; // end of param name
+                    pos++;
+                }
+                int len = pos - start_param < sizeof(param_name) ? pos - start_param : sizeof(param_name) - 1;
+                strncpy(param_name, line + start_param, len);
+                param_name[len] = '\0';
+                
+                if (strcmp(param_name, "device_state") == 0) {
+                    return rl_completion_matches(text, parameter_generator_device_state);
+                } else if (strcmp(param_name, "low_power_mode") == 0) {
+                    return rl_completion_matches(text, parameter_generator_bool_values);
+                }
+            }
+        }
+        else if (strcmp(command, "set_app_config") == 0 || strcmp(command, "hw_set_app_config") == 0) {
+            if (word_count == 1) {
+                // For session ID
+                return rl_completion_matches(text, parameter_generator_session_id);
+            } else if (word_count == 2) {
+                // For config parameter name
+                return rl_completion_matches(text, parameter_generator_app_config_name);
+            }
+            // We could extend this for value completion as well
+        }
+        else if (strcmp(command, "get_config") == 0 || strcmp(command, "hw_get_config") == 0) {
+            if (word_count == 1) {
+                // For the config parameter name
+                return rl_completion_matches(text, parameter_generator_config_name);
+            }
+        }
+        else if (strcmp(command, "get_app_config") == 0 || strcmp(command, "hw_get_app_config") == 0) {
+            if (word_count == 1) {
+                // For session ID
+                return rl_completion_matches(text, parameter_generator_session_id);
+            } else if (word_count == 2) {
+                // For config parameter name
+                return rl_completion_matches(text, parameter_generator_app_config_name);
+            }
+        }
+    }
+    
+    // For other contexts, return NULL to disable completion so it doesn't default to file completion
     return NULL;
 }
 

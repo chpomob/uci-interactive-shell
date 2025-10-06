@@ -1688,12 +1688,16 @@ int main() {
                 analyze_uci_packet(packet, packet_len);
             }
         } else if (strcmp(command, "help") == 0) {
-            // Print comprehensive help information
-            printf("UCI Interactive Shell - Enhanced UI\n");
-            printf("==================================\n\n");
+            // Print comprehensive help information with UI enhancements
+            ui_print_header("UCI Interactive Shell - Enhanced UI");
             
-            printf("Available Commands:\n");
-            printf("------------------\n");
+            if (ui_color_enabled) {
+                printf("%s%sAvailable Commands:%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET);
+                printf("%s------------------%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_RESET);
+            } else {
+                printf("Available Commands:\n");
+                printf("------------------\n");
+            }
             printf("General Commands:\n");
             printf("  help                      - Show this help information\n");
             printf("  quit                      - Exit the shell\n");

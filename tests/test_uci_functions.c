@@ -126,7 +126,78 @@ int main() {
         TEST_PASS();
     }
     test_case_end3:;
-    
+
+    // Test header field extraction via struct helper
+    TEST_CASE(header_struct_extraction);
+    {
+        struct uci_packet_header header;
+        set_header_values(&header, RESPONSE, NOT_COMPLETE, SESSION_CONTROL, SESSION_GET_RANGING_COUNT, 12);
+
+        uci_header_fields_t fields;
+        memset(&fields, 0, sizeof(fields));
+        uci_extract_header_fields(&header, &fields);
+
+        if (fields.message_type != RESPONSE) {
+            TEST_FAIL("message_type mismatch");
+            goto test_case_header_struct_end;
+        }
+        if (fields.packet_boundary != NOT_COMPLETE) {
+            TEST_FAIL("packet_boundary mismatch");
+            goto test_case_header_struct_end;
+        }
+        if (fields.group_id != SESSION_CONTROL) {
+            TEST_FAIL("group_id mismatch");
+            goto test_case_header_struct_end;
+        }
+        if (fields.opcode_id != SESSION_GET_RANGING_COUNT) {
+            TEST_FAIL("opcode_id mismatch");
+            goto test_case_header_struct_end;
+        }
+        if (fields.payload_length != 12) {
+            TEST_FAIL("payload_length mismatch");
+            goto test_case_header_struct_end;
+        }
+
+        TEST_PASS();
+    }
+    test_case_header_struct_end:;
+
+    // Test header packing masks extraneous bits
+    TEST_CASE(header_field_masking);
+    {
+        struct uci_packet_header header;
+        set_header_values(&header,
+                          (unsigned char)(COMMAND | 0xF8),
+                          (unsigned char)(NOT_COMPLETE | 0xF6),
+                          (unsigned char)(SESSION_CONFIG | 0x30),
+                          (unsigned char)(SESSION_INIT | 0xC0),
+                          0x7B);
+
+        if (get_mt(&header) != COMMAND) {
+            TEST_FAIL("MT masking failed");
+            goto test_case_header_mask_end;
+        }
+        if (get_pbf(&header) != NOT_COMPLETE) {
+            TEST_FAIL("PBF masking failed");
+            goto test_case_header_mask_end;
+        }
+        if (get_gid(&header) != SESSION_CONFIG) {
+            TEST_FAIL("GID masking failed");
+            goto test_case_header_mask_end;
+        }
+        if (get_opcode(&header) != SESSION_INIT) {
+            TEST_FAIL("Opcode masking failed");
+            goto test_case_header_mask_end;
+        }
+        if (header.payload_len != 0x7B) {
+            TEST_FAIL("Payload length mismatch after masking");
+            goto test_case_header_mask_end;
+        }
+
+        TEST_PASS();
+    }
+    test_case_header_mask_end:;
+
     // Test session management functions
     TEST_CASE(session_management_init);
     {
@@ -297,18 +368,20 @@ int main() {
     // Test notification handler for session info
     TEST_CASE(notification_handler_session_info);
     {
-        // Create a minimal session info notification payload
-        // According to UCI spec, this should have sequence number + session_token + etc.
-        // For this test, just verify the function doesn't crash with minimal valid payload
+        // Create a minimal session info notification payload according to Android UCI spec
+        // SessionInfoNtf format: sequence_number + session_token + rcr_indicator +
+        // current_ranging_interval + ranging_measurement_type + reserved(1) +
+        // mac_address_indicator + hus_primary_session_id + reserved(4) + measurements
         unsigned char minimal_payload[] = {
             0x01, 0x00, 0x00, 0x00,  // sequence_number (4 bytes)
             0x02, 0x00, 0x00, 0x00,  // session_token (4 bytes)
             0x01,                    // rcr_indicator (1 byte)
             0x0A, 0x00, 0x00, 0x00,  // current_ranging_interval (4 bytes) = 10 ms
             0x01,                    // ranging_measurement_type (1 byte) = TWO_WAY
-            0x00,                    // reserved
-            0x00,                    // mac_address_indicator
+            0x00,                    // reserved (1 byte)
+            0x00,                    // mac_address_indicator (1 byte) = SHORT_ADDRESS
             0x01, 0x00, 0x00, 0x00,  // hus_primary_session_id (4 bytes)
+            0x00, 0x00, 0x00, 0x00,  // reserved (4 bytes)
             0x01,                    // number of measurements (1 byte)
             0x11, 0x00,              // mac address (2 bytes)
             0x00,                    // status
@@ -318,17 +391,18 @@ int main() {
             0x00,                    // aoa azimuth fom
             0x00, 0x00,              // aoa elevation
             0x00,                    // aoa elevation fom
-            0x00, 0x00, 0x00, 0x00,  // aoa dest azimuth
+            0x00, 0x00,              // aoa dest azimuth
             0x00,                    // aoa dest azimuth fom
             0x00, 0x00,              // aoa dest elevation
             0x00,                    // aoa dest elevation fom
-            0x01,                    // slot index
-            0x50                     // rssi
+            0x00,                    // slot index
+            0x00,                    // rssi
+            0x01, 0x50               // vendor_data (2 bytes)
         };
-        
+
         // This should not crash
         handle_session_info_ntf(minimal_payload, sizeof(minimal_payload));
-        
+
         TEST_PASS();
     }
     test_case_end8:;

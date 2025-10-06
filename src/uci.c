@@ -477,6 +477,8 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
     }
 
     struct uci_packet_header* header = (struct uci_packet_header*)packet;
+    uci_header_fields_t header_fields;
+    uci_extract_header_fields(header, &header_fields);
 
     printf("=== UCI Packet Analysis ===\n");
     printf("Total Packet Length: %zu bytes\n", packet_len);
@@ -484,12 +486,12 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
            packet[0], packet[1], packet[2], packet[3]);
 
     // Extract header fields
-    unsigned char gid = get_gid(header);
-    unsigned char pbf = get_pbf(header);
-    unsigned char mt = get_mt(header);
-    unsigned char opcode = get_opcode(header);
-    unsigned char opcode_reserved_bits = get_reserved_opcode_bits(header);
-    unsigned char payload_len = header->payload_len;
+    unsigned char gid = header_fields.group_id;
+    unsigned char pbf = header_fields.packet_boundary;
+    unsigned char mt = header_fields.message_type;
+    unsigned char opcode = header_fields.opcode_id;
+    unsigned char opcode_reserved_bits = header_fields.reserved_opcode_bits;
+    unsigned char payload_len = header_fields.payload_length;
 
     printf("  Message Type (MT): 0x%01X", mt);
     switch(mt) {
@@ -2662,20 +2664,22 @@ void handle_session_control_ntf(unsigned char opcode, unsigned char* payload, in
 
 // Ranging/Session Info Notification Handler
 void handle_session_info_ntf(unsigned char* payload, int payload_len) {
-    if (!payload || payload_len < 20) {
-        printf("  Error: SESSION_INFO_NTF payload too short. Need at least 20 bytes, got %d.\n", payload_len);
+    if (!payload || payload_len < 24) {
+        printf("  Error: SESSION_INFO_NTF payload too short. Need at least 24 bytes, got %d.\n", payload_len);
         return;
     }
-    
-    // Parse header fields
+
+    // Parse header fields according to Android UCI spec
     unsigned int sequence_number = read_u32_le(&payload[0]);
     unsigned int session_token = read_u32_le(&payload[4]);
     unsigned char rcr_indicator = payload[8];
     unsigned int current_ranging_interval = read_u32_le(&payload[9]);
     unsigned char ranging_measurement_type = payload[13];
-    unsigned char mac_address_indicator = payload[15]; // Skip reserved byte at position 14
+    // unsigned char reserved1 = payload[14]; // Skip reserved byte at position 14
+    unsigned char mac_address_indicator = payload[15];
     unsigned int hus_primary_session_id = read_u32_le(&payload[16]);
-    
+    // unsigned int reserved2 = read_u32_le(&payload[20]); // Skip reserved 4 bytes at position 20-23
+
     printf("  Sequence Number: %u\n", sequence_number);
     printf("  Session Token: 0x%08X\n", session_token);
     printf("  RCR Indicator: 0x%02X\n", rcr_indicator);
@@ -2691,9 +2695,9 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
     printf("\n");
     printf("  MAC Address Indicator: %s\n", mac_address_indicator ? "EXTENDED_ADDRESS" : "SHORT_ADDRESS");
     printf("  HUS Primary Session ID: 0x%08X\n", hus_primary_session_id);
-    
+
     // Parse ranging measurements
-    int offset = 20; // Header size (20 bytes)
+    int offset = 24; // Header size (24 bytes): 4+4+1+4+1+1+1+4+4
     if (offset >= payload_len) {
         printf("  No ranging measurements in notification (offset=%d, payload_len=%d).\n", offset, payload_len);
         return;
@@ -2807,9 +2811,11 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
     }
 
     struct uci_packet_header* header = (struct uci_packet_header*)packet;
+    uci_header_fields_t header_fields;
+    uci_extract_header_fields(header, &header_fields);
 
     size_t available_payload = packet_len - sizeof(struct uci_packet_header);
-    size_t payload_len = header->payload_len;
+    size_t payload_len = header_fields.payload_length;
     if (payload_len > available_payload) {
         printf("  Warning: Header payload length %zu exceeds available data %zu. Clamping.\n",
                payload_len, available_payload);
@@ -2817,10 +2823,10 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
     }
 
     printf("Received UCI packet:\n");
-    printf("  MT: 0x%01X\n", get_mt(header));
-    printf("  PBF: 0x%01X\n", get_pbf(header));
-    printf("  GID: 0x%01X\n", get_gid(header));
-    printf("  Opcode: 0x%02X\n", get_opcode(header));
+    printf("  MT: 0x%01X\n", header_fields.message_type);
+    printf("  PBF: 0x%01X\n", header_fields.packet_boundary);
+    printf("  GID: 0x%01X\n", header_fields.group_id);
+    printf("  Opcode: 0x%02X\n", header_fields.opcode_id);
     printf("  Payload Length: %zu\n", payload_len);
 
     if (payload_len > 0) {
@@ -2834,39 +2840,43 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
     unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
     int payload_len_int = (int)payload_len;
 
-    if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_DEVICE_INFO) {
+    unsigned char mt = header_fields.message_type;
+    unsigned char gid = header_fields.group_id;
+    unsigned char opcode = header_fields.opcode_id;
+
+    if (mt == RESPONSE && gid == CORE && opcode == CORE_DEVICE_INFO) {
         handle_core_device_info_rsp(payload_ptr, payload_len_int);
-    } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_DEVICE_SUSPEND) {
+    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_DEVICE_SUSPEND) {
         handle_core_device_suspend_rsp(payload_ptr, payload_len_int);
-    } else if (get_mt(header) == NOTIFICATION && get_gid(header) == CORE) {
-        if (get_opcode(header) == CORE_DEVICE_STATUS_NTF) {
+    } else if (mt == NOTIFICATION && gid == CORE) {
+        if (opcode == CORE_DEVICE_STATUS_NTF) {
             handle_core_device_status_ntf(payload_ptr, payload_len_int);
-        } else if (get_opcode(header) == CORE_GENERIC_ERROR_NTF) {
+        } else if (opcode == CORE_GENERIC_ERROR_NTF) {
             handle_core_generic_error_ntf(payload_ptr, payload_len_int);
         } else {
-            handle_generic_notification(get_gid(header), get_opcode(header), payload_ptr, payload_len_int);
+            handle_generic_notification(gid, opcode, payload_ptr, payload_len_int);
         }
-    } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_GET_CAPS_INFO) {
+    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_GET_CAPS_INFO) {
         handle_core_get_caps_info_rsp(payload_ptr, payload_len_int);
-    } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_SET_CONFIG) {
+    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_SET_CONFIG) {
         handle_core_set_config_rsp(payload_ptr, payload_len_int);
-    } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_DEVICE_RESET) {
+    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_DEVICE_RESET) {
         handle_core_device_reset_rsp(payload_ptr, payload_len_int);
-    } else if (get_mt(header) == RESPONSE && get_gid(header) == CORE && get_opcode(header) == CORE_GET_CONFIG) {
+    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_GET_CONFIG) {
         handle_core_get_config_rsp(payload_ptr, payload_len_int);
-    } else if (get_mt(header) == NOTIFICATION && get_gid(header) == SESSION_CONFIG) {
-        handle_session_config_ntf(get_opcode(header), payload_ptr, payload_len_int);
-    } else if (get_mt(header) == NOTIFICATION && get_gid(header) == SESSION_CONTROL) {
-        handle_session_control_ntf(get_opcode(header), payload_ptr, payload_len_int);
-    } else if (get_mt(header) == NOTIFICATION && get_gid(header) == RANGING_DATA) {
-        if (get_opcode(header) == RANGE_DATA_NTF_OPCODE) {
+    } else if (mt == NOTIFICATION && gid == SESSION_CONFIG) {
+        handle_session_config_ntf(opcode, payload_ptr, payload_len_int);
+    } else if (mt == NOTIFICATION && gid == SESSION_CONTROL) {
+        handle_session_control_ntf(opcode, payload_ptr, payload_len_int);
+    } else if (mt == NOTIFICATION && gid == RANGING_DATA) {
+        if (opcode == RANGE_DATA_NTF_OPCODE) {
             decode_range_data_ntf(payload_ptr, payload_len_int);
         } else {
-            handle_generic_notification(get_gid(header), get_opcode(header), payload_ptr, payload_len_int);
+            handle_generic_notification(gid, opcode, payload_ptr, payload_len_int);
         }
-    } else if (get_mt(header) == NOTIFICATION) {
+    } else if (mt == NOTIFICATION) {
         // Handle other notification types generically if not specifically handled
-        handle_generic_notification(get_gid(header), get_opcode(header), payload_ptr, payload_len_int);
+        handle_generic_notification(gid, opcode, payload_ptr, payload_len_int);
     }
 }
 
@@ -3655,22 +3665,23 @@ void decode_session_status_ntf(unsigned char* payload, int payload_len) {
 // SESSION_CONTROL Notification Payload Decoders
 void decode_session_info_ntf(unsigned char* payload, int payload_len) {
     printf("    SESSION_INFO_NTF - Session Information/Ranging Notification\n");
-    
-    if (payload_len < 20) {
-        printf("      ERROR: Payload too short (%d bytes, need at least 20 for header)\n", payload_len);
+
+    if (payload_len < 24) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 24 for header)\n", payload_len);
         return;
     }
-    
-    // Parse header fields
+
+    // Parse header fields according to Android UCI spec
     unsigned int sequence_number = read_u32_le(&payload[0]);
     unsigned int session_token = read_u32_le(&payload[4]);
     unsigned char rcr_indicator = payload[8];
     unsigned int current_ranging_interval = read_u32_le(&payload[9]);
     unsigned char ranging_measurement_type = payload[13];
-    unsigned char reserved = payload[14];
+    unsigned char reserved1 = payload[14];
     unsigned char mac_address_indicator = payload[15];
     unsigned int hus_primary_session_id = read_u32_le(&payload[16]);
-    
+    unsigned int reserved2 = read_u32_le(&payload[20]);
+
     printf("      Sequence Number: %u\n", sequence_number);
     printf("      Session Token: 0x%08X\n", session_token);
     printf("      RCR Indicator: 0x%02X\n", rcr_indicator);
@@ -3683,19 +3694,21 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
         case 0x03: printf(" (OWR_AOA)\n"); break;
         default: printf(" (UNKNOWN)\n"); break;
     }
-    
-    printf("      Reserved: 0x%02X\n", reserved);
+
+    if (reserved1 || reserved2) {
+        printf("      Reserved: 0x%02X 0x%08X\n", reserved1, reserved2);
+    }
     printf("      MAC Address Indicator: 0x%02X", mac_address_indicator);
     if (mac_address_indicator == 0x00) {
         printf(" (SHORT_ADDRESS)\n");
     } else {
         printf(" (EXTENDED_ADDRESS)\n");
     }
-    
+
     printf("      HUS Primary Session ID: 0x%08X\n", hus_primary_session_id);
-    
+
     // Parse ranging measurements
-    int offset = 20;
+    int offset = 24; // Header size (24 bytes): 4+4+1+4+1+1+1+4+4
     if (offset < payload_len) {
         if (ranging_measurement_type == 0x01) { // TWO_WAY
             unsigned char num_measurements = payload[offset];

@@ -756,6 +756,10 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
                     decode_core_device_suspend_rsp(payload_ptr, (int)payload_len);
                     decoded = 1;
                     break;
+                case CORE_QUERY_UWBS_TIMESTAMP:
+                    decode_core_query_uwbs_timestamp_rsp(payload_ptr, (int)payload_len);
+                    decoded = 1;
+                    break;
                 default:
                     printf("    No specific decoder for CORE RESPONSE opcode 0x%02X\n", opcode);
                     break;
@@ -1872,6 +1876,32 @@ void handle_core_device_suspend_rsp(unsigned char* payload, int payload_len) {
     }
 }
 
+void handle_core_query_uwbs_timestamp_rsp(unsigned char* payload, int payload_len) {
+    if (payload_len < 9) { // status (1) + timestamp (8)
+        printf("Error: CORE_QUERY_UWBS_TIMESTAMP_RSP payload too short. Expected at least 9 bytes, got %d.\n", payload_len);
+        return;
+    }
+    unsigned char status = payload[0];
+    unsigned long long timestamp = read_u64_le(&payload[1]);
+    
+    printf("  Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: 
+            printf(" (OK)\n");
+            printf("  Timestamp: %llu\n", timestamp);
+            break;
+        case UCI_STATUS_REJECTED: 
+            printf(" (REJECTED)\n");
+            break;
+        case UCI_STATUS_FAILED: 
+            printf(" (FAILED)\n");
+            break;
+        default: 
+            printf(" (UNKNOWN)\n");
+            break;
+    }
+}
+
 void handle_core_device_info_rsp(unsigned char* payload, int payload_len) {
     if (payload_len < 9) { // status (1) + uci_version (2) + mac_version (2) + phy_version (2) + uci_test_version (2)
         printf("Error: CORE_DEVICE_INFO_RSP payload too short.\n");
@@ -2912,6 +2942,8 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
         handle_core_device_reset_rsp(payload_ptr, payload_len_int);
     } else if (mt == RESPONSE && gid == CORE && opcode == CORE_GET_CONFIG) {
         handle_core_get_config_rsp(payload_ptr, payload_len_int);
+    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_QUERY_UWBS_TIMESTAMP) {
+        handle_core_query_uwbs_timestamp_rsp(payload_ptr, payload_len_int);
     } else if (mt == NOTIFICATION && gid == SESSION_CONFIG) {
         handle_session_config_ntf(opcode, payload_ptr, payload_len_int);
     } else if (mt == NOTIFICATION && gid == SESSION_CONTROL) {
@@ -3226,6 +3258,35 @@ void decode_core_device_suspend_rsp(unsigned char* payload, int payload_len) {
         case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
         case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
         default: printf(" (UNKNOWN)\n"); break;
+    }
+}
+
+void decode_core_query_uwbs_timestamp_rsp(unsigned char* payload, int payload_len) {
+    printf("    CORE_QUERY_UWBS_TIMESTAMP_RSP - Query UWBS Timestamp Response\n");
+    
+    if (payload_len < 9) { // status (1) + timestamp (8)
+        printf("      ERROR: Payload too short (%d bytes, need at least 9)\\n", payload_len);
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned long long timestamp = read_u64_le(&payload[1]);
+    
+    printf("      Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: 
+            printf(" (OK)\\n");
+            printf("      Timestamp: %llu\\n", timestamp);
+            break;
+        case UCI_STATUS_REJECTED: 
+            printf(" (REJECTED)\\n");
+            break;
+        case UCI_STATUS_FAILED: 
+            printf(" (FAILED)\\n");
+            break;
+        default: 
+            printf(" (UNKNOWN)\\n");
+            break;
     }
 }
 

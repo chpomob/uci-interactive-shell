@@ -1137,6 +1137,8 @@ int main() {
         } else if (strcmp(command, "device_suspend") == 0) {
             unsigned char payload[] = {0x00}; // Wakeup source
             send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, payload, sizeof(payload));
+        } else if (strcmp(command, "query_timestamp") == 0) {
+            send_uci_command(COMMAND, 0, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
         } else if (strcmp(command, "session_init") == 0 || strcmp(command, "session_new") == 0) {
             char* session_id_str = strtok(NULL, " ");
             char* session_type_str = strtok(NULL, " ");
@@ -1857,6 +1859,7 @@ int main() {
                 printf("  set_device_active                - Set device to ACTIVE state\n");
                 printf("  set_device_ready                 - Set device to READY state\n");
                 printf("  device_suspend                   - Suspend the device\n");
+                printf("  query_timestamp                  - Query UWBS timestamp\n");
                 printf("  set_power <state>                - Set device power state\n");
                 printf("  device_on                        - Turn device on (ACTIVE state)\n");
                 printf("  device_off                       - Turn device off (READY state)\n");

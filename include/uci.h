@@ -141,6 +141,7 @@ void decode_core_set_config_rsp(unsigned char* payload, int payload_len);
 void decode_core_get_config_rsp(unsigned char* payload, int payload_len);
 void decode_core_device_reset_rsp(unsigned char* payload, int payload_len);
 void decode_core_device_suspend_rsp(unsigned char* payload, int payload_len);
+void decode_core_query_uwbs_timestamp_rsp(unsigned char* payload, int payload_len);
 
 // SESSION_CONFIG group decoders
 void decode_session_init_cmd(unsigned char* payload, int payload_len);

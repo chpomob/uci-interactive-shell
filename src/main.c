@@ -1559,38 +1559,38 @@ int main() {
                 printf("=== Simulating UWB Ranging Notification ===\n");
             }
             
-            // Create a simulated ranging data notification following Android UCI specification
+            // Create a simulated ranging data notification following Qorvo UCI specification
             // Using RANGING_DATA group with RANGE_DATA_NTF_OPCODE as per real logs
             unsigned char ranging_ntf_payload[] = {
-                // Standard ranging data notification header
-                0x09, 0x00, 0x00, 0x00,  // Sequence number: 9 (from the logs)
-                0x2a, 0x00, 0x00, 0x00,  // Session token: 0x0000002a (42 in the logs)
+                // RangingData structure:
+                0x09, 0x00, 0x00, 0x00,  // Sequence Counter: 9
+                0x2a, 0x00, 0x00, 0x00,  // Session Handle: 0x0000002a (42)
+                0x00,                    // RFU
+                0xe8, 0x03, 0x00, 0x00,  // Ranging interval: 1000ms (0x000003e8) in units of 1200 RSTU
+                0x01,                    // Ranging measurement type: TWR (0x01)
+                0x00,                    // RFU
+                0x00,                    // MAC addressing mode: 0=short address (2 bytes)
+                0x00, 0x00, 0x00, 0x00,  // Primary Session ID: 0x00000000
+                0x00, 0x00, 0x00, 0x00,  // RFU
+                0x01,                    // Number of measurements: 1
                 
-                // Control word: includes status, MAC indicator, measurement count, vendor flags
-                0x00, 0xc8, 0x00, 0x00,  // Control word: 0x0000c800 (little-endian)
-                0x00, 0x01, 0x00, 0x00,  // More control word data
-                0x00, 0x00, 0x00, 0x00,  // More control word data
-                
-                // MAC Address: 1 in the logs
-                0x01, 0x00,
-                
-                // Status: OK
-                0x00,
-                
-                // Distance: 0 cm in first log message
-                0x00, 0x00,
-                
-                // AoA information
-                0x00, 0x00,  // Azimuth
-                0x00,        // Azimuth FoM
-                0x00, 0x00,  // Elevation
-                0x00,        // Elevation FoM
-                0x00, 0x00,  // Destination Azimuth
-                0x00,        // Destination Azimuth FoM
-                0x00, 0x00,  // Destination Elevation
-                0x00,        // Destination Elevation FoM
-                0x02,        // Slot Index
-                0x01         // RSSI (simplified)
+                // First measurement - TWR type with short address (20 bytes total for short addresses)
+                0x12, 0x34,              // MAC Address: 0x3412 (little endian for 0x1234)
+                0x00,                    // Status: OK
+                0x00,                    // NLOS byte
+                0x64, 0x00,              // Distance: 100 cm (0x0064 little endian)
+                0x14, 0x00,              // AoA Azimuth: 20 degrees
+                0x08,                    // AoA Azimuth FoM: 8
+                0x05, 0x00,              // AoA Elevation: 5 degrees 
+                0x07,                    // AoA Elevation FoM: 7
+                0x10, 0x00,              // Destination AoA Azimuth: 16 degrees
+                0x06,                    // Destination AoA Azimuth FoM: 6
+                0x03, 0x00,              // Destination AoA Elevation: 3 degrees
+                0x09,                    // Destination AoA Elevation FoM: 9
+                0x02,                    // Slot Index: 2
+                0xE0                     // RSSI: -32 dBm (0xE0 as signed int8_t)
+                // 11 more RFU bytes for short address measurements (for TWR)
+                , 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
             };
             
             unsigned char notification_packet[sizeof(struct uci_packet_header) + sizeof(ranging_ntf_payload)];

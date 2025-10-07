@@ -17,6 +17,7 @@ void ui_decode_core_device_suspend_rsp(unsigned char* payload, int payload_len);
 void ui_decode_core_query_uwbs_timestamp_rsp(unsigned char* payload, int payload_len);
 
 void ui_decode_session_init_rsp(unsigned char* payload, int payload_len);
+void ui_decode_session_init_cmd(unsigned char* payload, int payload_len);
 void ui_decode_session_deinit_rsp(unsigned char* payload, int payload_len);
 void ui_decode_session_set_app_config_rsp(unsigned char* payload, int payload_len);
 void ui_decode_session_get_app_config_rsp(unsigned char* payload, int payload_len);

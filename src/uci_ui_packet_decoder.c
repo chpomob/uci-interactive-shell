@@ -918,61 +918,106 @@ void ui_decode_range_data_ntf(unsigned char* payload, int payload_len) {
     if (ui_color_enabled) {
         printf("  %s%sRANGE_DATA_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
         
-        if (payload_len < 12) {
-            printf("    %s%sERROR:%s Payload too short (%d bytes, need at least 12)\n", 
+        // Proper RangingData structure according to Qorvo spec:
+        // - Sequence Counter (4 bytes)
+        // - Session ID (4 bytes) 
+        // - RFU (1 byte)
+        // - Ranging interval (4 bytes)
+        // - Ranging measurement type (1 byte)
+        // - RFU (1 byte)
+        // - MAC addressing mode (1 byte)
+        // - Primary session ID (4 bytes)
+        // - RFU (4 bytes)
+        // - Number of measurements (1 byte)
+        if (payload_len < 24) {
+            printf("    %s%sERROR:%s Payload too short (%d bytes, need at least 24)\n", 
                    ANSI_COLOR_RED, ANSI_BOLD, ANSI_RESET, payload_len);
             return;
         }
 
         uint32_t sequence_number = ui_read_u32_le(&payload[0]);
-        uint32_t session_token = ui_read_u32_le(&payload[4]);
-        uint32_t control_word = ui_read_u32_le(&payload[8]);
-
-        uint8_t status = control_word & 0xFF;
-        uint8_t mac_indicator = (control_word >> 8) & 0xFF;
-        uint8_t measurement_count = (control_word >> 16) & 0xFF;
-        uint8_t vendor_flags = (control_word >> 24) & 0xFF;
+        uint32_t session_handle = ui_read_u32_le(&payload[4]);
+        // payload[8] is RFU
+        uint32_t ranging_interval = ui_read_u32_le(&payload[9]); // in units of 1200 RSTU (=1ms) 
+        uint8_t ranging_meas_type = payload[13]; // Ranging measurement type
+        // payload[14] is RFU
+        uint8_t mac_addr_mode = payload[15]; // 0=2 bytes, 1=8 bytes
+        uint32_t primary_session_id = ui_read_u32_le(&payload[16]);
+        // payload[20-23] is RFU
+        uint8_t measurement_count = payload[24];
 
         printf("    %s%sSequence Number:%s %u\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, sequence_number);
-        printf("    %s%sSession Token:%s 0x%08X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, session_token);
-        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
-        if (status == UCI_STATUS_OK) {
-            printf(" %s(OK)%s", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET);
+        printf("    %s%sSession Handle:%s 0x%08X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, session_handle);
+        printf("    %s%sRanging Interval:%s %u ms\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ranging_interval);
+        
+        const char* meas_type_str = "Unknown";
+        switch(ranging_meas_type) {
+            case 0: meas_type_str = "OWR UL-TDoA"; break;
+            case 1: meas_type_str = "TWR (SS-TWR & DS-TWR)"; break;
+            case 2: meas_type_str = "OWR DL-TDoA"; break;
+            case 3: meas_type_str = "OWR for AoA"; break;
+            case 4: meas_type_str = "CCC Controller"; break;
+            case 5: meas_type_str = "CCC Controlee"; break;
+            case 6: meas_type_str = "OWR DL-TDoA v2"; break;
+            default: meas_type_str = "Unknown"; break;
         }
-        printf("\n");
-        printf("    %s%sMAC Indicator:%s 0x%02X (%s)\n",
-               ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, mac_indicator,
-               mac_indicator ? "EXTENDED_ADDRESS" : "SHORT_ADDRESS");
+        printf("    %s%sRanging Measurement Type:%s %u (%s)\n", 
+               ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, 
+               ranging_meas_type, meas_type_str);
+        printf("    %s%sMAC Addressing Mode:%s %s (%s)\n",
+               ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET,
+               mac_addr_mode ? "8 bytes" : "2 bytes",
+               mac_addr_mode ? "EXTENDED_ADDRESS" : "SHORT_ADDRESS");
+        printf("    %s%sPrimary Session ID:%s 0x%08X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, primary_session_id);
         printf("    %s%sMeasurement Count:%s %u\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, measurement_count);
-        if (vendor_flags) {
-            printf("    %s%sVendor Flags:%s 0x%02X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, vendor_flags);
-        }
 
-        int offset = 12;
+        int offset = 25;
         for (uint8_t i = 0; i < measurement_count; i++) {
             printf("    %s%sMeasurement %u:%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, i + 1, ANSI_RESET);
-            if (mac_indicator == 0) {
-                if (offset + 20 > payload_len) {
-                    printf("      %s%sWARNING:%s Incomplete short-address measurement (need 20 bytes, have %d).\n",
-                           ANSI_COLOR_YELLOW, ANSI_BOLD, ANSI_RESET, payload_len - offset);
-                    return;
+            
+            // Determine measurement size based on ranging measurement type
+            int measurement_size = 0;
+            if (ranging_meas_type == 1) { // TWR
+                // TWR measurement structure: MAC address + status + NLOS + distance + AoA + etc. (20 bytes for short address)
+                measurement_size = (mac_addr_mode == 0) ? 20 : 26; // 20 for short address, 26 for extended
+            } else if (ranging_meas_type == 3) { // OWR AOA
+                // OWR AOA measurement structure is smaller
+                measurement_size = (mac_addr_mode == 0) ? 12 : 18; // 12 for short, 18 for extended address
+            } else {
+                // For other types, we'll use a default size and try to parse as TWR
+                measurement_size = (mac_addr_mode == 0) ? 20 : 26;
+            }
+            
+            if (offset + measurement_size > payload_len) {
+                printf("      %s%sWARNING:%s Incomplete measurement (expected %d bytes, have %d left).\n",
+                       ANSI_COLOR_YELLOW, ANSI_BOLD, ANSI_RESET, measurement_size, payload_len - offset);
+                return;
+            }
+            
+            // Parse based on ranging measurement type
+            if (ranging_meas_type == 1) { // TWR measurements
+                int mac_offset = (mac_addr_mode == 0) ? 2 : 8; // MAC address size
+                uint16_t mac_address;
+                if (mac_addr_mode == 0) {
+                    mac_address = ui_read_u16_le(&payload[offset]);
+                } else {
+                    // For extended MAC, just print first 2 bytes as example
+                    mac_address = ui_read_u16_le(&payload[offset]);
                 }
                 
-                // Parse short address measurement (20 bytes)
-                uint16_t mac_address = ui_read_u16_le(&payload[offset]);
-                uint8_t meas_status = payload[offset + 2];
-                uint8_t nlos = payload[offset + 3];
-                uint16_t distance = ui_read_u16_le(&payload[offset + 4]);
-                uint16_t aoa_azimuth = ui_read_u16_le(&payload[offset + 6]);
-                uint8_t aoa_azimuth_fom = payload[offset + 8];
-                uint16_t aoa_elevation = ui_read_u16_le(&payload[offset + 9]);
-                uint8_t aoa_elevation_fom = payload[offset + 11];
-                uint16_t dst_aoa_azimuth = ui_read_u16_le(&payload[offset + 12]);
-                uint8_t dst_aoa_azimuth_fom = payload[offset + 14];
-                uint16_t dst_aoa_elevation = ui_read_u16_le(&payload[offset + 15]);
-                uint8_t dst_aoa_elevation_fom = payload[offset + 17];
-                uint8_t slot_index = payload[offset + 18];
-                int8_t rssi = (int8_t)payload[offset + 19];
+                uint8_t meas_status = payload[offset + mac_offset];
+                uint8_t nlos_byte = payload[offset + mac_offset + 1];
+                uint16_t distance = ui_read_u16_le(&payload[offset + mac_offset + 2]);
+                uint16_t aoa_azimuth = ui_read_u16_le(&payload[offset + mac_offset + 4]);
+                uint8_t aoa_azimuth_fom = payload[offset + mac_offset + 6];
+                uint16_t aoa_elevation = ui_read_u16_le(&payload[offset + mac_offset + 7]);
+                uint8_t aoa_elevation_fom = payload[offset + mac_offset + 9];
+                uint16_t dst_aoa_azimuth = ui_read_u16_le(&payload[offset + mac_offset + 10]);
+                uint8_t dst_aoa_azimuth_fom = payload[offset + mac_offset + 12];
+                uint16_t dst_aoa_elevation = ui_read_u16_le(&payload[offset + mac_offset + 13]);
+                uint8_t dst_aoa_elevation_fom = payload[offset + mac_offset + 15];
+                uint8_t slot_index = payload[offset + mac_offset + 16];
+                int8_t rssi = (int8_t)payload[offset + mac_offset + 17];
                 
                 printf("      %s%sMAC Address:%s 0x%04X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, mac_address);
                 printf("      %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, meas_status);
@@ -980,7 +1025,7 @@ void ui_decode_range_data_ntf(unsigned char* payload, int payload_len) {
                     printf(" %s(OK)%s", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET);
                 }
                 printf("\n");
-                printf("      %s%sNLOS:%s 0x%02X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, nlos);
+                printf("      %s%sNLOS byte:%s 0x%02X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, nlos_byte);
                 printf("      %s%sDistance:%s %u cm\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, distance);
                 printf("      %s%sAoA Azimuth:%s %u degrees\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_azimuth);
                 printf("      %s%sAoA Azimuth FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_azimuth_fom);
@@ -992,20 +1037,47 @@ void ui_decode_range_data_ntf(unsigned char* payload, int payload_len) {
                 printf("      %s%sDest AoA Elevation FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, dst_aoa_elevation_fom);
                 printf("      %s%sSlot Index:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, slot_index);
                 printf("      %s%sRSSI:%s %d dBm\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, rssi);
-                
-                offset += 20;
-            } else {
-                if (offset + 26 > payload_len) {
-                    printf("      %s%sWARNING:%s Incomplete extended-address measurement (need 26 bytes, have %d).\n",
-                           ANSI_COLOR_YELLOW, ANSI_BOLD, ANSI_RESET, payload_len - offset);
-                    return;
+            } else if (ranging_meas_type == 3) { // OWR AOA measurements
+                int mac_offset = (mac_addr_mode == 0) ? 2 : 8;
+                uint16_t mac_address;
+                if (mac_addr_mode == 0) {
+                    mac_address = ui_read_u16_le(&payload[offset]);
+                } else {
+                    mac_address = ui_read_u16_le(&payload[offset]);
                 }
                 
-                // Parse extended address measurement (26 bytes)
-                // For now, just show that we detected extended address format
-                printf("      %s%sExtended MAC Address Format Detected%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_BOLD, ANSI_RESET);
-                offset += 26;
+                uint8_t meas_status = payload[offset + mac_offset];
+                uint8_t nlos = payload[offset + mac_offset + 1];
+                uint8_t frame_seq_num = payload[offset + mac_offset + 2];
+                uint16_t block_index = ui_read_u16_le(&payload[offset + mac_offset + 3]);
+                uint16_t aoa_azimuth = ui_read_u16_le(&payload[offset + mac_offset + 5]);
+                uint8_t aoa_azimuth_fom = payload[offset + mac_offset + 7];
+                uint16_t aoa_elevation = ui_read_u16_le(&payload[offset + mac_offset + 8]);
+                uint8_t aoa_elevation_fom = payload[offset + mac_offset + 10];
+                
+                printf("      %s%sMAC Address:%s 0x%04X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, mac_address);
+                printf("      %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, meas_status);
+                if (meas_status == UCI_STATUS_OK) {
+                    printf(" %s(OK)%s", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET);
+                }
+                printf("\n");
+                printf("      %s%sNLOS:%s %s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, 
+                       nlos ? "Yes" : "No");
+                printf("      %s%sFrame Sequence Num:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, frame_seq_num);
+                printf("      %s%sBlock Index:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, block_index);
+                printf("      %s%sAoA Azimuth:%s %u degrees\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_azimuth);
+                printf("      %s%sAoA Azimuth FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_azimuth_fom);
+                printf("      %s%sAoA Elevation:%s %u degrees\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_elevation);
+                printf("      %s%sAoA Elevation FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_elevation_fom);
+            } else {
+                printf("      %s%sRanging measurement type %u not fully implemented.%s\n", 
+                       ANSI_COLOR_YELLOW, ANSI_BOLD, ranging_meas_type, ANSI_RESET);
+                printf("      %s%sMAC Address (first 2 bytes):%s 0x%04X\n", 
+                       ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, 
+                       ui_read_u16_le(&payload[offset]));
             }
+                
+            offset += measurement_size;
         }
 
         if (offset < payload_len) {
@@ -1013,11 +1085,18 @@ void ui_decode_range_data_ntf(unsigned char* payload, int payload_len) {
         }
     } else {
         printf("  RANGE_DATA_NTF:\n");
-        if (payload_len >= 12) {
+        if (payload_len >= 24) {
             uint32_t sequence_number = ui_read_u32_le(&payload[0]);
-            uint32_t session_token = ui_read_u32_le(&payload[4]);
+            uint32_t session_handle = ui_read_u32_le(&payload[4]);
+            uint32_t ranging_interval = ui_read_u32_le(&payload[9]);
+            uint8_t ranging_meas_type = payload[13];
+            uint8_t measurement_count = payload[24];
+            
             printf("    Sequence Number: %u\n", sequence_number);
-            printf("    Session Token: 0x%08X\n", session_token);
+            printf("    Session Handle: 0x%08X\n", session_handle);
+            printf("    Ranging Interval: %u ms\n", ranging_interval);
+            printf("    Ranging Measurement Type: %u\n", ranging_meas_type);
+            printf("    Measurement Count: %u\n", measurement_count);
         }
     }
 }

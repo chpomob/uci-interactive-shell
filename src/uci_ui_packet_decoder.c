@@ -917,18 +917,106 @@ void ui_decode_android_range_diagnostics_ntf(unsigned char* payload, int payload
 void ui_decode_range_data_ntf(unsigned char* payload, int payload_len) {
     if (ui_color_enabled) {
         printf("  %s%sRANGE_DATA_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
-        if (payload_len >= 3) {
-            uint8_t seq_num = payload[0];
-            uint32_t session_token = ui_read_u32_le(payload + 1);
-            printf("    %s%sSequence Number:%s %d\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, seq_num);
-            printf("    %s%sSession Token:%s 0x%08X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, session_token);
+        
+        if (payload_len < 12) {
+            printf("    %s%sERROR:%s Payload too short (%d bytes, need at least 12)\n", 
+                   ANSI_COLOR_RED, ANSI_BOLD, ANSI_RESET, payload_len);
+            return;
+        }
+
+        uint32_t sequence_number = ui_read_u32_le(&payload[0]);
+        uint32_t session_token = ui_read_u32_le(&payload[4]);
+        uint32_t control_word = ui_read_u32_le(&payload[8]);
+
+        uint8_t status = control_word & 0xFF;
+        uint8_t mac_indicator = (control_word >> 8) & 0xFF;
+        uint8_t measurement_count = (control_word >> 16) & 0xFF;
+        uint8_t vendor_flags = (control_word >> 24) & 0xFF;
+
+        printf("    %s%sSequence Number:%s %u\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, sequence_number);
+        printf("    %s%sSession Token:%s 0x%08X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, session_token);
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        if (status == UCI_STATUS_OK) {
+            printf(" %s(OK)%s", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET);
+        }
+        printf("\n");
+        printf("    %s%sMAC Indicator:%s 0x%02X (%s)\n",
+               ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, mac_indicator,
+               mac_indicator ? "EXTENDED_ADDRESS" : "SHORT_ADDRESS");
+        printf("    %s%sMeasurement Count:%s %u\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, measurement_count);
+        if (vendor_flags) {
+            printf("    %s%sVendor Flags:%s 0x%02X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, vendor_flags);
+        }
+
+        int offset = 12;
+        for (uint8_t i = 0; i < measurement_count; i++) {
+            printf("    %s%sMeasurement %u:%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, i + 1, ANSI_RESET);
+            if (mac_indicator == 0) {
+                if (offset + 20 > payload_len) {
+                    printf("      %s%sWARNING:%s Incomplete short-address measurement (need 20 bytes, have %d).\n",
+                           ANSI_COLOR_YELLOW, ANSI_BOLD, ANSI_RESET, payload_len - offset);
+                    return;
+                }
+                
+                // Parse short address measurement (20 bytes)
+                uint16_t mac_address = ui_read_u16_le(&payload[offset]);
+                uint8_t meas_status = payload[offset + 2];
+                uint8_t nlos = payload[offset + 3];
+                uint16_t distance = ui_read_u16_le(&payload[offset + 4]);
+                uint16_t aoa_azimuth = ui_read_u16_le(&payload[offset + 6]);
+                uint8_t aoa_azimuth_fom = payload[offset + 8];
+                uint16_t aoa_elevation = ui_read_u16_le(&payload[offset + 9]);
+                uint8_t aoa_elevation_fom = payload[offset + 11];
+                uint16_t dst_aoa_azimuth = ui_read_u16_le(&payload[offset + 12]);
+                uint8_t dst_aoa_azimuth_fom = payload[offset + 14];
+                uint16_t dst_aoa_elevation = ui_read_u16_le(&payload[offset + 15]);
+                uint8_t dst_aoa_elevation_fom = payload[offset + 17];
+                uint8_t slot_index = payload[offset + 18];
+                int8_t rssi = (int8_t)payload[offset + 19];
+                
+                printf("      %s%sMAC Address:%s 0x%04X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, mac_address);
+                printf("      %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, meas_status);
+                if (meas_status == UCI_STATUS_OK) {
+                    printf(" %s(OK)%s", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET);
+                }
+                printf("\n");
+                printf("      %s%sNLOS:%s 0x%02X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, nlos);
+                printf("      %s%sDistance:%s %u cm\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, distance);
+                printf("      %s%sAoA Azimuth:%s %u degrees\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_azimuth);
+                printf("      %s%sAoA Azimuth FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_azimuth_fom);
+                printf("      %s%sAoA Elevation:%s %u degrees\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_elevation);
+                printf("      %s%sAoA Elevation FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_elevation_fom);
+                printf("      %s%sDest AoA Azimuth:%s %u degrees\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, dst_aoa_azimuth);
+                printf("      %s%sDest AoA Azimuth FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, dst_aoa_azimuth_fom);
+                printf("      %s%sDest AoA Elevation:%s %u degrees\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, dst_aoa_elevation);
+                printf("      %s%sDest AoA Elevation FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, dst_aoa_elevation_fom);
+                printf("      %s%sSlot Index:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, slot_index);
+                printf("      %s%sRSSI:%s %d dBm\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, rssi);
+                
+                offset += 20;
+            } else {
+                if (offset + 26 > payload_len) {
+                    printf("      %s%sWARNING:%s Incomplete extended-address measurement (need 26 bytes, have %d).\n",
+                           ANSI_COLOR_YELLOW, ANSI_BOLD, ANSI_RESET, payload_len - offset);
+                    return;
+                }
+                
+                // Parse extended address measurement (26 bytes)
+                // For now, just show that we detected extended address format
+                printf("      %s%sExtended MAC Address Format Detected%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_BOLD, ANSI_RESET);
+                offset += 26;
+            }
+        }
+
+        if (offset < payload_len) {
+            printf("    %s%sVendor-specific Data:%s %d bytes\n", ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, ANSI_RESET, payload_len - offset);
         }
     } else {
         printf("  RANGE_DATA_NTF:\n");
-        if (payload_len >= 3) {
-            uint8_t seq_num = payload[0];
-            uint32_t session_token = ui_read_u32_le(payload + 1);
-            printf("    Sequence Number: %d\n", seq_num);
+        if (payload_len >= 12) {
+            uint32_t sequence_number = ui_read_u32_le(&payload[0]);
+            uint32_t session_token = ui_read_u32_le(&payload[4]);
+            printf("    Sequence Number: %u\n", sequence_number);
             printf("    Session Token: 0x%08X\n", session_token);
         }
     }

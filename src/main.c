@@ -1559,41 +1559,43 @@ int main() {
                 printf("=== Simulating UWB Ranging Notification ===\n");
             }
             
-            // Create a simulated two-way ranging measurement for a nearby device
+            // Create a simulated ranging data notification following Android UCI specification
+            // Using RANGING_DATA group with RANGE_DATA_NTF_OPCODE as per real logs
             unsigned char ranging_ntf_payload[] = {
-                // Header fields (24 bytes total)
-                0x00, 0x00, 0x00, 0x01,  // Sequence number: 1
-                0x01, 0x02, 0x03, 0x04,  // Session token: 0x01020304
-                0x01,                    // RCR indicator
-                0x00, 0x00, 0x00, 0x64,  // Current ranging interval: 100ms
-                0x01,                    // Ranging measurement type: TWO_WAY (0x01)
-                0x00,                    // Reserved
-                0x00,                    // MAC address indicator: SHORT_ADDRESS (0x00)
-                0x00, 0x00, 0x00, 0x00,  // HUS primary session ID: 0x00000000
+                // Standard ranging data notification header
+                0x09, 0x00, 0x00, 0x00,  // Sequence number: 9 (from the logs)
+                0x2a, 0x00, 0x00, 0x00,  // Session token: 0x0000002a (42 in the logs)
                 
-                // Two-Way measurement data
-                0x01,                    // Number of measurements: 1
+                // Control word: includes status, MAC indicator, measurement count, vendor flags
+                0x00, 0xc8, 0x00, 0x00,  // Control word: 0x0000c800 (little-endian)
+                0x00, 0x01, 0x00, 0x00,  // More control word data
+                0x00, 0x00, 0x00, 0x00,  // More control word data
                 
-                // First measurement (SHORT ADDRESS)
-                0x12, 0x34,              // MAC Address: 0x1234
-                0x00,                    // Status: OK
-                0x00,                    // NLOS: NO
-                0x00, 0x64,              // Distance: 100 cm (1 meter)
-                0x00, 0x14,              // AoA Azimuth: 20 degrees
-                0x08,                    // AoA Azimuth FoM: 8 (medium confidence)
-                0x00, 0x05,              // AoA Elevation: 5 degrees
-                0x07,                    // AoA Elevation FoM: 7 (high confidence)
-                0x00, 0x10,              // Destination AoA Azimuth: 16 degrees
-                0x06,                    // Destination AoA Azimuth FoM: 6 (medium-high confidence)
-                0x00, 0x03,              // Destination AoA Elevation: 3 degrees
-                0x09,                    // Destination AoA Elevation FoM: 9 (very high confidence)
-                0x02,                    // Slot Index: 2
-                0xE0                     // RSSI: -32 dBm (strong signal)
+                // MAC Address: 1 in the logs
+                0x01, 0x00,
+                
+                // Status: OK
+                0x00,
+                
+                // Distance: 0 cm in first log message
+                0x00, 0x00,
+                
+                // AoA information
+                0x00, 0x00,  // Azimuth
+                0x00,        // Azimuth FoM
+                0x00, 0x00,  // Elevation
+                0x00,        // Elevation FoM
+                0x00, 0x00,  // Destination Azimuth
+                0x00,        // Destination Azimuth FoM
+                0x00, 0x00,  // Destination Elevation
+                0x00,        // Destination Elevation FoM
+                0x02,        // Slot Index
+                0x01         // RSSI (simplified)
             };
             
             unsigned char notification_packet[sizeof(struct uci_packet_header) + sizeof(ranging_ntf_payload)];
             struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
-            set_header_values(ntf_header, NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_INFO_NTF, sizeof(ranging_ntf_payload));
+            set_header_values(ntf_header, NOTIFICATION, COMPLETE, RANGING_DATA, RANGE_DATA_NTF_OPCODE, sizeof(ranging_ntf_payload));
             memcpy(notification_packet + sizeof(struct uci_packet_header), ranging_ntf_payload, sizeof(ranging_ntf_payload));
             
             if (ui_color_enabled) {
@@ -1608,8 +1610,8 @@ int main() {
                 printf("%s%sReceived UCI packet:%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET);
                 printf("  %sMT:%s 0x%01X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, NOTIFICATION);
                 printf("  %sPBF:%s 0x%01X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, COMPLETE);
-                printf("  %sGID:%s 0x%01X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, SESSION_CONTROL);
-                printf("  %sOpcode:%s 0x%02X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, SESSION_INFO_NTF);
+                printf("  %sGID:%s 0x%01X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, RANGING_DATA);
+                printf("  %sOpcode:%s 0x%02X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, RANGE_DATA_NTF_OPCODE);
                 printf("  %sPayload Length:%s %zu\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, sizeof(ranging_ntf_payload));
                 printf("  %sPayload:%s ", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET);
                 for (size_t i = 0; i < sizeof(ranging_ntf_payload) && i < 32; i++) {

@@ -43,7 +43,10 @@ static int uci_fragment_process(const unsigned char* fragment,
     }
 
     const struct uci_packet_header* header = (const struct uci_packet_header*)fragment;
-    size_t payload_len = header->payload_len;
+    uci_header_fields_t header_fields;
+    uci_extract_header_fields(header, &header_fields);
+
+    size_t payload_len = header_fields.payload_length;
     size_t expected_len = sizeof(struct uci_packet_header) + payload_len;
     if (fragment_len < expected_len) {
         if (g_verbose_mode) {
@@ -56,16 +59,18 @@ static int uci_fragment_process(const unsigned char* fragment,
                fragment_len - expected_len);
     }
 
-    unsigned char mt = get_mt(header);
-    unsigned char gid = get_gid(header);
-    unsigned char opcode = get_opcode(header);
-    unsigned char pbf = get_pbf(header);
+    unsigned char mt = header_fields.message_type;
+    unsigned char gid = header_fields.group_id;
+    unsigned char opcode = header_fields.opcode_id;
+    unsigned char pbf = header_fields.packet_boundary;
 
     const unsigned char* payload_ptr = fragment + sizeof(struct uci_packet_header);
 
     if (g_verbose_mode) {
-        printf("  Fragment header: MT=0x%02X GID=0x%02X OID=0x%02X PBF=%s len=%zu\n",
-               mt, gid, opcode, (pbf == COMPLETE) ? "COMPLETE" : "NOT_COMPLETE", payload_len);
+            printf("  Fragment header: MT=0x%02X GID=0x%02X OID=0x%02X PBF=%s len=%zu\n",
+                   mt, gid, opcode,
+                   (pbf == COMPLETE) ? "COMPLETE" : "NOT_COMPLETE",
+                   payload_len);
     }
 
     if (pbf == NOT_COMPLETE) {

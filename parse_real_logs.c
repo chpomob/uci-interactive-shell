@@ -29,32 +29,38 @@ int hex_string_to_bytes(const char* hex_str, unsigned char* bytes, int max_len) 
 
 // Function to print packet header details
 void print_header_info(struct uci_packet_header* header, const char* description) {
+    uci_header_fields_t fields;
+    uci_extract_header_fields(header, &fields);
+
     printf("%s:\n", description);
     printf("  Raw header bytes: %02x %02x %02x %02x\n", 
            header->first_byte, header->second_byte, header->reserved2, header->payload_len);
-    printf("  GID: 0x%02x (%s)\n", get_gid(header), 
-           get_gid(header) == CORE ? "CORE" :
-           get_gid(header) == SESSION_CONFIG ? "SESSION_CONFIG" :
-           get_gid(header) == SESSION_CONTROL ? "SESSION_CONTROL" :
-           get_gid(header) == RANGING_DATA ? "RANGING_DATA" :
-           get_gid(header) == VENDOR_ANDROID ? "VENDOR_ANDROID" :
-           get_gid(header) == TEST ? "TEST" : "UNKNOWN");
-    printf("  PBF: %d\n", get_pbf(header));
-    printf("  MT: %d (%s)\n", get_mt(header),
-           get_mt(header) == DATA ? "DATA" :
-           get_mt(header) == COMMAND ? "COMMAND" :
-           get_mt(header) == RESPONSE ? "RESPONSE" :
-           get_mt(header) == NOTIFICATION ? "NOTIFICATION" : "UNKNOWN");
-    printf("  Opcode: 0x%02x\n", get_opcode(header));
-    printf("  Payload Length: %d\n", header->payload_len);
+    printf("  GID: 0x%02x (%s)\n", fields.group_id,
+           fields.group_id == CORE ? "CORE" :
+           fields.group_id == SESSION_CONFIG ? "SESSION_CONFIG" :
+           fields.group_id == SESSION_CONTROL ? "SESSION_CONTROL" :
+           fields.group_id == RANGING_DATA ? "RANGING_DATA" :
+           fields.group_id == VENDOR_ANDROID ? "VENDOR_ANDROID" :
+           fields.group_id == TEST ? "TEST" : "UNKNOWN");
+    printf("  PBF: %d\n", fields.packet_boundary);
+    printf("  MT: %d (%s)\n", fields.message_type,
+           fields.message_type == DATA ? "DATA" :
+           fields.message_type == COMMAND ? "COMMAND" :
+           fields.message_type == RESPONSE ? "RESPONSE" :
+           fields.message_type == NOTIFICATION ? "NOTIFICATION" : "UNKNOWN");
+    printf("  Opcode: 0x%02x\n", fields.opcode_id);
+    printf("  Payload Length: %d\n", fields.payload_length);
     printf("\n");
 }
 
 // Function to parse known packet types
 void parse_known_packets(struct uci_packet_header* header, unsigned char* payload) {
-    unsigned char gid = get_gid(header);
-    unsigned char mt = get_mt(header);
-    unsigned char opcode = get_opcode(header);
+    uci_header_fields_t fields;
+    uci_extract_header_fields(header, &fields);
+
+    unsigned char gid = fields.group_id;
+    unsigned char mt = fields.message_type;
+    unsigned char opcode = fields.opcode_id;
     
     // Check for RANGING_DATA notifications
     if (gid == RANGING_DATA && mt == NOTIFICATION && opcode == RANGE_DATA_NTF_OPCODE) {

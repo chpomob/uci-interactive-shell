@@ -61,15 +61,27 @@ struct uci_session {
 // Global session storage
 extern struct uci_session uci_sessions[MAX_SESSIONS];
 
-// Helper functions to properly set up the header
-static inline void set_header_values(struct uci_packet_header *header, 
-                                    unsigned char message_type, 
-                                    unsigned char packet_boundary, 
-                                    unsigned char group_id, 
+// Helper functions to properly set up and decode the header
+static inline unsigned char uci_pack_first_byte(unsigned char message_type,
+                                                unsigned char packet_boundary,
+                                                unsigned char group_id) {
+    return (unsigned char)((group_id & 0x0F) |
+                           ((packet_boundary & 0x01) << 4) |
+                           ((message_type & 0x07) << 5));
+}
+
+static inline unsigned char uci_pack_second_byte(unsigned char opcode_id) {
+    return (unsigned char)(opcode_id & 0x3F);  // opcode occupies lower 6 bits
+}
+
+static inline void set_header_values(struct uci_packet_header *header,
+                                    unsigned char message_type,
+                                    unsigned char packet_boundary,
+                                    unsigned char group_id,
                                     unsigned char opcode_id,
                                     unsigned char payload_length) {
-    header->first_byte = group_id | (packet_boundary << 4) | (message_type << 5);
-    header->second_byte = (opcode_id & 0x3F);  // opcode occupies lower 6 bits
+    header->first_byte = uci_pack_first_byte(message_type, packet_boundary, group_id);
+    header->second_byte = uci_pack_second_byte(opcode_id);
     header->reserved2 = 0;
     header->payload_len = payload_length;
 }
@@ -95,6 +107,29 @@ static inline unsigned char get_reserved_opcode_bits(const struct uci_packet_hea
     return (header->second_byte >> 6) & 0x03;
 }
 
+typedef struct {
+    unsigned char message_type;
+    unsigned char packet_boundary;
+    unsigned char group_id;
+    unsigned char opcode_id;
+    unsigned char reserved_opcode_bits;
+    unsigned char payload_length;
+} uci_header_fields_t;
+
+static inline void uci_extract_header_fields(const struct uci_packet_header *header,
+                                             uci_header_fields_t *out_fields) {
+    if (!out_fields) {
+        return;
+    }
+
+    out_fields->message_type = get_mt(header);
+    out_fields->packet_boundary = get_pbf(header);
+    out_fields->group_id = get_gid(header);
+    out_fields->opcode_id = get_opcode(header);
+    out_fields->reserved_opcode_bits = get_reserved_opcode_bits(header);
+    out_fields->payload_length = header->payload_len;
+}
+
 // UCI packet analysis function
 void analyze_uci_packet(unsigned char* packet, size_t packet_len);
 
@@ -108,6 +143,7 @@ void decode_core_device_reset_rsp(unsigned char* payload, int payload_len);
 void decode_core_device_suspend_rsp(unsigned char* payload, int payload_len);
 
 // SESSION_CONFIG group decoders
+void decode_session_init_cmd(unsigned char* payload, int payload_len);
 void decode_session_init_rsp(unsigned char* payload, int payload_len);
 void decode_session_deinit_rsp(unsigned char* payload, int payload_len);
 void decode_session_set_app_config_rsp(unsigned char* payload, int payload_len);

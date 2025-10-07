@@ -34,11 +34,11 @@ void create_uci_header(
     unsigned char gid,
     unsigned char oid,
     unsigned char payload_len) {
-    
-    header->first_byte = gid | (pbf << 4) | (mt << 5);
-    header->second_byte = oid & 0x3F;  // opcode occupies lower 6 bits
-    header->reserved2 = 0;
-    header->payload_len = payload_len;
+    if (!header) {
+        return;
+    }
+
+    set_header_values(header, mt, pbf, gid, oid, payload_len);
 }
 
 unsigned char* create_session_init_packet(

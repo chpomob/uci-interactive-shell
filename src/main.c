@@ -1040,13 +1040,65 @@ int main() {
                 ui_print_error("Failed to initialize hardware mode with device");
             }
         } else if (strcmp(command, "get_device_info") == 0 || strcmp(command, "device_info") == 0) {
-            send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_INFO, NULL, 0);
+            if (uci_is_hardware_mode_enabled()) {
+                // In hardware mode, send command to actual device
+                if (!uci_hw_interface_is_connected()) {
+                    printf("Hardware not connected. Use 'hw_connect <device_path>' first.\n");
+                    continue;
+                }
+                
+                if (uci_hw_interface_send_command(0x01, 0x00, 0x00, 0x02, NULL, 0) == 0) {
+                    printf("CORE_DEVICE_INFO command sent to hardware successfully\n");
+                    // Try to receive response
+                    unsigned char response_buffer[1024];
+                    int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
+                    if (response_len > 0) {
+                        printf("Received %d bytes from hardware: ", response_len);
+                        for (int i = 0; i < response_len; i++) {
+                            printf("%02X ", response_buffer[i]);
+                        }
+                        printf("\n");
+                        parse_uci_packet(response_buffer, response_len);
+                    }
+                } else {
+                    printf("Failed to send CORE_DEVICE_INFO command to hardware\n");
+                }
+            } else {
+                // In simulation mode, use the send_uci_command function (which simulates)
+                send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_INFO, NULL, 0);
+            }
         } else if (strcmp(command, "device_reset") == 0) {
             unsigned char payload[] = {UWBS_RESET};
-            send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_RESET, payload, sizeof(payload));
-            // Simulate receiving a notification
-            unsigned char dummy_notification_packet[] = {0x60, 0x01, 0x01, DEVICE_STATE_READY};
-            parse_uci_packet(dummy_notification_packet, sizeof(dummy_notification_packet));
+            if (uci_is_hardware_mode_enabled()) {
+                // In hardware mode, send command to actual device
+                if (!uci_hw_interface_is_connected()) {
+                    printf("Hardware not connected. Use 'hw_connect <device_path>' first.\n");
+                    continue;
+                }
+                
+                if (uci_hw_interface_send_command(0x01, 0x00, 0x00, 0x00, payload, sizeof(payload)) == 0) {
+                    printf("CORE_DEVICE_RESET command sent to hardware successfully\n");
+                    // Try to receive response
+                    unsigned char response_buffer[1024];
+                    int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
+                    if (response_len > 0) {
+                        printf("Received %d bytes from hardware: ", response_len);
+                        for (int i = 0; i < response_len; i++) {
+                            printf("%02X ", response_buffer[i]);
+                        }
+                        printf("\n");
+                        parse_uci_packet(response_buffer, response_len);
+                    }
+                } else {
+                    printf("Failed to send CORE_DEVICE_RESET command to hardware\n");
+                }
+            } else {
+                // In simulation mode, use the send_uci_command function (which simulates)
+                send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_RESET, payload, sizeof(payload));
+                // Simulate receiving a notification
+                unsigned char dummy_notification_packet[] = {0x60, 0x01, 0x01, DEVICE_STATE_READY};
+                parse_uci_packet(dummy_notification_packet, sizeof(dummy_notification_packet));
+            }
         } else if (strcmp(command, "set_power") == 0 || strcmp(command, "device_on") == 0 || strcmp(command, "device_off") == 0) {
             // Handle friendly power commands
             char* power_state = NULL;
@@ -1082,9 +1134,126 @@ int main() {
             unsigned char payload[] = {0x01, cfg_id, 0x01, value};
             send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
         } else if (strcmp(command, "get_caps_info") == 0) {
+            // Handle get_caps_info command with unified mode support
+            if (uci_is_hardware_mode_enabled()) {
+                // In hardware mode, send command to actual device
+                if (!uci_hw_interface_is_connected()) {
+                    printf("Hardware not connected. Use 'hw_connect <device_path>' first.\n");
+                    continue;
+                }
+                
+                // Send CORE_GET_CAPS_INFO command (MT=0x01, PBF=0x00, GID=0x00, OID=0x03)
+                if (uci_hw_interface_send_command(0x01, 0x00, 0x00, 0x03, NULL, 0) == 0) {
+                    printf("CORE_GET_CAPS_INFO command sent to hardware successfully\n");
+                    // Try to receive response
+                    unsigned char response_buffer[1024];
+                    int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
+                    if (response_len > 0) {
+                        printf("Received %d bytes from hardware:\n  ", response_len);
+                        for (int i = 0; i < response_len; i++) {
+                            printf("%02X ", response_buffer[i]);
+                        }
+                        printf("\n");
+                        parse_uci_packet(response_buffer, response_len);
+                    }
+                } else {
+                    printf("Failed to send CORE_GET_CAPS_INFO command to hardware\n");
+                }
+            } else {
+                // In simulation mode, use the send_uci_command function (which simulates)
+                send_uci_command(COMMAND, 0, CORE, CORE_GET_CAPS_INFO, NULL, 0);
+            }
+        } else if (strcmp(command, "get_config") == 0) {
             char* config_name = strtok(NULL, " ");
-            char* value_name = strtok(NULL, " ");
-            if (!config_name || !value_name) {
+            if (!config_name) {
+                printf("Usage: get_config <config_name>\n");
+                printf("  Examples:\n");
+                printf("    get_config device_state\n");
+                printf("    get_config low_power_mode\n");
+                continue;
+            }
+
+            DeviceConfigId cfg_id;
+            if (strcmp(config_name, "device_state") == 0) {
+                cfg_id = DEVICE_STATE;
+            } else if (strcmp(config_name, "low_power_mode") == 0) {
+                cfg_id = LOW_POWER_MODE;
+            } else {
+                printf("Unknown config_name: %s. Supported configs: device_state, low_power_mode\n", config_name);
+                continue;
+            }
+
+            unsigned char payload[] = {0x01, cfg_id}; // num_tlvs(1), cfg_id
+            
+            if (uci_is_hardware_mode_enabled()) {
+                // In hardware mode, send command to actual device
+                if (!uci_hw_interface_is_connected()) {
+                    printf("Hardware not connected. Use 'hw_connect <device_path>' first.\n");
+                    continue;
+                }
+                
+                if (uci_hw_interface_send_command(0x01, 0x00, 0x00, CORE_GET_CONFIG, payload, sizeof(payload)) == 0) {
+                    printf("CORE_GET_CONFIG command sent to hardware successfully\n");
+                    // Try to receive response
+                    unsigned char response_buffer[1024];
+                    int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
+                    if (response_len > 0) {
+                        printf("Received %d bytes from hardware: ", response_len);
+                        for (int i = 0; i < response_len; i++) {
+                            printf("%02X ", response_buffer[i]);
+                        }
+                        printf("\n");
+                        parse_uci_packet(response_buffer, response_len);
+                    }
+                } else {
+                    printf("Failed to send CORE_GET_CONFIG command to hardware\n");
+                }
+            } else {
+                // In simulation mode, use the send_uci_command function (which simulates)
+                send_uci_command(COMMAND, 0, CORE, CORE_GET_CONFIG, payload, sizeof(payload));
+            }
+        } else if (strcmp(command, "get_device_state") == 0) {
+        } else if (strcmp(command, "get_device_state") == 0) {
+            unsigned char payload[] = {0x01, DEVICE_STATE}; // num_tlvs(1), cfg_id
+            
+            if (uci_is_hardware_mode_enabled()) {
+                // In hardware mode, send command to actual device
+                if (!uci_hw_interface_is_connected()) {
+                    printf("Hardware not connected. Use 'hw_connect <device_path>' first.\n");
+                    continue;
+                }
+                
+                if (uci_hw_interface_send_command(0x01, 0x00, 0x00, CORE_GET_CONFIG, payload, sizeof(payload)) == 0) {
+                    printf("CORE_GET_CONFIG (device_state) command sent to hardware successfully\n");
+                    // Try to receive response
+                    unsigned char response_buffer[1024];
+                    int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
+                    if (response_len > 0) {
+                        printf("Received %d bytes from hardware: ", response_len);
+                        for (int i = 0; i < response_len; i++) {
+                            printf("%02X ", response_buffer[i]);
+                        }
+                        printf("\n");
+                        parse_uci_packet(response_buffer, response_len);
+                    }
+                } else {
+                    printf("Failed to send CORE_GET_CONFIG (device_state) command to hardware\n");
+                }
+            } else {
+                // In simulation mode, use the send_uci_command function (which simulates)
+                send_uci_command(COMMAND, 0, CORE, CORE_GET_CONFIG, payload, sizeof(payload));
+            }
+        } else if (strcmp(command, "set_device_active") == 0) {
+            unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE}; // num_tlvs(1), cfg_id, length, value
+            send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
+        } else if (strcmp(command, "set_device_ready") == 0) {
+            unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_READY}; // num_tlvs(1), cfg_id, length, value
+            send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
+        } else if (strcmp(command, "set_config") == 0) {
+            // Handle set_config command with unified mode support
+            char* config_name = strtok(NULL, " ");
+            char* value_str = strtok(NULL, " ");
+            if (!config_name || !value_str) {
                 printf("Usage: set_config <config_name> <value>\n");
                 printf("  Examples:\n");
                 printf("    set_config device_state active\n");
@@ -1092,48 +1261,116 @@ int main() {
                 continue;
             }
 
-            DeviceConfigId cfg_id;
-            unsigned char value;
-
-            if (strcmp(config_name, "device_state") == 0) {
-                cfg_id = DEVICE_STATE;
-                if (strcmp(value_name, "active") == 0) {
-                    value = DEVICE_STATE_ACTIVE;
-                } else if (strcmp(value_name, "ready") == 0) {
-                    value = DEVICE_STATE_READY;
-                } else {
-                    printf("Invalid value for device_state. Use 'active' or 'ready'.\n");
+            if (uci_is_hardware_mode_enabled()) {
+                // In hardware mode, send command to actual device
+                if (!uci_hw_interface_is_connected()) {
+                    printf("Hardware not connected. Use 'hw_connect <device_path>' first.\n");
                     continue;
                 }
-            } else if (strcmp(config_name, "low_power_mode") == 0) {
-                cfg_id = LOW_POWER_MODE;
-                if (strcmp(value_name, "on") == 0) {
-                    value = 1;
-                } else if (strcmp(value_name, "off") == 0) {
-                    value = 0;
+                
+                DeviceConfigId cfg_id;
+                unsigned char value;
+
+                if (strcmp(config_name, "device_state") == 0) {
+                    cfg_id = DEVICE_STATE;
+                    if (strcmp(value_str, "active") == 0) {
+                        value = DEVICE_STATE_ACTIVE;
+                    } else if (strcmp(value_str, "ready") == 0) {
+                        value = DEVICE_STATE_READY;
+                    } else if (strcmp(value_str, "sleep") == 0 || strcmp(value_str, "suspend") == 0) {
+                        // For sleep, we'll send the device suspend command
+                        unsigned char suspend_payload[] = {0x00}; // Wakeup source
+                        if (uci_hw_interface_send_command(0x01, 0x00, 0x00, CORE_DEVICE_SUSPEND, suspend_payload, sizeof(suspend_payload)) == 0) {
+                            printf("CORE_DEVICE_SUSPEND command sent to hardware successfully\n");
+                            // Try to receive response
+                            unsigned char response_buffer[1024];
+                            int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
+                            if (response_len > 0) {
+                                printf("Received %d bytes from hardware: ", response_len);
+                                for (int i = 0; i < response_len; i++) {
+                                    printf("%02X ", response_buffer[i]);
+                                }
+                                printf("\n");
+                                parse_uci_packet(response_buffer, response_len);
+                            }
+                        } else {
+                            printf("Failed to send CORE_DEVICE_SUSPEND command to hardware\n");
+                        }
+                        continue;
+                    } else {
+                        printf("Invalid value for device_state. Use 'active', 'ready', 'sleep', or 'suspend'.\n");
+                        continue;
+                    }
+                } else if (strcmp(config_name, "low_power_mode") == 0) {
+                    cfg_id = LOW_POWER_MODE;
+                    if (strcmp(value_str, "on") == 0) {
+                        value = 1;
+                    } else if (strcmp(value_str, "off") == 0) {
+                        value = 0;
+                    } else {
+                        printf("Invalid value for low_power_mode. Use 'on' or 'off'.\n");
+                        continue;
+                    }
                 } else {
-                    printf("Invalid value for low_power_mode. Use 'on' or 'off'.\n");
+                    printf("Unknown config_name: %s. Supported configs: device_state, low_power_mode\n", config_name);
                     continue;
+                }
+
+                unsigned char payload[] = {0x01, cfg_id, 0x01, value}; // num_tlvs(1), cfg_id, length, value
+                if (uci_hw_interface_send_command(0x01, 0x00, 0x00, CORE_SET_CONFIG, payload, sizeof(payload)) == 0) {
+                    printf("CORE_SET_CONFIG command sent to hardware successfully\n");
+                    // Try to receive response
+                    unsigned char response_buffer[1024];
+                    int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
+                    if (response_len > 0) {
+                        printf("Received %d bytes from hardware: ", response_len);
+                        for (int i = 0; i < response_len; i++) {
+                            printf("%02X ", response_buffer[i]);
+                        }
+                        printf("\n");
+                        parse_uci_packet(response_buffer, response_len);
+                    }
+                } else {
+                    printf("Failed to send CORE_SET_CONFIG command to hardware\n");
                 }
             } else {
-                printf("Unknown config_name: %s\n", config_name);
-                continue;
-            }
+                // In simulation mode, use the existing simulated logic
+                DeviceConfigId cfg_id;
+                unsigned char value;
 
-            unsigned char payload[] = {0x01, cfg_id, 0x01, value};
-            send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
-        } else if (strcmp(command, "get_config") == 0) {
-            unsigned char payload[] = {0x01, DEVICE_STATE}; // num_tlvs(1), cfg_id
-            send_uci_command(COMMAND, 0, CORE, CORE_GET_CONFIG, payload, sizeof(payload));
-        } else if (strcmp(command, "get_device_state") == 0) {
-            unsigned char payload[] = {0x01, DEVICE_STATE}; // num_tlvs(1), cfg_id
-            send_uci_command(COMMAND, 0, CORE, CORE_GET_CONFIG, payload, sizeof(payload));
-        } else if (strcmp(command, "set_device_active") == 0) {
-            unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE}; // num_tlvs(1), cfg_id, length, value
-            send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
-        } else if (strcmp(command, "set_device_ready") == 0) {
-            unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_READY}; // num_tlvs(1), cfg_id, length, value
-            send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
+                if (strcmp(config_name, "device_state") == 0) {
+                    cfg_id = DEVICE_STATE;
+                    if (strcmp(value_str, "active") == 0) {
+                        value = DEVICE_STATE_ACTIVE;
+                    } else if (strcmp(value_str, "ready") == 0) {
+                        value = DEVICE_STATE_READY;
+                    } else if (strcmp(value_str, "sleep") == 0 || strcmp(value_str, "suspend") == 0) {
+                        // For sleep, we'll send the device suspend command
+                        unsigned char suspend_payload[] = {0x00}; // Wakeup source
+                        send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, suspend_payload, sizeof(suspend_payload));
+                        continue;
+                    } else {
+                        printf("Invalid value for device_state. Use 'active', 'ready', 'sleep', or 'suspend'.\n");
+                        continue;
+                    }
+                } else if (strcmp(config_name, "low_power_mode") == 0) {
+                    cfg_id = LOW_POWER_MODE;
+                    if (strcmp(value_str, "on") == 0) {
+                        value = 1;
+                    } else if (strcmp(value_str, "off") == 0) {
+                        value = 0;
+                    } else {
+                        printf("Invalid value for low_power_mode. Use 'on' or 'off'.\n");
+                        continue;
+                    }
+                } else {
+                    printf("Unknown config_name: %s. Supported configs: device_state, low_power_mode\n", config_name);
+                    continue;
+                }
+
+                unsigned char payload[] = {0x01, cfg_id, 0x01, value}; // num_tlvs(1), cfg_id, length, value
+                send_uci_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
+            }
         } else if (strcmp(command, "device_suspend") == 0) {
             unsigned char payload[] = {0x00}; // Wakeup source
             send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, payload, sizeof(payload));

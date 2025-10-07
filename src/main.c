@@ -1139,6 +1139,26 @@ int main() {
             send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, payload, sizeof(payload));
         } else if (strcmp(command, "query_timestamp") == 0) {
             send_uci_command(COMMAND, 0, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
+        } else if (strcmp(command, "mode_sim") == 0 || strcmp(command, "sim_mode") == 0) {
+            // Switch to simulation mode
+            uci_disable_hardware_mode();
+        } else if (strcmp(command, "mode_hw") == 0 || strcmp(command, "hw_mode") == 0) {
+            // Switch to hardware mode (requires device path)
+            char* device_path = strtok(NULL, " ");
+            if (!device_path) {
+                printf("Usage: mode_hw <device_path>\n");
+                printf("  Example: mode_hw /dev/ttyUSB0\n");
+                continue;
+            }
+            uci_enable_hardware_mode(device_path);
+        } else if (strcmp(command, "mode_info") == 0 || strcmp(command, "current_mode") == 0) {
+            // Show current mode information
+            if (uci_is_hardware_mode_enabled()) {
+                printf("Current mode: HARDWARE\n");
+                printf("Hardware device: %s\n", uci_get_hardware_device_path());
+            } else {
+                printf("Current mode: SIMULATION\n");
+            }
         } else if (strcmp(command, "session_init") == 0 || strcmp(command, "session_new") == 0) {
             char* session_id_str = strtok(NULL, " ");
             char* session_type_str = strtok(NULL, " ");
@@ -1860,6 +1880,9 @@ int main() {
                 printf("  set_device_ready                 - Set device to READY state\n");
                 printf("  device_suspend                   - Suspend the device\n");
                 printf("  query_timestamp                  - Query UWBS timestamp\n");
+                printf("  mode_sim, sim_mode               - Switch to simulation mode\n");
+                printf("  mode_hw <device_path>            - Switch to hardware mode\n");
+                printf("  mode_info, current_mode          - Show current mode information\n");
                 printf("  set_power <state>                - Set device power state\n");
                 printf("  device_on                        - Turn device on (ACTIVE state)\n");
                 printf("  device_off                       - Turn device off (READY state)\n");

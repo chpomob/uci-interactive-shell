@@ -925,6 +925,11 @@ int uci_is_hardware_mode_enabled() {
     return g_hardware_mode;
 }
 
+// Function to get the current hardware device path
+const char* uci_get_hardware_device_path() {
+    return g_hardware_device_path;
+}
+
 // Global session storage
 struct uci_session uci_sessions[MAX_SESSIONS];
 

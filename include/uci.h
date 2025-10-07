@@ -133,6 +133,12 @@ static inline void uci_extract_header_fields(const struct uci_packet_header *hea
 // UCI packet analysis function
 void analyze_uci_packet(unsigned char* packet, size_t packet_len);
 
+// Hardware mode functions
+void uci_enable_hardware_mode(const char* device_path);
+void uci_disable_hardware_mode();
+int uci_is_hardware_mode_enabled();
+const char* uci_get_hardware_device_path();
+
 // Payload decoding functions
 // CORE group decoders
 void decode_core_device_info_rsp(unsigned char* payload, int payload_len);

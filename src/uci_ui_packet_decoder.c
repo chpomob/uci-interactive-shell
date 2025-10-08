@@ -666,6 +666,40 @@ void ui_decode_session_get_count_rsp(unsigned char* payload, int payload_len) {
     } else {
         printf("  SESSION_GET_COUNT Response:\n");
     }
+
+    if (payload_len < 2) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 2)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned char count = payload[1];
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_REJECTED: printf(" %s(REJECTED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_FAILED: printf(" %s(FAILED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        printf("    %s%sSession Count:%s %d\n",
+               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, count);
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+            case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        printf("    Session Count: %d\n", count);
+    }
 }
 
 void ui_decode_session_get_state_rsp(unsigned char* payload, int payload_len) {
@@ -673,6 +707,55 @@ void ui_decode_session_get_state_rsp(unsigned char* payload, int payload_len) {
         printf("  %s%sSESSION_GET_STATE Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  SESSION_GET_STATE Response:\n");
+    }
+
+    if (payload_len < 2) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 2)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned char state = payload[1];
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_REJECTED: printf(" %s(REJECTED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_FAILED: printf(" %s(FAILED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_SESSION_NOT_EXIST: printf(" %s(SESSION_NOT_EXIST)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        printf("    %s%sSession State:%s 0x%02X", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, state);
+        switch(state) {
+            case SESSION_STATE_INIT: printf(" %s(INIT)%s\n", ANSI_COLOR_CYAN, ANSI_RESET); break;
+            case SESSION_STATE_DEINIT: printf(" %s(DEINIT)%s\n", ANSI_COLOR_CYAN, ANSI_RESET); break;
+            case SESSION_STATE_ACTIVE: printf(" %s(ACTIVE)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case SESSION_STATE_IDLE: printf(" %s(IDLE)%s\n", ANSI_COLOR_CYAN, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+            case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+            case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        printf("    Session State: 0x%02X", state);
+        switch(state) {
+            case SESSION_STATE_INIT: printf(" (INIT)\n"); break;
+            case SESSION_STATE_DEINIT: printf(" (DEINIT)\n"); break;
+            case SESSION_STATE_ACTIVE: printf(" (ACTIVE)\n"); break;
+            case SESSION_STATE_IDLE: printf(" (IDLE)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
     }
 }
 
@@ -791,6 +874,44 @@ void ui_decode_session_get_ranging_count_rsp(unsigned char* payload, int payload
         printf("  %s%sSESSION_GET_RANGING_COUNT Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  SESSION_GET_RANGING_COUNT Response:\n");
+    }
+
+    if (payload_len < 3) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 3)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 3)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned short count = ui_read_u16_le(payload + 1);
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_REJECTED: printf(" %s(REJECTED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_FAILED: printf(" %s(FAILED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_SESSION_NOT_EXIST: printf(" %s(SESSION_NOT_EXIST)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        printf("    %s%sRanging Count:%s %d\n",
+               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, count);
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+            case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+            case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        printf("    Ranging Count: %d\n", count);
     }
 }
 

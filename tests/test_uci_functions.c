@@ -1348,5 +1348,84 @@ int main() {
         TEST_PASS();
     }
 
+    // Test packet endianness handling
+    TEST_CASE(packet_endianness_handling);
+    {
+        // Test 16-bit little-endian write and read
+        unsigned char buffer_16[2] = {0};
+        write_u16_le(buffer_16, 0x1234);
+        ASSERT_EQUAL(0x34, buffer_16[0]);
+        ASSERT_EQUAL(0x12, buffer_16[1]);
+
+        uint16_t read_16 = buffer_16[0] | (buffer_16[1] << 8);
+        ASSERT_EQUAL(0x1234, read_16);
+
+        // Test 32-bit little-endian write and read
+        unsigned char buffer_32[4] = {0};
+        write_u32_le(buffer_32, 0x12345678);
+        ASSERT_EQUAL(0x78, buffer_32[0]);
+        ASSERT_EQUAL(0x56, buffer_32[1]);
+        ASSERT_EQUAL(0x34, buffer_32[2]);
+        ASSERT_EQUAL(0x12, buffer_32[3]);
+
+        uint32_t read_32 = ui_read_u32_le(buffer_32);
+        ASSERT_EQUAL(0x12345678u, read_32);
+
+        // Test with session ID in real packet scenario
+        init_uci_sessions();
+        unsigned char init_payload[5];
+        write_u32_le(init_payload, 0xAABBCCDD);  // Session ID
+        init_payload[4] = FIRA_RANGING_SESSION;
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload, sizeof(init_payload));
+
+        int slot = find_session_by_id(0xAABBCCDD);
+        ASSERT_TRUE(slot >= 0);
+        ASSERT_EQUAL(0xAABBCCDD, uci_sessions[slot].session_id);
+
+        // Verify endianness in response building
+        unsigned int handle = uci_sessions[slot].session_handle;
+        unsigned char handle_buffer[4];
+        write_u32_le(handle_buffer, handle);
+
+        // Read it back and verify
+        uint32_t handle_readback = ui_read_u32_le(handle_buffer);
+        ASSERT_EQUAL(handle, handle_readback);
+
+        // Test with multicast subsession ID (edge case with all bytes different)
+        unsigned char subsession_buffer[4];
+        write_u32_le(subsession_buffer, 0x11223344);
+        ASSERT_EQUAL(0x44, subsession_buffer[0]);
+        ASSERT_EQUAL(0x33, subsession_buffer[1]);
+        ASSERT_EQUAL(0x22, subsession_buffer[2]);
+        ASSERT_EQUAL(0x11, subsession_buffer[3]);
+
+        uint32_t subsession_readback = ui_read_u32_le(subsession_buffer);
+        ASSERT_EQUAL(0x11223344u, subsession_readback);
+
+        // Test edge cases
+        write_u16_le(buffer_16, 0x0000);
+        ASSERT_EQUAL(0x00, buffer_16[0]);
+        ASSERT_EQUAL(0x00, buffer_16[1]);
+
+        write_u16_le(buffer_16, 0xFFFF);
+        ASSERT_EQUAL(0xFF, buffer_16[0]);
+        ASSERT_EQUAL(0xFF, buffer_16[1]);
+
+        write_u32_le(buffer_32, 0x00000000);
+        ASSERT_EQUAL(0x00, buffer_32[0]);
+        ASSERT_EQUAL(0x00, buffer_32[1]);
+        ASSERT_EQUAL(0x00, buffer_32[2]);
+        ASSERT_EQUAL(0x00, buffer_32[3]);
+
+        write_u32_le(buffer_32, 0xFFFFFFFF);
+        ASSERT_EQUAL(0xFF, buffer_32[0]);
+        ASSERT_EQUAL(0xFF, buffer_32[1]);
+        ASSERT_EQUAL(0xFF, buffer_32[2]);
+        ASSERT_EQUAL(0xFF, buffer_32[3]);
+
+        TEST_PASS();
+    }
+
     TEST_SUITE_END();
 }

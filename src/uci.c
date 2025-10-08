@@ -10,6 +10,7 @@
 #include "../include/uci_hw_chardev.h"
 #include "../include/uci_ui.h"
 #include "../include/uci_ui_main_patch.h"
+#include "../include/uci_response_core.h"
 
 // Helper functions for Little-Endian conversion
 static inline uint16_t read_u16_le(const unsigned char* buffer) {
@@ -168,7 +169,7 @@ static inline void write_u64_le(unsigned char* buffer, uint64_t value) {
     }
 }
 
-static int is_valid_device_config_id(unsigned char cfg_id) {
+int is_valid_device_config_id(unsigned char cfg_id) {
     return cfg_id == DEVICE_STATE || cfg_id == LOW_POWER_MODE;
 }
 
@@ -187,7 +188,7 @@ static int is_valid_device_config_id(unsigned char cfg_id) {
 // Global flag for hardware mode
 static int g_hardware_mode = 0;
 static char g_hardware_device_path[256] = "/dev/ttyUSB0";  // Default device path
-static unsigned long long g_fake_timestamp = 0;
+unsigned long long g_fake_timestamp = 0;
 static unsigned int g_session_handle_counter = 1;
 
 static unsigned char session_add_multicast_entry(struct uci_session* session,
@@ -326,7 +327,7 @@ static notification_item_t g_notification_queue[MAX_PENDING_NOTIFICATIONS];
 static size_t g_notification_head = 0;
 static size_t g_notification_tail = 0;
 
-static void enqueue_notification(unsigned char gid, unsigned char oid, const unsigned char* payload, size_t payload_len);
+void enqueue_notification(unsigned char gid, unsigned char oid, const unsigned char* payload, size_t payload_len);
 
 static void enqueue_session_status_notification(const struct uci_session* session, unsigned char new_state, unsigned char reason_code) {
     unsigned char payload[6];
@@ -373,7 +374,7 @@ size_t uci_build_core_capabilities_payload(unsigned char* buffer, size_t max_len
     return offset;
 }
 
-static void enqueue_notification(unsigned char gid, unsigned char oid, const unsigned char* payload, size_t payload_len) {
+void enqueue_notification(unsigned char gid, unsigned char oid, const unsigned char* payload, size_t payload_len) {
     if (payload_len > MAX_RESPONSE_PAYLOAD_LEN) {
         payload_len = MAX_RESPONSE_PAYLOAD_LEN;
     }
@@ -1016,36 +1017,14 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     set_header_values(response_header, RESPONSE, COMPLETE, gid, oid, 0); // Initialize with 0, will be updated below
     
     if (gid == CORE && oid == CORE_DEVICE_INFO) {
-        // Simulate a CORE_DEVICE_INFO_RSP according to Android UWB specification
-        unsigned char device_info_rsp_payload[9];
-        device_info_rsp_payload[0] = UCI_STATUS_OK;
-        write_u16_le(&device_info_rsp_payload[1], 0x0100);
-        write_u16_le(&device_info_rsp_payload[3], 0x0200);
-        write_u16_le(&device_info_rsp_payload[5], 0x0200);
-        write_u16_le(&device_info_rsp_payload[7], 0x0100);
-        memcpy(response_packet + sizeof(struct uci_packet_header), device_info_rsp_payload, sizeof(device_info_rsp_payload));
-        response_header->payload_len = sizeof(device_info_rsp_payload);
+        int len = build_core_device_info_response(response_packet + sizeof(struct uci_packet_header), MAX_RESPONSE_PAYLOAD_LEN);
+        response_header->payload_len = len;
     } else if (gid == CORE && oid == CORE_GET_CAPS_INFO) {
-        unsigned char caps_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
-        size_t caps_payload_len = uci_build_core_capabilities_payload(
-            caps_rsp_payload,
-            sizeof(caps_rsp_payload));
-
-        if (caps_payload_len == 0) {
-            // Fallback to simple status to avoid emitting a malformed packet.
-            caps_rsp_payload[0] = UCI_STATUS_FAILED;
-            caps_payload_len = 1;
-        }
-
-        memcpy(response_packet + sizeof(struct uci_packet_header), caps_rsp_payload, caps_payload_len);
-        response_header->payload_len = (unsigned char)caps_payload_len;
+        int len = build_core_get_caps_info_response(response_packet + sizeof(struct uci_packet_header), MAX_RESPONSE_PAYLOAD_LEN);
+        response_header->payload_len = len;
     } else if (gid == CORE && oid == CORE_QUERY_UWBS_TIMESTAMP) {
-        unsigned char timestamp_rsp[9];
-        timestamp_rsp[0] = UCI_STATUS_OK;
-        unsigned long long timestamp = g_fake_timestamp++;
-        write_u64_le(&timestamp_rsp[1], timestamp);
-        memcpy(response_packet + sizeof(struct uci_packet_header), timestamp_rsp, sizeof(timestamp_rsp));
-        response_header->payload_len = sizeof(timestamp_rsp);
+        int len = build_core_query_timestamp_response(response_packet + sizeof(struct uci_packet_header), MAX_RESPONSE_PAYLOAD_LEN);
+        response_header->payload_len = len;
     } else if (gid == CORE && oid == CORE_GET_CONFIG) {
         unsigned char get_config_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
         size_t response_offset = 2;

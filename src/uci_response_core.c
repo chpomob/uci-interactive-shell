@@ -15,14 +15,24 @@ extern int is_valid_device_config_id(unsigned char cfg_id);
 extern void enqueue_notification(unsigned char gid, unsigned char oid, unsigned char* payload, int payload_len);
 
 int build_core_device_info_response(unsigned char* response_payload, size_t max_len) {
-    if (max_len < 9) return 0;
+    // Per FiRa UCI spec (GetDeviceInfoRsp):
+    // Byte 0: status
+    // Bytes 1-2: uci_version (16-bit)
+    // Bytes 3-4: mac_version (16-bit)
+    // Bytes 5-6: phy_version (16-bit)
+    // Bytes 7-8: uci_test_version (16-bit)
+    // Byte 9: vendor_spec_info count
+    // Bytes 10+: vendor_spec_info array (empty in this implementation)
+
+    if (max_len < 10) return 0;
 
     response_payload[0] = UCI_STATUS_OK;
-    write_u16_le(&response_payload[1], 0x0100);
-    write_u16_le(&response_payload[3], 0x0200);
-    write_u16_le(&response_payload[5], 0x0200);
-    write_u16_le(&response_payload[7], 0x0100);
-    return 9;
+    write_u16_le(&response_payload[1], 0x0100);  // uci_version 1.0
+    write_u16_le(&response_payload[3], 0x0200);  // mac_version 2.0
+    write_u16_le(&response_payload[5], 0x0200);  // phy_version 2.0
+    write_u16_le(&response_payload[7], 0x0100);  // uci_test_version 1.0
+    response_payload[9] = 0;  // vendor_spec_info count = 0 (no vendor info)
+    return 10;
 }
 
 int build_core_get_caps_info_response(unsigned char* response_payload, size_t max_len) {

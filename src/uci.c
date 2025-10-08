@@ -818,7 +818,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
 
         unsigned int identifier = read_u32_le(payload);
         int session_idx = find_session_by_token_or_id(identifier);
-        unsigned short ranging_count = 0;
+        unsigned int ranging_count = 0;  // Per FiRa spec: count is 32-bit
         unsigned char status = UCI_STATUS_OK;
         if (session_idx >= 0) {
             ranging_count = uci_sessions[session_idx].ranging_count;
@@ -826,9 +826,12 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             status = UCI_STATUS_INVALID_PARAM;
         }
 
-        unsigned char ranging_rsp_payload[3];
+        // Per FiRa UCI spec (SessionGetRangingCountRsp):
+        // Byte 0: status
+        // Bytes 1-4: count (32-bit)
+        unsigned char ranging_rsp_payload[5];
         ranging_rsp_payload[0] = status;
-        write_u16_le(&ranging_rsp_payload[1], ranging_count);
+        write_u32_le(&ranging_rsp_payload[1], ranging_count);
         memcpy(response_packet + sizeof(struct uci_packet_header), ranging_rsp_payload, sizeof(ranging_rsp_payload));
         response_header->payload_len = sizeof(ranging_rsp_payload);
         

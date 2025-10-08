@@ -1,0 +1,124 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "../include/uci.h"
+#include "../include/uci_functions.h"
+#include "../include/uci_pdl.h"
+
+// Helper function to encode session_id in little-endian format
+static void encode_session_id_le(unsigned char* payload, unsigned int session_id) {
+    payload[0] = session_id & 0xFF;           // LSB first
+    payload[1] = (session_id >> 8) & 0xFF;
+    payload[2] = (session_id >> 16) & 0xFF;
+    payload[3] = (session_id >> 24) & 0xFF;   // MSB last
+}
+
+int handle_session_init_command(char* session_id_str, char* session_type_str) {
+    if (!session_id_str || !session_type_str) {
+        printf("Usage: session_init <session_id> <session_type>\n");
+        printf("  Examples:\n");
+        printf("    session_init 1 fira_ranging\n");
+        printf("    session_init 1 fira_ranging_and_data\n");
+        printf("    session_init 1 fira_data_transfer\n");
+        printf("    session_init 1 fira_ranging_only\n");
+        printf("    session_init 1 fira_in_band_data\n");
+        printf("    session_init 1 fira_ranging_with_data\n");
+        printf("  Alternative names:\n");
+        printf("    session_new 1 ranging\n");
+        printf("    session_new 1 ranging_and_data\n");
+        printf("    session_new 1 data_transfer\n");
+        printf("    session_new 1 ranging_only\n");
+        printf("    session_new 1 in_band_data\n");
+        printf("    session_new 1 ranging_with_data\n");
+        return -1;
+    }
+
+    unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
+    SessionType session_type;
+
+    // Support both technical and friendly names for session types
+    if (strcmp(session_type_str, "fira_ranging") == 0 || strcmp(session_type_str, "ranging") == 0) {
+        session_type = FIRA_RANGING_SESSION;
+    } else if (strcmp(session_type_str, "fira_ranging_and_data") == 0 || strcmp(session_type_str, "ranging_and_data") == 0) {
+        session_type = FIRA_RANGING_AND_IN_BAND_DATA_SESSION;
+    } else if (strcmp(session_type_str, "fira_data_transfer") == 0 || strcmp(session_type_str, "data_transfer") == 0) {
+        session_type = FIRA_DATA_TRANSFER_SESSION;
+    } else if (strcmp(session_type_str, "fira_ranging_only") == 0 || strcmp(session_type_str, "ranging_only") == 0) {
+        session_type = FIRA_RANGING_ONLY_PHASE;
+    } else if (strcmp(session_type_str, "fira_in_band_data") == 0 || strcmp(session_type_str, "in_band_data") == 0) {
+        session_type = FIRA_IN_BAND_DATA_PHASE;
+    } else if (strcmp(session_type_str, "fira_ranging_with_data") == 0 || strcmp(session_type_str, "ranging_with_data") == 0) {
+        session_type = FIRA_RANGING_WITH_DATA_PHASE;
+    } else {
+        printf("Unknown session_type: %s\n", session_type_str);
+        printf("  Supported types:\n");
+        printf("    - fira_ranging / ranging (0x00)\n");
+        printf("    - fira_ranging_and_data / ranging_and_data (0x01)\n");
+        printf("    - fira_data_transfer / data_transfer (0x02)\n");
+        printf("    - fira_ranging_only / ranging_only (0x03)\n");
+        printf("    - fira_in_band_data / in_band_data (0x04)\n");
+        printf("    - fira_ranging_with_data / ranging_with_data (0x05)\n");
+        return -1;
+    }
+
+    unsigned char payload[5];
+    encode_session_id_le(payload, session_id);
+    payload[4] = session_type;
+    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_INIT, payload, sizeof(payload));
+    return 0;
+}
+
+int handle_session_deinit_command(char* session_id_str) {
+    if (!session_id_str) {
+        printf("Usage: session_deinit <session_id>\n");
+        return -1;
+    }
+
+    unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
+    unsigned char payload[4];
+    encode_session_id_le(payload, session_id);
+    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_DEINIT, payload, sizeof(payload));
+    return 0;
+}
+
+int handle_session_start_command(char* session_id_str) {
+    if (!session_id_str) {
+        printf("Usage: session_start <session_id>\n");
+        printf("  Alternative: start_ranging <session_id>\n");
+        return -1;
+    }
+
+    unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
+    unsigned char payload[4];
+    encode_session_id_le(payload, session_id);
+    send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_START, payload, sizeof(payload));
+    return 0;
+}
+
+int handle_session_stop_command(char* session_id_str) {
+    if (!session_id_str) {
+        printf("Usage: session_stop <session_id>\n");
+        printf("  Alternative: stop_ranging <session_id>\n");
+        return -1;
+    }
+
+    unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
+    unsigned char payload[4];
+    encode_session_id_le(payload, session_id);
+    send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_STOP, payload, sizeof(payload));
+    return 0;
+}
+
+int handle_get_session_state_command(char* session_id_str) {
+    if (!session_id_str) {
+        printf("Usage: get_session_state <session_id>\n");
+        printf("  Alternative: session_status <session_id>\n");
+        return -1;
+    }
+
+    unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
+    unsigned char payload[4];
+    encode_session_id_le(payload, session_id);
+    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_STATE, payload, sizeof(payload));
+    return 0;
+}

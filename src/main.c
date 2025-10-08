@@ -778,15 +778,51 @@ int main() {
                     continue;
                 }
                 found = 1;
+            } else if (strcmp(config_name, "slot_duration") == 0) {
+                cfg_id = SLOT_DURATION;
+                found = 1;
+            } else if (strcmp(config_name, "ranging_duration") == 0) {
+                cfg_id = RANGING_DURATION;
+                found = 1;
+            } else if (strcmp(config_name, "sts_index") == 0) {
+                cfg_id = STS_INDEX;
+                found = 1;
+            } else if (strcmp(config_name, "preamble_code_index") == 0) {
+                cfg_id = PREAMBLE_CODE_INDEX;
+                found = 1;
+            } else if (strcmp(config_name, "sfd_id") == 0) {
+                cfg_id = SFD_ID;
+                found = 1;
+            } else if (strcmp(config_name, "psdu_data_rate") == 0) {
+                cfg_id = PSDU_DATA_RATE;
+                found = 1;
+            } else if (strcmp(config_name, "prf_mode") == 0) {
+                cfg_id = PRF_MODE;
+                found = 1;
+            } else if (strcmp(config_name, "hopping_mode") == 0) {
+                cfg_id = HOPPING_MODE;
+                found = 1;
+            } else if (strcmp(config_name, "result_report_config") == 0) {
+                cfg_id = RESULT_REPORT_CONFIG;
+                found = 1;
+            } else if (strcmp(config_name, "max_rr_retry") == 0) {
+                cfg_id = MAX_RR_RETRY;
+                found = 1;
+            } else if (strcmp(config_name, "uwb_initiation_time") == 0 || strcmp(config_name, "initiation_time") == 0) {
+                cfg_id = UWB_INITIATION_TIME;
+                found = 1;
+            } else if (strcmp(config_name, "sub_session_id") == 0) {
+                cfg_id = SUB_SESSION_ID;
+                found = 1;
             }
 
             if (!found) {
                 printf("Unknown config_name: %s\n", config_name);
-                printf("Supported config names: device_type, ranging_usage, sts_config, multi_node_mode, channel, device_role, aoa_request, scheduled_mode\n");
+                printf("Supported config names: device_type, ranging_usage, sts_config, multi_node_mode, channel, device_role, aoa_request, scheduled_mode, slot_duration, ranging_duration, sts_index, preamble_code_index, sfd_id, psdu_data_rate, prf_mode, hopping_mode, result_report_config, max_rr_retry, uwb_initiation_time, sub_session_id\n");
                 continue;
             }
 
-            unsigned char payload[8];
+            unsigned char payload[20]; // Increased size to handle more complex values
             // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
             payload[0] = session_id & 0xFF;           // LSB first
             payload[1] = (session_id >> 8) & 0xFF;
@@ -794,9 +830,67 @@ int main() {
             payload[3] = (session_id >> 24) & 0xFF;   // MSB last
             payload[4] = 1; // Number of TLVs
             payload[5] = cfg_id;
-            payload[6] = 1; // Length
+            payload[6] = 1; // Length (will be updated if needed)
             payload[7] = value;
-            send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_SET_APP_CONFIG, payload, sizeof(payload));
+            
+            // Update payload length based on the actual value size for multi-byte parameters
+            int payload_len = 8;
+            switch(cfg_id) {
+                case RANGING_DURATION:
+                case SLOT_DURATION:
+                case STS_INDEX:
+                case RNG_DATA_NTF_PROXIMITY_NEAR:
+                case RNG_DATA_NTF_PROXIMITY_FAR:
+                case RNG_DATA_NTF_AOA_BOUND:
+                case TX_JITTER_WINDOW_SIZE:
+                case MAX_RR_RETRY:
+                case UWB_INITIATION_TIME:
+                case BLOCK_STRIDE_LENGTH:
+                case IN_BAND_TERMINATION_ATTEMPT_COUNT:
+                case SUB_SESSION_ID:
+                    // These parameters use 4-byte values
+                    {
+                        char *endptr;
+                        unsigned long val = strtoul(value_str, &endptr, 10);
+                        if (*endptr != '\0') {
+                            printf("Invalid numeric value for %s\n", config_name);
+                            continue;
+                        }
+                        payload[6] = 4; // Length
+                        payload[7] = val & 0xFF;           // LSB first
+                        payload[8] = (val >> 8) & 0xFF;
+                        payload[9] = (val >> 16) & 0xFF;
+                        payload[10] = (val >> 24) & 0xFF;  // MSB last
+                        payload_len = 11;
+                    }
+                    break;
+                case PREAMBLE_CODE_INDEX:
+                case SFD_ID:
+                case PSDU_DATA_RATE:
+                case PRF_MODE:
+                case NUMBER_OF_STS_SEGMENTS:
+                case HOPPING_MODE:
+                case RESULT_REPORT_CONFIG:
+                    // These parameters use 2-byte values
+                    {
+                        char *endptr;
+                        unsigned long val = strtoul(value_str, &endptr, 10);
+                        if (*endptr != '\0') {
+                            printf("Invalid numeric value for %s\n", config_name);
+                            continue;
+                        }
+                        payload[6] = 2; // Length
+                        payload[7] = val & 0xFF;           // LSB first
+                        payload[8] = (val >> 8) & 0xFF;    // MSB last
+                        payload_len = 9;
+                    }
+                    break;
+                default:
+                    // Single byte value - already handled above
+                    break;
+            }
+            
+            send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_SET_APP_CONFIG, payload, payload_len);
         } else if (strcmp(command, "get_app_config") == 0) {
             char* session_id_str = strtok(NULL, " ");
             if (!session_id_str) {
@@ -848,10 +942,58 @@ int main() {
                     payload[5 + num_configs] = SCHEDULED_MODE;
                     num_configs++;
                     valid_config = 1;
+                } else if (strcmp(config_name, "slot_duration") == 0) {
+                    payload[5 + num_configs] = SLOT_DURATION;
+                    num_configs++;
+                    valid_config = 1;
+                } else if (strcmp(config_name, "ranging_duration") == 0) {
+                    payload[5 + num_configs] = RANGING_DURATION;
+                    num_configs++;
+                    valid_config = 1;
+                } else if (strcmp(config_name, "sts_index") == 0) {
+                    payload[5 + num_configs] = STS_INDEX;
+                    num_configs++;
+                    valid_config = 1;
+                } else if (strcmp(config_name, "preamble_code_index") == 0) {
+                    payload[5 + num_configs] = PREAMBLE_CODE_INDEX;
+                    num_configs++;
+                    valid_config = 1;
+                } else if (strcmp(config_name, "sfd_id") == 0) {
+                    payload[5 + num_configs] = SFD_ID;
+                    num_configs++;
+                    valid_config = 1;
+                } else if (strcmp(config_name, "psdu_data_rate") == 0) {
+                    payload[5 + num_configs] = PSDU_DATA_RATE;
+                    num_configs++;
+                    valid_config = 1;
+                } else if (strcmp(config_name, "prf_mode") == 0) {
+                    payload[5 + num_configs] = PRF_MODE;
+                    num_configs++;
+                    valid_config = 1;
+                } else if (strcmp(config_name, "hopping_mode") == 0) {
+                    payload[5 + num_configs] = HOPPING_MODE;
+                    num_configs++;
+                    valid_config = 1;
+                } else if (strcmp(config_name, "result_report_config") == 0) {
+                    payload[5 + num_configs] = RESULT_REPORT_CONFIG;
+                    num_configs++;
+                    valid_config = 1;
+                } else if (strcmp(config_name, "max_rr_retry") == 0) {
+                    payload[5 + num_configs] = MAX_RR_RETRY;
+                    num_configs++;
+                    valid_config = 1;
+                } else if (strcmp(config_name, "uwb_initiation_time") == 0 || strcmp(config_name, "initiation_time") == 0) {
+                    payload[5 + num_configs] = UWB_INITIATION_TIME;
+                    num_configs++;
+                    valid_config = 1;
+                } else if (strcmp(config_name, "sub_session_id") == 0) {
+                    payload[5 + num_configs] = SUB_SESSION_ID;
+                    num_configs++;
+                    valid_config = 1;
                 }
                 if (!valid_config) {
                     printf("Unknown config_name: %s\n", config_name);
-                    printf("Supported config names: device_type, ranging_usage, sts_config, multi_node_mode, channel, device_role, aoa_request, scheduled_mode\n");
+                    printf("Supported config names: device_type, ranging_usage, sts_config, multi_node_mode, channel, device_role, aoa_request, scheduled_mode, slot_duration, ranging_duration, sts_index, preamble_code_index, sfd_id, psdu_data_rate, prf_mode, hopping_mode, result_report_config, max_rr_retry, uwb_initiation_time, sub_session_id\n");
                 }
             }
 

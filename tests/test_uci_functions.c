@@ -1242,5 +1242,48 @@ int main() {
         TEST_PASS();
     }
 
+    // Test CORE_GET_CAPS_INFO_RSP TLV parsing with decoder
+    TEST_CASE(core_get_caps_info_tlv_decoder);
+    {
+        // Build a real capabilities payload
+        unsigned char caps_payload[255] = {0};
+        size_t payload_len = uci_build_core_capabilities_payload(caps_payload, sizeof(caps_payload));
+
+        ASSERT_TRUE(payload_len > 2);
+        ASSERT_EQUAL(UCI_STATUS_OK, caps_payload[0]);
+
+        // Test the decoder with the real payload
+        ui_decode_core_get_caps_info_rsp(caps_payload, (int)payload_len);
+
+        // Test with minimal valid payload (status + 0 TLVs)
+        unsigned char minimal_payload[2] = {UCI_STATUS_OK, 0x00};
+        ui_decode_core_get_caps_info_rsp(minimal_payload, sizeof(minimal_payload));
+
+        // Test with single TLV
+        unsigned char single_tlv_payload[] = {
+            UCI_STATUS_OK,
+            0x01,  // 1 TLV
+            SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE,
+            0x04,  // length 4
+            0x01, 0x00, 0x02, 0x00  // min version 1, max version 2
+        };
+        ui_decode_core_get_caps_info_rsp(single_tlv_payload, sizeof(single_tlv_payload));
+
+        // Test error handling - payload too short
+        unsigned char short_payload[1] = {UCI_STATUS_OK};
+        ui_decode_core_get_caps_info_rsp(short_payload, sizeof(short_payload));
+
+        // Test error handling - truncated TLV
+        unsigned char truncated_tlv[] = {
+            UCI_STATUS_OK,
+            0x01,  // 1 TLV
+            0x00,  // TLV type
+            0x10   // length 16 but no data follows
+        };
+        ui_decode_core_get_caps_info_rsp(truncated_tlv, sizeof(truncated_tlv));
+
+        TEST_PASS();
+    }
+
     TEST_SUITE_END();
 }

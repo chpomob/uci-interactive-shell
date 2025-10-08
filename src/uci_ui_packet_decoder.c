@@ -367,6 +367,44 @@ void ui_decode_core_query_uwbs_timestamp_rsp(unsigned char* payload, int payload
     } else {
         printf("  CORE_QUERY_UWBS_TIMESTAMP Response:\n");
     }
+
+    if (payload_len < 9) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 9)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 9)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned long long timestamp = ui_read_u64_le(payload + 1);
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch(status) {
+            case UCI_STATUS_OK:
+                printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET);
+                printf("    %s%sTimestamp:%s %llu\n",
+                       ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, timestamp);
+                break;
+            case UCI_STATUS_REJECTED: printf(" %s(REJECTED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_FAILED: printf(" %s(FAILED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch(status) {
+            case UCI_STATUS_OK:
+                printf(" (OK)\n");
+                printf("    Timestamp: %llu\n", timestamp);
+                break;
+            case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+            case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+    }
 }
 
 void ui_decode_core_get_state_rsp(unsigned char* payload, int payload_len) {

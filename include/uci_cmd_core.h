@@ -18,4 +18,8 @@ void handle_set_device_active_command(void);
 void handle_set_device_ready_command(void);
 int handle_set_config_command(char* config_name, char* value_str);
 
+// Device suspend and timestamp commands
+void handle_device_suspend_command(void);
+void handle_query_timestamp_command(void);
+
 #endif // UCI_CMD_CORE_H

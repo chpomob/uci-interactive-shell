@@ -178,3 +178,12 @@ int handle_set_config_command(char* config_name, char* value_str) {
     send_unified_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
     return 0;
 }
+
+void handle_device_suspend_command(void) {
+    unsigned char payload[] = {0x00};  // Wakeup source
+    send_unified_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, payload, sizeof(payload));
+}
+
+void handle_query_timestamp_command(void) {
+    send_unified_command(COMMAND, 0, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
+}

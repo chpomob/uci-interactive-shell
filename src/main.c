@@ -576,6 +576,7 @@ int main() {
             send_uci_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, payload, sizeof(payload));
         } else if (strcmp(command, "query_timestamp") == 0) {
             send_uci_command(COMMAND, 0, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
+        } else if (strcmp(command, "session_init") == 0 || strcmp(command, "session_new") == 0) {
             char* session_id_str = strtok(NULL, " ");
             char* session_type_str = strtok(NULL, " ");
             if (!session_id_str || !session_type_str) {

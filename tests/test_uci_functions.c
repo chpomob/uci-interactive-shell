@@ -1427,5 +1427,49 @@ int main() {
         TEST_PASS();
     }
 
+    // Test SESSION_GET_COUNT successful response
+    TEST_CASE(session_get_count_success);
+    {
+        init_uci_sessions();
+
+        // Create several sessions to test counting
+        unsigned char init_payload1[5] = {0x01, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload1, sizeof(init_payload1));
+        
+        unsigned char init_payload2[5] = {0x02, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload2, sizeof(init_payload2));
+        
+        unsigned char init_payload3[5] = {0x03, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload3, sizeof(init_payload3));
+
+        // Send SESSION_GET_COUNT command
+        unsigned char count_payload[1] = {0x00};  // No payload needed
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_GET_COUNT, count_payload, sizeof(count_payload));
+        
+        TEST_PASS();
+    }
+
+    // Test SESSION_QUERY_DATA_SIZE_IN_RANGING successful response
+    TEST_CASE(session_query_data_size_in_ranging_success);
+    {
+        init_uci_sessions();
+
+        // Create a session first
+        unsigned char init_payload[5] = {0x04, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload, sizeof(init_payload));
+
+        int slot = find_session_by_id(0x00000004);
+        ASSERT_TRUE(slot >= 0);
+
+        unsigned int handle = uci_sessions[slot].session_handle;
+        unsigned char handle_payload[4];
+        write_u32_le(handle_payload, handle);
+
+        // Send SESSION_QUERY_DATA_SIZE_IN_RANGING command with valid session handle
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_QUERY_DATA_SIZE_IN_RANGING, handle_payload, sizeof(handle_payload));
+        
+        TEST_PASS();
+    }
+
     TEST_SUITE_END();
 }

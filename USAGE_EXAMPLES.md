@@ -6,9 +6,10 @@ This document provides comprehensive examples of how to use the UCI Interactive 
 1. [Basic Usage](#basic-usage)
 2. [Device Management](#device-management)
 3. [Session Management](#session-management)
-4. [Hardware Communication](#hardware-communication)
-5. [Unified Command Interface](#unified-command-interface)
-6. [Simulation Features](#simulation-features)
+4. [Multicast List Management](#multicast-list-management)
+5. [Hardware Communication](#hardware-communication)
+6. [Unified Command Interface](#unified-command-interface)
+7. [Simulation Features](#simulation-features)
 
 ## Basic Usage
 

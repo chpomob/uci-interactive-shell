@@ -1211,5 +1211,36 @@ int main() {
         TEST_PASS();
     }
 
+    // Test SESSION_GET_STATE_RSP decoder
+    TEST_CASE(session_get_state_decoder);
+    {
+        // Test with valid state values
+        unsigned char init_state_payload[2] = {UCI_STATUS_OK, SESSION_STATE_INIT};
+        ui_decode_session_get_state_rsp(init_state_payload, sizeof(init_state_payload));
+
+        unsigned char active_state_payload[2] = {UCI_STATUS_OK, SESSION_STATE_ACTIVE};
+        ui_decode_session_get_state_rsp(active_state_payload, sizeof(active_state_payload));
+
+        unsigned char idle_state_payload[2] = {UCI_STATUS_OK, SESSION_STATE_IDLE};
+        ui_decode_session_get_state_rsp(idle_state_payload, sizeof(idle_state_payload));
+
+        unsigned char deinit_state_payload[2] = {UCI_STATUS_OK, SESSION_STATE_DEINIT};
+        ui_decode_session_get_state_rsp(deinit_state_payload, sizeof(deinit_state_payload));
+
+        // Test with error status
+        unsigned char error_payload[2] = {UCI_STATUS_SESSION_NOT_EXIST, 0x00};
+        ui_decode_session_get_state_rsp(error_payload, sizeof(error_payload));
+
+        // Test with unknown state value
+        unsigned char unknown_state_payload[2] = {UCI_STATUS_OK, 0xFF};
+        ui_decode_session_get_state_rsp(unknown_state_payload, sizeof(unknown_state_payload));
+
+        // Test error handling - payload too short
+        unsigned char short_payload[1] = {UCI_STATUS_OK};
+        ui_decode_session_get_state_rsp(short_payload, sizeof(short_payload));
+
+        TEST_PASS();
+    }
+
     TEST_SUITE_END();
 }

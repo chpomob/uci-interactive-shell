@@ -379,12 +379,12 @@ static char** cli_completion(const char* text, int start, int end) {
         
         // Find the first word (command)
         while (j < start && line[j] != ' ') {
-            if (j < sizeof(command) - 1) {
+            if ((size_t)j < sizeof(command) - 1) {
                 command[j] = line[j];
             }
             j++;
         }
-        command[j < sizeof(command) ? j : sizeof(command) - 1] = '\0';
+        command[(size_t)j < sizeof(command) ? j : (int)sizeof(command) - 1] = '\0';
         
         // Check if this is a command that we should provide parameter completion for
         if (strcmp(command, "session_init") == 0 || strcmp(command, "session_new") == 0 || 
@@ -428,7 +428,7 @@ static char** cli_completion(const char* text, int start, int end) {
                     if (line[pos+1] == ' ' || line[pos+1] == '\0') word_idx = 1; // end of param name
                     pos++;
                 }
-                int len = pos - start_param < sizeof(param_name) ? pos - start_param : sizeof(param_name) - 1;
+                int len = pos - start_param < (int)sizeof(param_name) ? pos - start_param : (int)sizeof(param_name) - 1;
                 strncpy(param_name, line + start_param, len);
                 param_name[len] = '\0';
                 

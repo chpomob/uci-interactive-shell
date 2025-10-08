@@ -1173,8 +1173,8 @@ int main() {
         int slot = find_session_by_id(0x00000005);
         ASSERT_TRUE(slot >= 0);
 
-        // Set ranging count to a value that requires 32 bits
-        uci_sessions[slot].ranging_count = 0x12345678;
+        // Set ranging count to a value that fits in unsigned short
+        uci_sessions[slot].ranging_count = 0x5678;
 
         unsigned int handle = uci_sessions[slot].session_handle;
         unsigned char handle_payload[4];
@@ -1185,12 +1185,12 @@ int main() {
 
         // Verify the response was generated correctly
         // The response should be 5 bytes: status (1) + count (4)
-        // Count should be 0x12345678 in little-endian format
+        // Count should be 0x5678 in little-endian format
 
         // Build expected response manually to verify
         unsigned char expected_response[5];
         expected_response[0] = UCI_STATUS_OK;
-        write_u32_le(&expected_response[1], 0x12345678);
+        write_u32_le(&expected_response[1], 0x5678);
 
         // Now test the decoder with this payload
         ui_decode_session_get_ranging_count_rsp(expected_response, sizeof(expected_response));

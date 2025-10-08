@@ -647,6 +647,8 @@ void ui_decode_core_query_uwbs_timestamp_rsp(unsigned char* payload, int payload
 }
 
 void ui_decode_core_get_state_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_GET_STATE Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -655,6 +657,8 @@ void ui_decode_core_get_state_rsp(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_core_set_active_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_SET_ACTIVE Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -663,6 +667,8 @@ void ui_decode_core_set_active_rsp(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_core_set_ready_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_SET_READY Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -671,6 +677,8 @@ void ui_decode_core_set_ready_rsp(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_core_device_ready_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_DEVICE_READY Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -679,6 +687,8 @@ void ui_decode_core_device_ready_rsp(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_core_get_caps_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_GET_CAPS Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -687,6 +697,8 @@ void ui_decode_core_get_caps_rsp(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_core_set_power_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_SET_POWER Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -695,6 +707,8 @@ void ui_decode_core_set_power_rsp(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_core_get_power_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_GET_POWER Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -703,6 +717,8 @@ void ui_decode_core_get_power_rsp(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_core_device_on_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_DEVICE_ON Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -711,6 +727,8 @@ void ui_decode_core_device_on_rsp(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_core_device_off_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_DEVICE_OFF Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -719,6 +737,8 @@ void ui_decode_core_device_off_rsp(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_core_device_suspend_cmd_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_DEVICE_SUSPEND_CMD Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -727,6 +747,8 @@ void ui_decode_core_device_suspend_cmd_rsp(unsigned char* payload, int payload_l
 }
 
 void ui_decode_core_device_status_ntf(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_DEVICE_STATUS_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -735,6 +757,8 @@ void ui_decode_core_device_status_ntf(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_core_generic_error_ntf(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_GENERIC_ERROR_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -1136,6 +1160,8 @@ void ui_decode_session_get_state_rsp(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_session_update_controller_multicast_list_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -1144,6 +1170,8 @@ void ui_decode_session_update_controller_multicast_list_rsp(unsigned char* paylo
 }
 
 void ui_decode_session_update_active_rounds_dt_tag_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -1152,6 +1180,8 @@ void ui_decode_session_update_active_rounds_dt_tag_rsp(unsigned char* payload, i
 }
 
 void ui_decode_session_data_transfer_phase_config_rsp(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_DATA_TRANSFER_PHASE_CONFIG Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -1292,6 +1322,8 @@ void ui_decode_session_get_ranging_count_rsp(unsigned char* payload, int payload
 }
 
 void ui_decode_session_status_ntf(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_STATUS_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -1300,6 +1332,8 @@ void ui_decode_session_status_ntf(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_session_data_credit_ntf(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_DATA_CREDIT_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -1308,6 +1342,8 @@ void ui_decode_session_data_credit_ntf(unsigned char* payload, int payload_len) 
 }
 
 void ui_decode_session_data_transfer_status_ntf(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_DATA_TRANSFER_STATUS_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
@@ -1546,6 +1582,8 @@ void ui_decode_session_info_ntf(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_android_range_diagnostics_ntf(unsigned char* payload, int payload_len) {
+    (void)payload;
+    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sANDROID_RANGE_DIAGNOSTICS_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {

@@ -118,6 +118,7 @@ int build_core_get_config_response(unsigned char* response_payload, size_t max_l
 
 int build_core_set_config_response(unsigned char* response_payload, size_t max_len,
                                    const unsigned char* payload, int payload_len) {
+    (void)max_len;
     unsigned char cfg_ids[MAX_RESPONSE_PAYLOAD_LEN] = {0};
     unsigned char cfg_status[MAX_RESPONSE_PAYLOAD_LEN] = {0};
     unsigned char processed_tlvs = 0;

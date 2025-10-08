@@ -1943,7 +1943,14 @@ void handle_core_get_caps_info_rsp(unsigned char* payload, int payload_len) {
 
     unsigned char status = payload[0];
     unsigned char num_tlvs = payload[1];
-    printf("  Status: 0x%02X\n", status);
+    printf("  Status: 0x%02X", status);
+    switch(status) {
+        case UCI_STATUS_OK: printf(" (OK)\n"); break;
+        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+        default: printf(" (UNKNOWN)\n"); break;
+    }
     printf("  Number of TLVs: %d\n", num_tlvs);
 
     int offset = 2;
@@ -1954,16 +1961,105 @@ void handle_core_get_caps_info_rsp(unsigned char* payload, int payload_len) {
         }
         CapTlvType tlv_type = (CapTlvType)payload[offset];
         unsigned char tlv_len = payload[offset + 1];
-        printf("    TLV Type: 0x%02X, Length: %d, Value: ", tlv_type, tlv_len);
         offset += 2;
+        
+        // Print TLV type with descriptive name
+        printf("    TLV %d:\n", i);
+        printf("      Type: 0x%02X", tlv_type);
+        switch(tlv_type) {
+            case SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE: printf(" (FIRA_PHY_VERSION_RANGE)\n"); break;
+            case SUPPORTED_V1_FIRA_MAC_VERSION_RANGE_V2_MAX_DATA_PAYLOAD_SIZE: printf(" (FIRA_MAC_VERSION_RANGE)\n"); break;
+            case SUPPORTED_V1_DEVICE_ROLES_V2_FIRA_PHY_VERSION_RANGE: printf(" (DEVICE_ROLES)\n"); break;
+            case SUPPORTED_V1_RANGING_METHOD_V2_FIRA_MAC_VERSION_RANGE: printf(" (RANGING_METHOD)\n"); break;
+            case SUPPORTED_V1_STS_CONFIG_V2_DEVICE_TYPE: printf(" (STS_CONFIG)\n"); break;
+            case SUPPORTED_V1_MULTI_NODE_MODES_V2_DEVICE_ROLES: printf(" (MULTI_NODE_MODES)\n"); break;
+            case SUPPORTED_V1_RANGING_TIME_STRUCT_V2_RANGING_METHOD: printf(" (RANGING_TIME_STRUCT)\n"); break;
+            case SUPPORTED_V1_SCHEDULED_MODE_V2_STS_CONFIG: printf(" (SCHEDULED_MODE)\n"); break;
+            case SUPPORTED_V1_HOPPING_MODE_V2_MULTI_NODE_MODE: printf(" (HOPPING_MODE)\n"); break;
+            case SUPPORTED_V1_BLOCK_STRIDING_V2_RANGING_TIME_STRUCT: printf(" (BLOCK_STRIDING)\n"); break;
+            case SUPPORTED_V1_UWB_INITIATION_TIME_V2_SCHEDULE_MODE: printf(" (UWB_INITIATION_TIME)\n"); break;
+            case SUPPORTED_V1_CHANNELS_V2_HOPPING_MODE: printf(" (CHANNELS)\n"); break;
+            case SUPPORTED_V1_RFRAME_CONFIG_V2_BLOCK_STRIDING: printf(" (RFRAME_CONFIG)\n"); break;
+            case SUPPORTED_V1_CC_CONSTRAINT_LENGTH_V2_UWB_INITIATION_TIME: printf(" (CC_CONSTRAINT_LENGTH)\n"); break;
+            case SUPPORTED_V1_BPRF_PARAMETER_SETS_V2_CHANNELS: printf(" (BPRF_PARAMETER_SETS)\n"); break;
+            case SUPPORTED_V1_HPRF_PARAMETER_SETS_V2_RFRAME_CONFIG: printf(" (HPRF_PARAMETER_SETS)\n"); break;
+            case SUPPORTED_V1_AOA_V2_AOA_SUPPORT: printf(" (AOA_SUPPORT)\n"); break;
+            case SUPPORTED_V1_EXTENDED_MAC_ADDRESS_V2_EXTENDED_MAC_ADDRESS: printf(" (EXTENDED_MAC_ADDRESS)\n"); break;
+            case SUPPORTED_V1_MAX_MESSAGE_SIZE_V2_ASSIGNED: printf(" (MAX_MESSAGE_SIZE)\n"); break;
+            case SUPPORTED_V1_MAX_DATA_PACKET_PAYLOAD_SIZE_V2_SESSION_KEY_LENGTH: printf(" (MAX_DATA_PACKET_PAYLOAD_SIZE)\n"); break;
+            case SUPPORTED_V2_EXTENDED_MAC_ADDRESS: printf(" (V2_EXTENDED_MAC_ADDRESS)\n"); break;
+            case SUPPORTED_V2_ASSIGNED: printf(" (V2_ASSIGNED)\n"); break;
+            case SUPPORTED_V2_SESSION_KEY_LENGTH: printf(" (V2_SESSION_KEY_LENGTH)\n"); break;
+            case SUPPORTED_V2_DT_ANCHOR_MAX_ACTIVE_RR: printf(" (DT_ANCHOR_MAX_ACTIVE_RR)\n"); break;
+            case SUPPORTED_V2_DT_TAG_MAX_ACTIVE_RR: printf(" (DT_TAG_MAX_ACTIVE_RR)\n"); break;
+            case SUPPORTED_V2_DT_TAG_BLOCK_SHIPPING: printf(" (DT_TAG_BLOCK_SHIPPING)\n"); break;
+            case SUPPORTED_V2_PSDU_LENGTH_SUPPORT: printf(" (PSDU_LENGTH_SUPPORT)\n"); break;
+            case CCC_SUPPORTED_CHAPS_PER_SLOT: printf(" (CCC_CHAPS_PER_SLOT)\n"); break;
+            case CCC_SUPPORTED_SYNC_CODES: printf(" (CCC_SYNC_CODES)\n"); break;
+            case CCC_SUPPORTED_HOPPING_CONFIG_MODES_AND_SEQUENCES: printf(" (CCC_HOPPING_CONFIG_MODES)\n"); break;
+            case CCC_SUPPORTED_CHANNELS: printf(" (CCC_CHANNELS)\n"); break;
+            case CCC_SUPPORTED_VERSIONS: printf(" (CCC_VERSIONS)\n"); break;
+            case CCC_SUPPORTED_UWB_CONFIGS: printf(" (CCC_UWB_CONFIGS)\n"); break;
+            case CCC_SUPPORTED_PULSE_SHAPE_COMBOS: printf(" (CCC_PULSE_SHAPE_COMBOS)\n"); break;
+            case CCC_SUPPORTED_RAN_MULTIPLIER: printf(" (CCC_RAN_MULTIPLIER)\n"); break;
+            case CCC_SUPPORTED_MAX_RANGING_SESSION_NUMBER: printf(" (CCC_MAX_RANGING_SESSION_NUMBER)\n"); break;
+            case CCC_SUPPORTED_MIN_UWB_INITIATION_TIME_MS: printf(" (CCC_MIN_UWB_INITIATION_TIME_MS)\n"); break;
+            case CCC_PRIORITIZED_CHANNEL_LIST: printf(" (CCC_PRIORITIZED_CHANNEL_LIST)\n"); break;
+            case CCC_SUPPORTED_UWBS_MAX_PPM: printf(" (CCC_UWBS_MAX_PPM)\n"); break;
+            case ALIRO_SUPPORTED_MAC_MODES: printf(" (ALIRO_MAC_MODES)\n"); break;
+            case RADAR_SUPPORT: printf(" (RADAR_SUPPORT)\n"); break;
+            case SUPPORTED_POWER_STATS: printf(" (POWER_STATS)\n"); break;
+            case SUPPORTED_AOA_RESULT_REQ_ANTENNA_INTERLEAVING: printf(" (AOA_RESULT_REQ_ANTENNA_INTERLEAVING)\n"); break;
+            case SUPPORTED_MIN_RANGING_INTERVAL_MS: printf(" (MIN_RANGING_INTERVAL_MS)\n"); break;
+            case SUPPORTED_RANGE_DATA_NTF_CONFIG: printf(" (RANGE_DATA_NTF_CONFIG)\n"); break;
+            case SUPPORTED_RSSI_REPORTING: printf(" (RSSI_REPORTING)\n"); break;
+            case SUPPORTED_DIAGNOSTICS: printf(" (DIAGNOSTICS)\n"); break;
+            case SUPPORTED_MIN_SLOT_DURATION_RSTU: printf(" (MIN_SLOT_DURATION_RSTU)\n"); break;
+            case SUPPORTED_MAX_RANGING_SESSION_NUMBER: printf(" (MAX_RANGING_SESSION_NUMBER)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        printf("      Length: %d bytes\n", tlv_len);
+        
         if (offset + tlv_len > payload_len) {
             printf("Error: Incomplete TLV value in CORE_GET_CAPS_INFO_RSP payload.\n");
             return;
         }
+        
+        // Print value with interpretation based on TLV type
+        printf("      Value: ");
         for (int j = 0; j < tlv_len; j++) {
             printf("%02X ", payload[offset + j]);
         }
         printf("\n");
+        
+        // Interpret value based on TLV type and length
+        if (tlv_len > 0) {
+            printf("      Interpreted Value: ");
+            if (tlv_len == 1) {
+                unsigned char val = payload[offset];
+                printf("%u", val);
+                // Special interpretations for boolean-like values
+                if (tlv_type == SUPPORTED_V1_AOA_V2_AOA_SUPPORT ||
+                    tlv_type == SUPPORTED_V2_DT_TAG_BLOCK_SHIPPING ||
+                    tlv_type == RADAR_SUPPORT) {
+                    printf(" (%s)", val ? "SUPPORTED" : "NOT_SUPPORTED");
+                }
+            } else if (tlv_len == 2) {
+                unsigned short val = payload[offset] | (payload[offset + 1] << 8); // Little-endian
+                printf("%u", val);
+            } else if (tlv_len == 4) {
+                unsigned int val = payload[offset] | 
+                                  (payload[offset + 1] << 8) | 
+                                  (payload[offset + 2] << 16) | 
+                                  (payload[offset + 3] << 24); // Little-endian
+                printf("%u", val);
+            } else {
+                // For longer values, show as hex dump with interpretation
+                printf("(complex value)");
+            }
+            printf("\n");
+        }
+        
         offset += tlv_len;
     }
 }

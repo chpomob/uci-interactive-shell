@@ -584,8 +584,216 @@ void ui_decode_core_device_info_rsp(unsigned char* payload, int payload_len) {
 void ui_decode_core_get_caps_info_rsp(unsigned char* payload, int payload_len) {
     if (ui_color_enabled) {
         printf("  %s%sCORE_GET_CAPS_INFO Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+        printf("  %s%sDevice Capabilities Information:%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  CORE_GET_CAPS_INFO Response:\n");
+        printf("  Device Capabilities Information:\n");
+    }
+    
+    if (payload_len < 2) {
+        if (ui_color_enabled) {
+            printf("  %s%sError: Payload too short (%d bytes, need at least 2)%s\n", 
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("  Error: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        }
+        return;
+    }
+    
+    unsigned char status = payload[0];
+    unsigned char num_tlvs = payload[1];
+    
+    if (ui_color_enabled) {
+        printf("  %sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_REJECTED: printf(" %s(REJECTED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_FAILED: printf(" %s(FAILED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        printf("  %sNumber of Capability TLVs:%s %d\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, num_tlvs);
+    } else {
+        printf("  Status: 0x%02X", status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+            case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        printf("  Number of Capability TLVs: %d\n", num_tlvs);
+    }
+    
+    if (num_tlvs == 0) {
+        if (ui_color_enabled) {
+            printf("  %s%sNo capabilities reported%s\n", ANSI_COLOR_YELLOW, ANSI_BOLD, ANSI_RESET);
+        } else {
+            printf("  No capabilities reported\n");
+        }
+        return;
+    }
+    
+    int offset = 2;
+    for (int i = 0; i < num_tlvs; i++) {
+        if (offset + 2 > payload_len) {
+            if (ui_color_enabled) {
+                printf("  %s%sError: Incomplete TLV at index %d%s\n", ANSI_COLOR_RED, ANSI_BOLD, i, ANSI_RESET);
+            } else {
+                printf("  Error: Incomplete TLV at index %d\n", i);
+            }
+            return;
+        }
+        
+        CapTlvType tlv_type = (CapTlvType)payload[offset];
+        unsigned char tlv_len = payload[offset + 1];
+        offset += 2;
+        
+        // Print TLV header with color coding
+        if (ui_color_enabled) {
+            printf("  %sCapability TLV %d:%s\n", ANSI_COLOR_BRIGHT_CYAN, i, ANSI_RESET);
+            printf("    %sType:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, tlv_type);
+        } else {
+            printf("  Capability TLV %d:\n", i);
+            printf("    Type: 0x%02X", tlv_type);
+        }
+        
+        // Print descriptive name for TLV type
+        switch(tlv_type) {
+            case SUPPORTED_V1_FIRA_PHY_VERSION_RANGE_V2_MAX_MESSAGE_SIZE: 
+                if (ui_color_enabled) printf(" %s(FIRA_PHY_VERSION_RANGE)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (FIRA_PHY_VERSION_RANGE)\n"); 
+                break;
+            case SUPPORTED_V1_FIRA_MAC_VERSION_RANGE_V2_MAX_DATA_PAYLOAD_SIZE: 
+                if (ui_color_enabled) printf(" %s(FIRA_MAC_VERSION_RANGE)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (FIRA_MAC_VERSION_RANGE)\n"); 
+                break;
+            case SUPPORTED_V1_DEVICE_ROLES_V2_FIRA_PHY_VERSION_RANGE: 
+                if (ui_color_enabled) printf(" %s(DEVICE_ROLES)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (DEVICE_ROLES)\n"); 
+                break;
+            case SUPPORTED_V1_RANGING_METHOD_V2_FIRA_MAC_VERSION_RANGE: 
+                if (ui_color_enabled) printf(" %s(RANGING_METHOD)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (RANGING_METHOD)\n"); 
+                break;
+            case SUPPORTED_V1_STS_CONFIG_V2_DEVICE_TYPE: 
+                if (ui_color_enabled) printf(" %s(STS_CONFIG)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (STS_CONFIG)\n"); 
+                break;
+            case SUPPORTED_V1_MULTI_NODE_MODES_V2_DEVICE_ROLES: 
+                if (ui_color_enabled) printf(" %s(MULTI_NODE_MODES)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (MULTI_NODE_MODES)\n"); 
+                break;
+            case SUPPORTED_V1_AOA_V2_AOA_SUPPORT: 
+                if (ui_color_enabled) printf(" %s(AOA_SUPPORT)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (AOA_SUPPORT)\n"); 
+                break;
+            case SUPPORTED_V1_EXTENDED_MAC_ADDRESS_V2_EXTENDED_MAC_ADDRESS: 
+                if (ui_color_enabled) printf(" %s(EXTENDED_MAC_ADDRESS)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (EXTENDED_MAC_ADDRESS)\n"); 
+                break;
+            case CCC_SUPPORTED_CHANNELS: 
+                if (ui_color_enabled) printf(" %s(CCC_CHANNELS)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (CCC_CHANNELS)\n"); 
+                break;
+            case CCC_SUPPORTED_VERSIONS: 
+                if (ui_color_enabled) printf(" %s(CCC_VERSIONS)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (CCC_VERSIONS)\n"); 
+                break;
+            case RADAR_SUPPORT: 
+                if (ui_color_enabled) printf(" %s(RADAR_SUPPORT)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (RADAR_SUPPORT)\n"); 
+                break;
+            case SUPPORTED_POWER_STATS: 
+                if (ui_color_enabled) printf(" %s(POWER_STATS)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (POWER_STATS)\n"); 
+                break;
+            case SUPPORTED_DIAGNOSTICS: 
+                if (ui_color_enabled) printf(" %s(DIAGNOSTICS)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (DIAGNOSTICS)\n"); 
+                break;
+            case SUPPORTED_MAX_RANGING_SESSION_NUMBER: 
+                if (ui_color_enabled) printf(" %s(MAX_RANGING_SESSIONS)%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET); 
+                else printf(" (MAX_RANGING_SESSIONS)\n"); 
+                break;
+            default:
+                if (ui_color_enabled) printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET);
+                else printf(" (UNKNOWN)\n");
+                break;
+        }
+        
+        if (ui_color_enabled) {
+            printf("    %sLength:%s %d bytes\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, tlv_len);
+        } else {
+            printf("    Length: %d bytes\n", tlv_len);
+        }
+        
+        if (offset + tlv_len > payload_len) {
+            if (ui_color_enabled) {
+                printf("    %s%sError: Incomplete TLV value%s\n", ANSI_COLOR_RED, ANSI_BOLD, ANSI_RESET);
+            } else {
+                printf("    Error: Incomplete TLV value\n");
+            }
+            return;
+        }
+        
+        // Print value with hex dump and interpretation
+        if (ui_color_enabled) {
+            printf("    %sValue:%s ", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET);
+        } else {
+            printf("    Value: ");
+        }
+        
+        for (int j = 0; j < tlv_len; j++) {
+            if (ui_color_enabled) {
+                printf("%s%02X%s ", ANSI_COLOR_BRIGHT_GREEN, payload[offset + j], ANSI_RESET);
+            } else {
+                printf("%02X ", payload[offset + j]);
+            }
+        }
+        printf("\n");
+        
+        // Interpret value based on TLV type and length
+        if (tlv_len > 0) {
+            if (ui_color_enabled) {
+                printf("    %sInterpreted:%s ", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET);
+            } else {
+                printf("    Interpreted: ");
+            }
+            
+            if (tlv_len == 1) {
+                unsigned char val = payload[offset];
+                printf("%u", val);
+                // Special interpretations for boolean-like values
+                if (tlv_type == SUPPORTED_V1_AOA_V2_AOA_SUPPORT ||
+                    tlv_type == SUPPORTED_V2_DT_TAG_BLOCK_SHIPPING ||
+                    tlv_type == RADAR_SUPPORT) {
+                    if (ui_color_enabled) {
+                        printf(" %s(%s)%s", 
+                               val ? ANSI_COLOR_BRIGHT_GREEN : ANSI_COLOR_RED,
+                               val ? "SUPPORTED" : "NOT_SUPPORTED",
+                               ANSI_RESET);
+                    } else {
+                        printf(" (%s)", val ? "SUPPORTED" : "NOT_SUPPORTED");
+                    }
+                }
+            } else if (tlv_len == 2) {
+                unsigned short val = payload[offset] | (payload[offset + 1] << 8); // Little-endian
+                printf("%u", val);
+            } else if (tlv_len == 4) {
+                unsigned int val = payload[offset] | 
+                                  (payload[offset + 1] << 8) | 
+                                  (payload[offset + 2] << 16) | 
+                                  (payload[offset + 3] << 24); // Little-endian
+                printf("%u", val);
+            } else {
+                // For longer values, show as hex dump with interpretation
+                printf("(complex value)");
+            }
+            printf("\n");
+        }
+        
+        offset += tlv_len;
     }
 }
 

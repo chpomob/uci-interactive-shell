@@ -1285,5 +1285,68 @@ int main() {
         TEST_PASS();
     }
 
+    // Test multicast list response structure
+    TEST_CASE(multicast_list_response_structure);
+    {
+        init_uci_sessions();
+
+        // Create a session
+        unsigned char init_payload[5] = {0x06, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload, sizeof(init_payload));
+
+        int slot = find_session_by_id(0x00000006);
+        ASSERT_TRUE(slot >= 0);
+
+        unsigned int handle = uci_sessions[slot].session_handle;
+
+        // Test adding multiple controlees
+        unsigned char add_payload[6 + 12] = {0};
+        write_u32_le(add_payload, handle);
+        add_payload[4] = MULTICAST_ACTION_ADD;
+        add_payload[5] = 2; // two controlees
+
+        // Controlee 1: short address 0x1234, subsession_id 0xAABBCCDD
+        add_payload[6] = 0x34;
+        add_payload[7] = 0x12;
+        write_u32_le(&add_payload[8], 0xAABBCCDD);
+
+        // Controlee 2: short address 0x5678, subsession_id 0x11223344
+        add_payload[12] = 0x78;
+        add_payload[13] = 0x56;
+        write_u32_le(&add_payload[14], 0x11223344);
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_UPDATE_CONTROLLER_MULTICAST_LIST,
+                         add_payload, sizeof(add_payload));
+
+        // Verify both controlees were added
+        ASSERT_EQUAL(2, uci_sessions[slot].multicast_count);
+        ASSERT_EQUAL(0x1234, uci_sessions[slot].multicast_entries[0].short_address);
+        ASSERT_UINT64_EQUAL(0xAABBCCDD, uci_sessions[slot].multicast_entries[0].subsession_id);
+        ASSERT_EQUAL(0x5678, uci_sessions[slot].multicast_entries[1].short_address);
+        ASSERT_UINT64_EQUAL(0x11223344, uci_sessions[slot].multicast_entries[1].subsession_id);
+
+        // Test V1 response format (just status)
+        unsigned char v1_response[1] = {UCI_STATUS_OK};
+        ui_decode_session_update_controller_multicast_list_rsp(v1_response, sizeof(v1_response));
+
+        // Test removing one controlee
+        unsigned char remove_payload[6 + 6] = {0};
+        write_u32_le(remove_payload, handle);
+        remove_payload[4] = MULTICAST_ACTION_REMOVE;
+        remove_payload[5] = 1; // one controlee
+        remove_payload[6] = 0x34;
+        remove_payload[7] = 0x12;
+        write_u32_le(&remove_payload[8], 0xAABBCCDD);
+
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_UPDATE_CONTROLLER_MULTICAST_LIST,
+                         remove_payload, sizeof(remove_payload));
+
+        // Verify one controlee remains
+        ASSERT_EQUAL(1, uci_sessions[slot].multicast_count);
+        ASSERT_EQUAL(0x5678, uci_sessions[slot].multicast_entries[0].short_address);
+
+        TEST_PASS();
+    }
+
     TEST_SUITE_END();
 }

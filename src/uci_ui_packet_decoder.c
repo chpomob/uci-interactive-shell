@@ -18,38 +18,75 @@ void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
 void ui_decode_core_device_info_rsp(unsigned char* payload, int payload_len) {
     if (ui_color_enabled) {
         printf("  %s%sCORE_DEVICE_INFO Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
-        if (payload_len >= 8) {
-            uint16_t vendor_id = ui_read_u16_le(payload);
-            uint16_t device_state = ui_read_u16_le(payload + 2);
-            uint8_t uci_version = payload[4];
-            uint8_t mac_version = payload[5];
-            uint8_t phy_version = payload[6];
-            uint8_t test_version = payload[7];
-            
-            printf("    %s%sVendor ID:%s 0x%04X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, vendor_id);
-            printf("    %s%sDevice State:%s %d\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, device_state);
-            printf("    %s%sUCI Version:%s %d.%d\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, uci_version >> 4, uci_version & 0x0F);
-            printf("    %s%sMAC Version:%s %d.%d\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, mac_version >> 4, mac_version & 0x0F);
-            printf("    %s%sPHY Version:%s %d.%d\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, phy_version >> 4, phy_version & 0x0F);
-            printf("    %s%sTest Version:%s %d.%d\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, test_version >> 4, test_version & 0x0F);
-        }
     } else {
         printf("  CORE_DEVICE_INFO Response:\n");
-        if (payload_len >= 8) {
-            uint16_t vendor_id = ui_read_u16_le(payload);
-            uint16_t device_state = ui_read_u16_le(payload + 2);
-            uint8_t uci_version = payload[4];
-            uint8_t mac_version = payload[5];
-            uint8_t phy_version = payload[6];
-            uint8_t test_version = payload[7];
-            
-            printf("    Vendor ID: 0x%04X\n", vendor_id);
-            printf("    Device State: %d\n", device_state);
-            printf("    UCI Version: %d.%d\n", uci_version >> 4, uci_version & 0x0F);
-            printf("    MAC Version: %d.%d\n", mac_version >> 4, mac_version & 0x0F);
-            printf("    PHY Version: %d.%d\n", phy_version >> 4, phy_version & 0x0F);
-            printf("    Test Version: %d.%d\n", test_version >> 4, test_version & 0x0F);
+    }
+
+    if (payload_len < 10) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 10)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 10)\n", payload_len);
         }
+        return;
+    }
+
+    // Per FiRa UCI spec (GetDeviceInfoRsp):
+    // Byte 0: status
+    // Bytes 1-2: uci_version (16-bit)
+    // Bytes 3-4: mac_version (16-bit)
+    // Bytes 5-6: phy_version (16-bit)
+    // Bytes 7-8: uci_test_version (16-bit)
+    // Byte 9: vendor_spec_info count
+    // Bytes 10+: vendor_spec_info array
+
+    uint8_t status = payload[0];
+    uint16_t uci_version = ui_read_u16_le(payload + 1);
+    uint16_t mac_version = ui_read_u16_le(payload + 3);
+    uint16_t phy_version = ui_read_u16_le(payload + 5);
+    uint16_t uci_test_version = ui_read_u16_le(payload + 7);
+    uint8_t vendor_info_count = payload[9];
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_REJECTED: printf(" %s(REJECTED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_FAILED: printf(" %s(FAILED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        printf("    %s%sUCI Version:%s 0x%04X\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET, uci_version);
+        printf("    %s%sMAC Version:%s 0x%04X\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET, mac_version);
+        printf("    %s%sPHY Version:%s 0x%04X\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET, phy_version);
+        printf("    %s%sUCI Test Version:%s 0x%04X\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET, uci_test_version);
+        printf("    %s%sVendor Info Count:%s %u\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET, vendor_info_count);
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+            case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        printf("    UCI Version: 0x%04X\n", uci_version);
+        printf("    MAC Version: 0x%04X\n", mac_version);
+        printf("    PHY Version: 0x%04X\n", phy_version);
+        printf("    UCI Test Version: 0x%04X\n", uci_test_version);
+        printf("    Vendor Info Count: %u\n", vendor_info_count);
+    }
+
+    // Display vendor-specific info if present
+    if (vendor_info_count > 0 && payload_len >= 10 + vendor_info_count) {
+        if (ui_color_enabled) {
+            printf("    %s%sVendor Spec Info:%s ", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET);
+        } else {
+            printf("    Vendor Spec Info: ");
+        }
+        for (int i = 0; i < vendor_info_count; i++) {
+            printf("0x%02X ", payload[10 + i]);
+        }
+        printf("\n");
     }
 }
 

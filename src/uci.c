@@ -2413,49 +2413,9 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
         printf("\n");
     }
 
-    unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
-    int payload_len_int = (int)payload_len;
-
-    unsigned char mt = header_fields.message_type;
-    unsigned char gid = header_fields.group_id;
-    unsigned char opcode = header_fields.opcode_id;
-
-    if (mt == RESPONSE && gid == CORE && opcode == CORE_DEVICE_INFO) {
-        handle_core_device_info_rsp(payload_ptr, payload_len_int);
-    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_DEVICE_SUSPEND) {
-        handle_core_device_suspend_rsp(payload_ptr, payload_len_int);
-    } else if (mt == NOTIFICATION && gid == CORE) {
-        if (opcode == CORE_DEVICE_STATUS_NTF) {
-            handle_core_device_status_ntf(payload_ptr, payload_len_int);
-        } else if (opcode == CORE_GENERIC_ERROR_NTF) {
-            handle_core_generic_error_ntf(payload_ptr, payload_len_int);
-        } else {
-            handle_generic_notification(gid, opcode, payload_ptr, payload_len_int);
-        }
-    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_GET_CAPS_INFO) {
-        handle_core_get_caps_info_rsp(payload_ptr, payload_len_int);
-    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_SET_CONFIG) {
-        handle_core_set_config_rsp(payload_ptr, payload_len_int);
-    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_DEVICE_RESET) {
-        handle_core_device_reset_rsp(payload_ptr, payload_len_int);
-    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_GET_CONFIG) {
-        handle_core_get_config_rsp(payload_ptr, payload_len_int);
-    } else if (mt == RESPONSE && gid == CORE && opcode == CORE_QUERY_UWBS_TIMESTAMP) {
-        handle_core_query_uwbs_timestamp_rsp(payload_ptr, payload_len_int);
-    } else if (mt == NOTIFICATION && gid == SESSION_CONFIG) {
-        handle_session_config_ntf(opcode, payload_ptr, payload_len_int);
-    } else if (mt == NOTIFICATION && gid == SESSION_CONTROL) {
-        handle_session_control_ntf(opcode, payload_ptr, payload_len_int);
-    } else if (mt == NOTIFICATION && gid == RANGING_DATA) {
-        if (opcode == RANGE_DATA_NTF_OPCODE) {
-            decode_range_data_ntf(payload_ptr, payload_len_int);
-        } else {
-            handle_generic_notification(gid, opcode, payload_ptr, payload_len_int);
-        }
-    } else if (mt == NOTIFICATION) {
-        // Handle other notification types generically if not specifically handled
-        handle_generic_notification(gid, opcode, payload_ptr, payload_len_int);
-    }
+    // Use unified packet analyzer for consistent decoding across the codebase
+    printf("\n");  // Add blank line before detailed analysis
+    uci_analyze_packet_core(packet, packet_len);
 }
 
 // === Payload Decoding Functions ===

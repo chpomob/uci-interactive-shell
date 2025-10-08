@@ -111,7 +111,7 @@ Sessions are stored in global array `uci_sessions[MAX_SESSIONS]` with fields:
 - `include/uci_pdl.h` - Protocol constants (message types, group IDs, opcodes, status codes)
 - `include/uci.h` - Core data structures and packet header manipulation
 - `include/uci_functions.h` - Session management and notification handling
-- `src/uci.c` - Main protocol implementation (~2500 lines)
+- `src/uci.c` - Main protocol implementation (~4000 lines)
 - `src/main.c` - Interactive shell and command dispatching
 - `tests/test_runner.h` - Test framework helpers
 
@@ -122,7 +122,7 @@ Comprehensive UCI protocol analysis based on Android AOSP implementation:
 - `uci_analysis/SUMMARY.md` - Protocol element deep dive
 - `uci_analysis/uwb/src/rust/uwb_uci_packets/uci_packets.pdl` - Official PDL definition
 
-## Important Notes from AGENTS.md
+## Important Notes from agent.md
 
 - Match imperative commit style (`Fix command autocompletion issue`), ~72 chars
 - Mock hardware boundaries at interface layer in tests

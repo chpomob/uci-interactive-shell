@@ -1,0 +1,138 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "../include/uci.h"
+#include "../include/uci_functions.h"
+#include "../include/uci_hw_interface.h"
+#include "../include/uci_hw_chardev.h"
+#include "../include/uci_ui.h"
+
+#define MAX_PAYLOAD_LENGTH 255
+
+// Static reference to hardware mode variables passed from main
+static int* g_hw_mode_ptr = NULL;
+static uci_hw_chardev_t* g_chardev_ptr = NULL;
+
+void uci_cmd_hardware_init(int* hw_mode, uci_hw_chardev_t* chardev) {
+    g_hw_mode_ptr = hw_mode;
+    g_chardev_ptr = chardev;
+}
+
+int handle_hw_init_command(char* device_path) {
+    if (!device_path) {
+        printf("Usage: hw_init <device_path>\n");
+        return -1;
+    }
+
+    if (!g_hw_mode_ptr || !g_chardev_ptr) {
+        printf("Error: Hardware command module not initialized\n");
+        return -1;
+    }
+
+    // Initialize both the legacy hardware interface and the new character device interface
+    if (uci_hw_interface_init(device_path) == 0) {
+        *g_hw_mode_ptr = 1;
+        ui_print_hardware_mode_initialized(device_path);
+
+        // Also initialize the character device interface
+        if (uci_hw_chardev_init(g_chardev_ptr, device_path) == 0) {
+            if (uci_hw_chardev_open(g_chardev_ptr) == 0) {
+                ui_print_success("Character device interface initialized successfully");
+            } else {
+                printf("Warning: Failed to open character device interface\n");
+            }
+        } else {
+            printf("Warning: Failed to initialize character device interface\n");
+        }
+        return 0;
+    } else {
+        printf("Failed to initialize hardware mode\n");
+        return -1;
+    }
+}
+
+int handle_hw_send_command(char* mt_str, char* pbf_str, char* gid_str, char* oid_str) {
+    if (!g_hw_mode_ptr || !*g_hw_mode_ptr) {
+        printf("Hardware mode not enabled\n");
+        return -1;
+    }
+
+    if (!uci_hw_interface_is_connected()) {
+        printf("Hardware not connected. Use 'hw_connect <device_path>' first.\n");
+        return -1;
+    }
+
+    if (!mt_str || !pbf_str || !gid_str || !oid_str) {
+        printf("Usage: hw_send <mt> <pbf> <gid> <oid> [payload_bytes...]\n");
+        printf("  Example: hw_send 01 00 00 02 (send CORE_DEVICE_INFO command)\n");
+        printf("  MT: 01=COMMAND, 02=RESPONSE, 03=NOTIFICATION\n");
+        printf("  PBF: 00=COMPLETE, 01=START, 02=CONT, 03=END\n");
+        printf("  GID: 00=CORE, 01=SESSION_CONFIG, 02=SESSION_CONTROL\n");
+        printf("  OID: Command opcode (depends on GID)\n");
+        return -1;
+    }
+
+    unsigned char mt = (unsigned char)strtol(mt_str, NULL, 16);
+    unsigned char pbf = (unsigned char)strtol(pbf_str, NULL, 16);
+    unsigned char gid = (unsigned char)strtol(gid_str, NULL, 16);
+    unsigned char oid = (unsigned char)strtol(oid_str, NULL, 16);
+
+    unsigned char payload[MAX_PAYLOAD_LENGTH];
+    int payload_len = 0;
+
+    char* token;
+    while ((token = strtok(NULL, " ")) != NULL && payload_len < MAX_PAYLOAD_LENGTH) {
+        payload[payload_len++] = (unsigned char)strtol(token, NULL, 16);
+    }
+
+    // Send command to hardware using the character device interface
+    if (uci_hw_interface_send_command(mt, pbf, gid, oid, payload, payload_len) == 0) {
+        printf("Command sent to hardware successfully\n");
+
+        // Try to receive response (with timeout)
+        unsigned char response_buffer[1024];
+        int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
+        if (response_len > 0) {
+            printf("Received %d bytes from hardware:\n", response_len);
+            printf("  ");
+            for (int i = 0; i < response_len; i++) {
+                printf("%02X ", response_buffer[i]);
+            }
+            printf("\n");
+
+            // Parse and display the response
+            parse_uci_packet(response_buffer, response_len);
+        } else if (response_len == 0) {
+            printf("No response received from hardware (timeout)\n");
+        } else {
+            printf("Error receiving response from hardware\n");
+        }
+        return 0;
+    } else {
+        printf("Failed to send command to hardware\n");
+        return -1;
+    }
+}
+
+void handle_mode_sim_command(void) {
+    uci_disable_hardware_mode();
+}
+
+int handle_mode_hw_command(char* device_path) {
+    if (!device_path) {
+        printf("Usage: mode_hw <device_path>\n");
+        printf("  Example: mode_hw /dev/ttyUSB0\n");
+        return -1;
+    }
+    uci_enable_hardware_mode(device_path);
+    return 0;
+}
+
+void handle_mode_info_command(void) {
+    if (uci_is_hardware_mode_enabled()) {
+        printf("Current mode: HARDWARE\n");
+        printf("Hardware device: %s\n", uci_get_hardware_device_path());
+    } else {
+        printf("Current mode: SIMULATION\n");
+    }
+}

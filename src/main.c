@@ -583,9 +583,18 @@ int main() {
                 printf("Usage: session_init <session_id> <session_type>\n");
                 printf("  Examples:\n");
                 printf("    session_init 1 fira_ranging\n");
-                printf("    session_init 1 ranging_and_data\n");
-                printf("    session_init 1 data_transfer\n");
+                printf("    session_init 1 fira_ranging_and_data\n");
+                printf("    session_init 1 fira_data_transfer\n");
+                printf("    session_init 1 fira_ranging_only\n");
+                printf("    session_init 1 fira_in_band_data\n");
+                printf("    session_init 1 fira_ranging_with_data\n");
+                printf("  Alternative names:\n");
+                printf("    session_new 1 ranging\n");
+                printf("    session_new 1 ranging_and_data\n");
+                printf("    session_new 1 data_transfer\n");
                 printf("    session_new 1 ranging_only\n");
+                printf("    session_new 1 in_band_data\n");
+                printf("    session_new 1 ranging_with_data\n");
                 continue;
             }
 
@@ -1100,6 +1109,66 @@ int main() {
             notification_packet[sizeof(struct uci_packet_header) + 3] = 0x04;
             notification_packet[sizeof(struct uci_packet_header) + 4] = 0x01; // credit available
             parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + 5);
+        } else if (strcmp(command, "session_update_multicast_list") == 0 || strcmp(command, "update_multicast_list") == 0) {
+            char* session_id_str = strtok(NULL, " ");
+            char* action_str = strtok(NULL, " ");
+            char* short_address_str = strtok(NULL, " ");
+            char* subsession_id_str = strtok(NULL, " ");
+            
+            if (!session_id_str || !action_str || !short_address_str || !subsession_id_str) {
+                printf("Usage: session_update_multicast_list <session_id> <action> <short_address> <subsession_id>\n");
+                printf("  Examples:\n");
+                printf("    session_update_multicast_list 1 add 0x1234 0x00000001\n");
+                printf("    session_update_multicast_list 1 remove 0x5678 0x00000002\n");
+                printf("    session_update_multicast_list 1 add_short_key 0xABCD 0x00000003\n");
+                printf("    session_update_multicast_list 1 add_long_key 0xEF01 0x00000004\n");
+                printf("  Actions:\n");
+                printf("    - add / add_short_key\n");
+                printf("    - remove\n");
+                printf("    - add_long_key\n");
+                continue;
+            }
+            
+            unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
+            UpdateMulticastListAction action;
+            
+            // Support both technical and friendly names for actions
+            if (strcmp(action_str, "add") == 0 || strcmp(action_str, "add_short_key") == 0) {
+                action = MULTICAST_ACTION_ADD_SHORT_KEY;
+            } else if (strcmp(action_str, "remove") == 0) {
+                action = MULTICAST_ACTION_REMOVE;
+            } else if (strcmp(action_str, "add_long_key") == 0) {
+                action = MULTICAST_ACTION_ADD_LONG_KEY;
+            } else {
+                printf("Unknown action: %s\n", action_str);
+                printf("  Supported actions:\n");
+                printf("    - add / add_short_key (0x00)\n");
+                printf("    - remove (0x01)\n");
+                printf("    - add_long_key (0x03)\n");
+                continue;
+            }
+            
+            unsigned short short_address = (unsigned short)strtoul(short_address_str, NULL, 0);
+            unsigned int subsession_id = (unsigned int)strtoul(subsession_id_str, NULL, 0);
+            
+            unsigned char payload[12];
+            // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[0] = session_id & 0xFF;           // LSB first
+            payload[1] = (session_id >> 8) & 0xFF;
+            payload[2] = (session_id >> 16) & 0xFF;
+            payload[3] = (session_id >> 24) & 0xFF;   // MSB last
+            payload[4] = 1; // Number of entries
+            payload[5] = action;
+            // Send short_address in little-endian format to match UCI spec and read_u16_le parsing
+            payload[6] = short_address & 0xFF;        // LSB first
+            payload[7] = (short_address >> 8) & 0xFF; // MSB last
+            // Send subsession_id in little-endian format to match UCI spec and read_u32_le parsing
+            payload[8] = subsession_id & 0xFF;           // LSB first
+            payload[9] = (subsession_id >> 8) & 0xFF;
+            payload[10] = (subsession_id >> 16) & 0xFF;
+            payload[11] = (subsession_id >> 24) & 0xFF;  // MSB last
+            
+            send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_UPDATE_CONTROLLER_MULTICAST_LIST, payload, sizeof(payload));
         } else if (strcmp(command, "demo_session_flow") == 0) {
             printf("=== UCI Session Flow Demonstration ===\n");
             

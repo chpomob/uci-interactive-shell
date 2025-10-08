@@ -275,6 +275,85 @@ void ui_decode_core_set_config_rsp(unsigned char* payload, int payload_len) {
     } else {
         printf("  CORE_SET_CONFIG Response:\n");
     }
+
+    if (payload_len < 2) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 2)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned char num_configs = payload[1];
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_REJECTED: printf(" %s(REJECTED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_FAILED: printf(" %s(FAILED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        printf("    %s%sNumber of Config Status:%s %d\n",
+               ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET, num_configs);
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+            case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        printf("    Number of Config Status: %d\n", num_configs);
+    }
+
+    if (num_configs > 0 && payload_len >= 2) {
+        int offset = 2;
+        for (int i = 0; i < num_configs && offset + 2 <= payload_len; i++) {
+            unsigned char cfg_id = payload[offset];
+            unsigned char cfg_status = payload[offset + 1];
+            offset += 2;
+
+            if (ui_color_enabled) {
+                printf("    %s%sConfig %d:%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, i, ANSI_RESET);
+                printf("      %s%sConfig ID:%s 0x%02X", ANSI_COLOR_YELLOW, ANSI_BOLD, ANSI_RESET, cfg_id);
+                switch(cfg_id) {
+                    case DEVICE_STATE: printf(" %s(DEVICE_STATE)%s\n", ANSI_COLOR_CYAN, ANSI_RESET); break;
+                    case LOW_POWER_MODE: printf(" %s(LOW_POWER_MODE)%s\n", ANSI_COLOR_CYAN, ANSI_RESET); break;
+                    default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+                }
+                printf("      %s%sStatus:%s 0x%02X", ANSI_COLOR_YELLOW, ANSI_BOLD, ANSI_RESET, cfg_status);
+                switch(cfg_status) {
+                    case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+                    case UCI_STATUS_REJECTED: printf(" %s(REJECTED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+                    case UCI_STATUS_FAILED: printf(" %s(FAILED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+                    case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+                    default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+                }
+            } else {
+                printf("    Config %d:\n", i);
+                printf("      Config ID: 0x%02X", cfg_id);
+                switch(cfg_id) {
+                    case DEVICE_STATE: printf(" (DEVICE_STATE)\n"); break;
+                    case LOW_POWER_MODE: printf(" (LOW_POWER_MODE)\n"); break;
+                    default: printf(" (UNKNOWN)\n"); break;
+                }
+                printf("      Status: 0x%02X", cfg_status);
+                switch(cfg_status) {
+                    case UCI_STATUS_OK: printf(" (OK)\n"); break;
+                    case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+                    case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+                    case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+                    default: printf(" (UNKNOWN)\n"); break;
+                }
+            }
+        }
+    }
 }
 
 void ui_decode_core_get_config_rsp(unsigned char* payload, int payload_len) {
@@ -282,6 +361,129 @@ void ui_decode_core_get_config_rsp(unsigned char* payload, int payload_len) {
         printf("  %s%sCORE_GET_CONFIG Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  CORE_GET_CONFIG Response:\n");
+    }
+
+    if (payload_len < 2) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 2)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned char num_tlvs = payload[1];
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_REJECTED: printf(" %s(REJECTED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_FAILED: printf(" %s(FAILED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        printf("    %s%sNumber of TLVs:%s %d\n",
+               ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET, num_tlvs);
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch(status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+            case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        printf("    Number of TLVs: %d\n", num_tlvs);
+    }
+
+    if (num_tlvs > 0 && payload_len >= 2) {
+        int offset = 2;
+        for (int i = 0; i < num_tlvs && offset + 2 <= payload_len; i++) {
+            unsigned char cfg_id = payload[offset];
+            unsigned char cfg_len = payload[offset + 1];
+            offset += 2;
+
+            if (ui_color_enabled) {
+                printf("    %s%sTLV %d:%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, i, ANSI_RESET);
+                printf("      %s%sConfig ID:%s 0x%02X", ANSI_COLOR_YELLOW, ANSI_BOLD, ANSI_RESET, cfg_id);
+                switch(cfg_id) {
+                    case DEVICE_STATE: printf(" %s(DEVICE_STATE)%s\n", ANSI_COLOR_CYAN, ANSI_RESET); break;
+                    case LOW_POWER_MODE: printf(" %s(LOW_POWER_MODE)%s\n", ANSI_COLOR_CYAN, ANSI_RESET); break;
+                    default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+                }
+                printf("      %s%sLength:%s %d\n", ANSI_COLOR_YELLOW, ANSI_BOLD, ANSI_RESET, cfg_len);
+            } else {
+                printf("    TLV %d:\n", i);
+                printf("      Config ID: 0x%02X", cfg_id);
+                switch(cfg_id) {
+                    case DEVICE_STATE: printf(" (DEVICE_STATE)\n"); break;
+                    case LOW_POWER_MODE: printf(" (LOW_POWER_MODE)\n"); break;
+                    default: printf(" (UNKNOWN)\n"); break;
+                }
+                printf("      Length: %d\n", cfg_len);
+            }
+
+            if (offset + cfg_len <= payload_len) {
+                if (ui_color_enabled) {
+                    printf("      %s%sValue:%s ", ANSI_COLOR_YELLOW, ANSI_BOLD, ANSI_RESET);
+                    for (int j = 0; j < cfg_len; j++) {
+                        printf("%s%02X%s ", ANSI_COLOR_BRIGHT_WHITE, payload[offset + j], ANSI_RESET);
+                    }
+                    printf("\n");
+                } else {
+                    printf("      Value: ");
+                    for (int j = 0; j < cfg_len; j++) {
+                        printf("%02X ", payload[offset + j]);
+                    }
+                    printf("\n");
+                }
+
+                // Interpret common values
+                if (cfg_id == DEVICE_STATE && cfg_len == 1) {
+                    unsigned char state = payload[offset];
+                    if (ui_color_enabled) {
+                        printf("        %s%sInterpreted:%s ", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+                        switch(state) {
+                            case DEVICE_STATE_READY: printf("%sREADY%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, state); break;
+                            case DEVICE_STATE_ACTIVE: printf("%sACTIVE%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, state); break;
+                            case DEVICE_STATE_ERROR: printf("%sERROR%s (0x%02X)\n", ANSI_COLOR_RED, ANSI_RESET, state); break;
+                            default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, state); break;
+                        }
+                    } else {
+                        printf("        Interpreted: ");
+                        switch(state) {
+                            case DEVICE_STATE_READY: printf("READY (0x%02X)\n", state); break;
+                            case DEVICE_STATE_ACTIVE: printf("ACTIVE (0x%02X)\n", state); break;
+                            case DEVICE_STATE_ERROR: printf("ERROR (0x%02X)\n", state); break;
+                            default: printf("UNKNOWN (0x%02X)\n", state); break;
+                        }
+                    }
+                } else if (cfg_id == LOW_POWER_MODE && cfg_len == 1) {
+                    unsigned char lpm = payload[offset];
+                    if (ui_color_enabled) {
+                        printf("        %s%sInterpreted:%s %s%s%s (0x%02X)\n",
+                               ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET,
+                               lpm ? ANSI_COLOR_BRIGHT_GREEN : ANSI_COLOR_YELLOW,
+                               lpm ? "ON" : "OFF", ANSI_RESET, lpm);
+                    } else {
+                        printf("        Interpreted: %s (0x%02X)\n", lpm ? "ON" : "OFF", lpm);
+                    }
+                }
+            } else {
+                if (ui_color_enabled) {
+                    printf("      %s%sValue: TRUNCATED%s (expected %d bytes, only %d available)\n",
+                           ANSI_COLOR_RED, ANSI_BOLD, ANSI_RESET, cfg_len, payload_len - offset);
+                } else {
+                    printf("      Value: TRUNCATED (expected %d bytes, only %d available)\n",
+                           cfg_len, payload_len - offset);
+                }
+            }
+
+            offset += cfg_len;
+        }
     }
 }
 

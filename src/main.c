@@ -581,8 +581,11 @@ int main() {
             char* session_type_str = strtok(NULL, " ");
             if (!session_id_str || !session_type_str) {
                 printf("Usage: session_init <session_id> <session_type>\n");
-                printf("  Example: session_init 1 fira_ranging\n");
-                printf("  Alternative: session_new 1 ranging\n");
+                printf("  Examples:\n");
+                printf("    session_init 1 fira_ranging\n");
+                printf("    session_init 1 ranging_and_data\n");
+                printf("    session_init 1 data_transfer\n");
+                printf("    session_new 1 ranging_only\n");
                 continue;
             }
 
@@ -592,8 +595,25 @@ int main() {
             // Support both technical and friendly names for session types
             if (strcmp(session_type_str, "fira_ranging") == 0 || strcmp(session_type_str, "ranging") == 0) {
                 session_type = FIRA_RANGING_SESSION;
+            } else if (strcmp(session_type_str, "fira_ranging_and_data") == 0 || strcmp(session_type_str, "ranging_and_data") == 0) {
+                session_type = FIRA_RANGING_AND_IN_BAND_DATA_SESSION;
+            } else if (strcmp(session_type_str, "fira_data_transfer") == 0 || strcmp(session_type_str, "data_transfer") == 0) {
+                session_type = FIRA_DATA_TRANSFER_SESSION;
+            } else if (strcmp(session_type_str, "fira_ranging_only") == 0 || strcmp(session_type_str, "ranging_only") == 0) {
+                session_type = FIRA_RANGING_ONLY_PHASE;
+            } else if (strcmp(session_type_str, "fira_in_band_data") == 0 || strcmp(session_type_str, "in_band_data") == 0) {
+                session_type = FIRA_IN_BAND_DATA_PHASE;
+            } else if (strcmp(session_type_str, "fira_ranging_with_data") == 0 || strcmp(session_type_str, "ranging_with_data") == 0) {
+                session_type = FIRA_RANGING_WITH_DATA_PHASE;
             } else {
-                printf("Unknown session_type: %s. Use 'fira_ranging' or 'ranging'.\n", session_type_str);
+                printf("Unknown session_type: %s\n", session_type_str);
+                printf("  Supported types:\n");
+                printf("    - fira_ranging / ranging (0x00)\n");
+                printf("    - fira_ranging_and_data / ranging_and_data (0x01)\n");
+                printf("    - fira_data_transfer / data_transfer (0x02)\n");
+                printf("    - fira_ranging_only / ranging_only (0x03)\n");
+                printf("    - fira_in_band_data / in_band_data (0x04)\n");
+                printf("    - fira_ranging_with_data / ranging_with_data (0x05)\n");
                 continue;
             }
 
@@ -1479,6 +1499,13 @@ int main() {
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "get_session_count", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
             } else {
                 printf("  session_init <id> <type>         - Initialize a ranging session\n");
+                printf("    Supported session types:\n");
+                printf("      - fira_ranging / ranging\n");
+                printf("      - fira_ranging_and_data / ranging_and_data\n");
+                printf("      - fira_data_transfer / data_transfer\n");
+                printf("      - fira_ranging_only / ranging_only\n");
+                printf("      - fira_in_band_data / in_band_data\n");
+                printf("      - fira_ranging_with_data / ranging_with_data\n");
                 printf("  session_new <id> <type>          - Alias for session_init\n");
                 printf("  session_deinit <id>              - Deinitialize a ranging session\n");
                 printf("  session_close <id>               - Alias for session_deinit\n");

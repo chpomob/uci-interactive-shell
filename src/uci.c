@@ -1026,181 +1026,21 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         int len = build_core_query_timestamp_response(response_packet + sizeof(struct uci_packet_header), MAX_RESPONSE_PAYLOAD_LEN);
         response_header->payload_len = len;
     } else if (gid == CORE && oid == CORE_GET_CONFIG) {
-        unsigned char get_config_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
-        size_t response_offset = 2;
-        unsigned char cfg_count = 0;
-        unsigned char status = UCI_STATUS_OK;
-
-        if (!payload || payload_len < 1) {
-            status = UCI_STATUS_INVALID_PARAM;
-        } else {
-            unsigned char requested = payload[0];
-            unsigned int available_ids = payload_len > 1 ? (payload_len - 1) : 0;
-            if (requested > available_ids) {
-                requested = (unsigned char)available_ids;
-            }
-
-            for (unsigned char i = 0; i < requested; i++) {
-                unsigned char cfg_id = payload[1 + i];
-                if (!is_valid_device_config_id(cfg_id)) {
-                    status = UCI_STATUS_INVALID_PARAM;
-                    continue;
-                }
-
-                unsigned char value_buffer[256] = {0};
-                size_t value_len = sizeof(value_buffer);
-                if (uci_config_get_device_param((DeviceConfigId)cfg_id, value_buffer, &value_len) != 0 ||
-                    value_len == 0 || value_len > 255) {
-                    status = UCI_STATUS_INVALID_PARAM;
-                    continue;
-                }
-
-                if (response_offset + 2 + value_len > sizeof(get_config_rsp_payload)) {
-                    status = UCI_STATUS_INVALID_MSG_SIZE;
-                    break;
-                }
-
-                get_config_rsp_payload[response_offset++] = cfg_id;
-                get_config_rsp_payload[response_offset++] = (unsigned char)value_len;
-                memcpy(&get_config_rsp_payload[response_offset], value_buffer, value_len);
-                response_offset += value_len;
-                cfg_count++;
-            }
-
-            if (cfg_count == 0 && status == UCI_STATUS_OK) {
-                status = UCI_STATUS_INVALID_PARAM;
-            }
-        }
-
-        get_config_rsp_payload[0] = (cfg_count > 0) ? status : UCI_STATUS_INVALID_PARAM;
-        get_config_rsp_payload[1] = cfg_count;
-
-        size_t response_len = response_offset;
-        if (response_len == 2) {
-            unsigned char err = get_config_rsp_payload[0];
-            enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
-        }
-
-        memcpy(response_packet + sizeof(struct uci_packet_header), get_config_rsp_payload, response_len);
-        response_header->payload_len = (unsigned char)response_len;
+        int len = build_core_get_config_response(response_packet + sizeof(struct uci_packet_header), MAX_RESPONSE_PAYLOAD_LEN, payload, payload_len);
+        response_header->payload_len = len;
     } else if (gid == CORE && oid == CORE_SET_CONFIG) {
-        unsigned char cfg_ids[MAX_RESPONSE_PAYLOAD_LEN] = {0};
-        unsigned char cfg_status[MAX_RESPONSE_PAYLOAD_LEN] = {0};
-        unsigned char processed_tlvs = 0;
-        unsigned char status = UCI_STATUS_OK;
-
-        if (!payload || payload_len < 1) {
-            status = UCI_STATUS_INVALID_PARAM;
-        } else {
-            unsigned char declared_tlvs = payload[0];
-            int offset = 1;
-            for (unsigned char i = 0; i < declared_tlvs; i++) {
-                if (offset + 2 > payload_len) {
-                    status = UCI_STATUS_INVALID_PARAM;
-                    break;
-                }
-
-                unsigned char cfg_id = payload[offset++];
-                unsigned char cfg_len = payload[offset++];
-
-                if (offset + cfg_len > payload_len || cfg_len == 0) {
-                    status = UCI_STATUS_INVALID_PARAM;
-                    break;
-                }
-
-                unsigned char tlv_status = UCI_STATUS_OK;
-                if (!is_valid_device_config_id(cfg_id) ||
-                    uci_config_set_device_param((DeviceConfigId)cfg_id, &payload[offset], cfg_len) != 0) {
-                    tlv_status = UCI_STATUS_INVALID_PARAM;
-                }
-
-                if (processed_tlvs < (MAX_RESPONSE_PAYLOAD_LEN - 2) / 2) {
-                    cfg_ids[processed_tlvs] = cfg_id;
-                    cfg_status[processed_tlvs] = tlv_status;
-                    processed_tlvs++;
-                }
-
-                if (tlv_status != UCI_STATUS_OK && status == UCI_STATUS_OK) {
-                    status = UCI_STATUS_INVALID_PARAM;
-                }
-
-                offset += cfg_len;
-            }
-
-            if (processed_tlvs == 0 && status == UCI_STATUS_OK) {
-                status = UCI_STATUS_INVALID_PARAM;
-            }
-        }
-
-        unsigned char set_config_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
-        unsigned char response_len = (unsigned char)(2 + (processed_tlvs * 2));
-        set_config_rsp_payload[0] = status;
-        set_config_rsp_payload[1] = processed_tlvs;
-        for (unsigned char i = 0; i < processed_tlvs; i++) {
-            set_config_rsp_payload[2 + (i * 2)] = cfg_ids[i];
-            set_config_rsp_payload[2 + (i * 2) + 1] = cfg_status[i];
-        }
-
-        if (status != UCI_STATUS_OK) {
-            unsigned char err = status;
-            enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
-        }
-
-        memcpy(response_packet + sizeof(struct uci_packet_header), set_config_rsp_payload, response_len);
-        response_header->payload_len = response_len;
-    } else if (gid == CORE && oid == CORE_GET_CONFIG) {
-        unsigned char cfg_count = 0;
-        if (payload && payload_len >= 1) {
-            unsigned char declared = payload[0];
-            unsigned int available = payload_len - 1;
-            unsigned int max_entries = (MAX_RESPONSE_PAYLOAD_LEN - 2) / 3;
-            if (declared > available) {
-                declared = (unsigned char)available;
-            }
-            if (declared > max_entries) {
-                declared = (unsigned char)max_entries;
-            }
-            cfg_count = declared;
-        }
-
-        unsigned char get_config_rsp_payload[MAX_RESPONSE_PAYLOAD_LEN] = {0};
-        unsigned char response_len = (unsigned char)(2 + (cfg_count * 3));
-        get_config_rsp_payload[0] = (cfg_count > 0) ? UCI_STATUS_OK : UCI_STATUS_INVALID_PARAM;
-        get_config_rsp_payload[1] = cfg_count;
-
-        int response_offset = 2;
-        for (unsigned char i = 0; i < cfg_count; i++) {
-            DeviceConfigId cfg_id = (DeviceConfigId)payload[1 + i];
-            get_config_rsp_payload[response_offset] = cfg_id;
-            get_config_rsp_payload[response_offset + 1] = 1;
-
-            if (cfg_id == DEVICE_STATE) {
-                get_config_rsp_payload[response_offset + 2] = DEVICE_STATE_ACTIVE;
-            } else if (cfg_id == LOW_POWER_MODE) {
-                get_config_rsp_payload[response_offset + 2] = 0;
-            } else {
-                get_config_rsp_payload[response_offset + 2] = 0;
-            }
-
-            response_offset += 3;
-        }
-
-        memcpy(response_packet + sizeof(struct uci_packet_header), get_config_rsp_payload, response_len);
-        response_header->payload_len = response_len;
+        int len = build_core_set_config_response(response_packet + sizeof(struct uci_packet_header), MAX_RESPONSE_PAYLOAD_LEN, payload, payload_len);
+        response_header->payload_len = len;
     } else if (gid == CORE && oid == CORE_DEVICE_RESET) {
-        // Simulate a CORE_DEVICE_RESET_RSP
-        unsigned char reset_rsp_payload[] = {UCI_STATUS_OK};
-        memcpy(response_packet + sizeof(struct uci_packet_header), reset_rsp_payload, sizeof(reset_rsp_payload));
-        response_header->payload_len = sizeof(reset_rsp_payload);
-        
+        int len = build_core_device_reset_response(response_packet + sizeof(struct uci_packet_header), MAX_RESPONSE_PAYLOAD_LEN);
+        response_header->payload_len = len;
         // Reset all sessions when device is reset
         init_uci_sessions();
         unsigned char device_state_payload = DEVICE_STATE_READY;
         enqueue_notification(CORE, CORE_DEVICE_STATUS_NTF, &device_state_payload, 1);
     } else if (gid == CORE && oid == CORE_DEVICE_SUSPEND) {
-        unsigned char suspend_rsp_payload[] = {UCI_STATUS_OK};
-        memcpy(response_packet + sizeof(struct uci_packet_header), suspend_rsp_payload, sizeof(suspend_rsp_payload));
-        response_header->payload_len = sizeof(suspend_rsp_payload);
+        int len = build_core_device_suspend_response(response_packet + sizeof(struct uci_packet_header), MAX_RESPONSE_PAYLOAD_LEN);
+        response_header->payload_len = len;
     } else if (gid == SESSION_CONFIG && oid == SESSION_INIT) {
         if (!payload || payload_len < 5) {
             unsigned char session_init_error_rsp[] = {UCI_STATUS_INVALID_PARAM};

@@ -2,6 +2,8 @@
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
 #include "../include/uci_config_manager.h"
+#include "../include/uci_response_core.h"
+#include "../include/uci_ui_packet_decoder.h"
 #include <string.h>
 #include <stdint.h>
 
@@ -1106,6 +1108,58 @@ int main() {
     }
 
     test_case_end:;
+
+    // Test CORE_DEVICE_INFO_RSP vendor_spec_info field decoding
+    TEST_CASE(core_device_info_vendor_spec_info);
+    {
+        // Build CORE_DEVICE_INFO_RSP response using the builder function
+        unsigned char response_payload[255] = {0};
+        int payload_len = build_core_device_info_response(response_payload, sizeof(response_payload));
+
+        // Verify payload length is exactly 10 bytes (not 9)
+        ASSERT_EQUAL(10, payload_len);
+
+        // Verify structure per FiRa spec:
+        // Byte 0: status
+        // Bytes 1-2: uci_version (16-bit LE)
+        // Bytes 3-4: mac_version (16-bit LE)
+        // Bytes 5-6: phy_version (16-bit LE)
+        // Bytes 7-8: uci_test_version (16-bit LE)
+        // Byte 9: vendor_spec_info count
+        ASSERT_EQUAL(UCI_STATUS_OK, response_payload[0]);
+
+        // Verify version fields are 16-bit
+        uint16_t uci_version = response_payload[1] | (response_payload[2] << 8);
+        ASSERT_EQUAL(0x0100, uci_version);
+
+        uint16_t mac_version = response_payload[3] | (response_payload[4] << 8);
+        ASSERT_EQUAL(0x0200, mac_version);
+
+        uint16_t phy_version = response_payload[5] | (response_payload[6] << 8);
+        ASSERT_EQUAL(0x0200, phy_version);
+
+        uint16_t uci_test_version = response_payload[7] | (response_payload[8] << 8);
+        ASSERT_EQUAL(0x0100, uci_test_version);
+
+        // Verify vendor_spec_info count field exists at byte 9
+        ASSERT_EQUAL(0, response_payload[9]);
+
+        // Test with vendor_spec_info data present
+        unsigned char test_payload[15] = {
+            UCI_STATUS_OK,
+            0x00, 0x01,  // uci_version = 0x0100
+            0x00, 0x02,  // mac_version = 0x0200
+            0x00, 0x03,  // phy_version = 0x0300
+            0x00, 0x04,  // uci_test_version = 0x0400
+            0x03,        // vendor_spec_info count = 3
+            0xAA, 0xBB, 0xCC  // vendor_spec_info data
+        };
+
+        // This should not crash and should parse all fields correctly
+        ui_decode_core_device_info_rsp(test_payload, sizeof(test_payload));
+
+        TEST_PASS();
+    }
 
     TEST_SUITE_END();
 }

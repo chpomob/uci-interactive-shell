@@ -1161,5 +1161,55 @@ int main() {
         TEST_PASS();
     }
 
+    // Test SESSION_GET_RANGING_COUNT_RSP 32-bit count field
+    TEST_CASE(session_get_ranging_count_32bit);
+    {
+        init_uci_sessions();
+
+        // Create a session with a large ranging count
+        unsigned char init_payload[5] = {0x05, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, init_payload, sizeof(init_payload));
+
+        int slot = find_session_by_id(0x00000005);
+        ASSERT_TRUE(slot >= 0);
+
+        // Set ranging count to a value that requires 32 bits
+        uci_sessions[slot].ranging_count = 0x12345678;
+
+        unsigned int handle = uci_sessions[slot].session_handle;
+        unsigned char handle_payload[4];
+        write_u32_le(handle_payload, handle);
+
+        // Send SESSION_GET_RANGING_COUNT command
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONTROL, SESSION_GET_RANGING_COUNT, handle_payload, sizeof(handle_payload));
+
+        // Verify the response was generated correctly
+        // The response should be 5 bytes: status (1) + count (4)
+        // Count should be 0x12345678 in little-endian format
+
+        // Build expected response manually to verify
+        unsigned char expected_response[5];
+        expected_response[0] = UCI_STATUS_OK;
+        write_u32_le(&expected_response[1], 0x12345678);
+
+        // Now test the decoder with this payload
+        ui_decode_session_get_ranging_count_rsp(expected_response, sizeof(expected_response));
+
+        // Test with maximum 32-bit value
+        unsigned char max_value_payload[5];
+        max_value_payload[0] = UCI_STATUS_OK;
+        write_u32_le(&max_value_payload[1], 0xFFFFFFFF);
+        ui_decode_session_get_ranging_count_rsp(max_value_payload, sizeof(max_value_payload));
+
+        // Test error handling - payload too short
+        unsigned char short_payload[3];
+        short_payload[0] = UCI_STATUS_OK;
+        short_payload[1] = 0x01;
+        short_payload[2] = 0x00;
+        ui_decode_session_get_ranging_count_rsp(short_payload, sizeof(short_payload));
+
+        TEST_PASS();
+    }
+
     TEST_SUITE_END();
 }

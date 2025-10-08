@@ -105,6 +105,21 @@ The shell provides tab completion and command history:
 > session_close 1
 ```
 
+### Multicast List Management
+```bash
+# Add a device to the multicast list
+> session_update_multicast_list 1 add 0x1234 0x00000001
+
+# Remove a device from the multicast list
+> session_update_multicast_list 1 remove 0x5678 0x00000002
+
+# Add a device with a short key
+> session_update_multicast_list 1 add_short_key 0xABCD 0x00000003
+
+# Add a device with a long key
+> session_update_multicast_list 1 add_long_key 0xEF01 0x00000004
+```
+
 ## Hardware Communication
 
 ### Connecting to Hardware

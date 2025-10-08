@@ -1215,18 +1215,18 @@ void ui_decode_session_get_ranging_count_rsp(unsigned char* payload, int payload
         printf("  SESSION_GET_RANGING_COUNT Response:\n");
     }
 
-    if (payload_len < 3) {
+    if (payload_len < 5) {
         if (ui_color_enabled) {
-            printf("    %s%sError: Payload too short (%d bytes, need at least 3)%s\n",
+            printf("    %s%sError: Payload too short (%d bytes, need at least 5)%s\n",
                    ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
         } else {
-            printf("    Error: Payload too short (%d bytes, need at least 3)\n", payload_len);
+            printf("    Error: Payload too short (%d bytes, need at least 5)\n", payload_len);
         }
         return;
     }
 
     unsigned char status = payload[0];
-    unsigned short count = ui_read_u16_le(payload + 1);
+    unsigned int count = ui_read_u32_le(payload + 1);
 
     if (ui_color_enabled) {
         printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
@@ -1238,7 +1238,7 @@ void ui_decode_session_get_ranging_count_rsp(unsigned char* payload, int payload
             case UCI_STATUS_SESSION_NOT_EXIST: printf(" %s(SESSION_NOT_EXIST)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
             default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
         }
-        printf("    %s%sRanging Count:%s %d\n",
+        printf("    %s%sRanging Count:%s %u\n",
                ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, count);
     } else {
         printf("    Status: 0x%02X", status);
@@ -1250,7 +1250,7 @@ void ui_decode_session_get_ranging_count_rsp(unsigned char* payload, int payload
             case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
             default: printf(" (UNKNOWN)\n"); break;
         }
-        printf("    Ranging Count: %d\n", count);
+        printf("    Ranging Count: %u\n", count);
     }
 }
 

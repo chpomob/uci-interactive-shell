@@ -1471,5 +1471,59 @@ int main() {
         TEST_PASS();
     }
 
+    // Test comprehensive error handling for various commands
+    TEST_CASE(session_error_handling_comprehensive);
+    {
+        init_uci_sessions();
+
+        // Test SESSION_GET_COUNT with invalid data (should be handled gracefully)
+        unsigned char invalid_count_payload[5] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_GET_COUNT, invalid_count_payload, sizeof(invalid_count_payload));
+
+        // Test SESSION_GET_STATE with invalid session ID
+        unsigned char invalid_state_payload[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_GET_STATE, invalid_state_payload, sizeof(invalid_state_payload));
+
+        // Test various sizes of invalid payloads for different commands
+        unsigned char tiny_payload[1] = {0x00};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_GET_APP_CONFIG, tiny_payload, sizeof(tiny_payload));
+
+        unsigned char medium_payload[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_UPDATE_CONTROLLER_MULTICAST_LIST, medium_payload, sizeof(medium_payload));
+
+        // Test malformed session token handling
+        unsigned char malformed_token[3] = {0x01, 0x02, 0x03}; // Only 3 bytes instead of 4
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_QUERY_DATA_SIZE_IN_RANGING, malformed_token, sizeof(malformed_token));
+
+        TEST_PASS();
+    }
+
+    // Test boundary conditions for session management
+    TEST_CASE(session_boundary_conditions);
+    {
+        init_uci_sessions();
+
+        // Test maximum possible session IDs
+        unsigned char max_session_payload[5] = {0xFF, 0xFF, 0xFF, 0xFF, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, max_session_payload, sizeof(max_session_payload));
+
+        // Test minimum possible session ID (0)
+        unsigned char min_session_payload[5] = {0x00, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, min_session_payload, sizeof(min_session_payload));
+
+        // Test with specific boundary values
+        unsigned char boundary_payload1[5] = {0x00, 0x00, 0x01, 0x00, FIRA_RANGING_SESSION}; // 65536
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, boundary_payload1, sizeof(boundary_payload1));
+
+        unsigned char boundary_payload2[5] = {0xFF, 0xFF, 0x00, 0x00, FIRA_RANGING_SESSION}; // 255*256
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT, boundary_payload2, sizeof(boundary_payload2));
+
+        // Send SESSION_GET_COUNT to check boundary session creation
+        unsigned char count_payload[1] = {0x00};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_GET_COUNT, count_payload, sizeof(count_payload));
+
+        TEST_PASS();
+    }
+
     TEST_SUITE_END();
 }

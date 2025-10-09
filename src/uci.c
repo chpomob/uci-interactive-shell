@@ -387,7 +387,7 @@ void enqueue_notification(unsigned char gid, unsigned char oid, const unsigned c
 
     notification_item_t* item = &g_notification_queue[g_notification_tail];
     struct uci_packet_header* header = (struct uci_packet_header*)item->data;
-    set_header_values(header, NOTIFICATION, COMPLETE, gid, oid, (unsigned char)payload_len);
+    set_header_values_safe(header, NOTIFICATION, COMPLETE, gid, oid, (unsigned char)payload_len);
     if (payload_len > 0 && payload) {
         memcpy(item->data + sizeof(struct uci_packet_header), payload, payload_len);
     }
@@ -534,7 +534,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         
         // Set up header
         struct uci_packet_header* header = (struct uci_packet_header*)packet;
-        set_header_values(header, mt, pbf, gid, oid, payload_len);
+        set_header_values_safe(header, mt, pbf, gid, oid, payload_len);
         
         // Copy payload if present
         if (payload && payload_len > 0) {
@@ -567,7 +567,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
         // Create a minimal response for now
         unsigned char response_packet[sizeof(struct uci_packet_header) + 10];
         struct uci_packet_header* response_header = (struct uci_packet_header*)response_packet;
-        set_header_values(response_header, RESPONSE, COMPLETE, gid, oid, 1);
+        set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid, 1);
         response_packet[sizeof(struct uci_packet_header)] = UCI_STATUS_OK;
         response_header->payload_len = 1;
         
@@ -576,7 +576,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     }
 
     struct uci_packet_header header;
-    set_header_values(&header, mt, pbf, gid, oid, payload_len);
+    set_header_values_safe(&header, mt, pbf, gid, oid, payload_len);
 
     ui_print_sending_uci_packet("simulator");
     // Print the raw bytes as they would appear on the wire
@@ -592,7 +592,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     printf("Simulating UCI response...\n");
     unsigned char response_packet[sizeof(struct uci_packet_header) + MAX_RESPONSE_PAYLOAD_LEN];
     struct uci_packet_header* response_header = (struct uci_packet_header*)response_packet;
-    set_header_values(response_header, RESPONSE, COMPLETE, gid, oid, 0); // Initialize with 0, will be updated below
+    set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid, 0); // Initialize with 0, will be updated below
     
     if (gid == CORE && oid == CORE_DEVICE_INFO) {
         int len = build_core_device_info_response(response_packet + sizeof(struct uci_packet_header), MAX_RESPONSE_PAYLOAD_LEN);
@@ -2391,7 +2391,7 @@ void parse_uci_packet(unsigned char* packet, size_t packet_len) {
 
     struct uci_packet_header* header = (struct uci_packet_header*)packet;
     uci_header_fields_t header_fields;
-    uci_extract_header_fields(header, &header_fields);
+    uci_extract_header_fields_safe(header, &header_fields);
 
     size_t available_payload = packet_len - sizeof(struct uci_packet_header);
     size_t payload_len = header_fields.payload_length;

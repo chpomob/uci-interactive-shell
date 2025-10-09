@@ -40,7 +40,7 @@ int main() {
     TEST_CASE(header_creation);
     {
         struct uci_packet_header header;
-        set_header_values(&header, COMMAND, COMPLETE, CORE, CORE_DEVICE_INFO, 0);
+        set_header_values_safe(&header, COMMAND, COMPLETE, CORE, CORE_DEVICE_INFO, 0);
         
         if (get_mt(&header) != COMMAND) {
             TEST_FAIL("MT field mismatch");
@@ -71,7 +71,7 @@ int main() {
     TEST_CASE(header_extraction);
     {
         struct uci_packet_header header;
-        set_header_values(&header, RESPONSE, NOT_COMPLETE, SESSION_CONFIG, SESSION_INIT, 10);
+        set_header_values_safe(&header, RESPONSE, NOT_COMPLETE, SESSION_CONFIG, SESSION_INIT, 10);
         
         if (get_mt(&header) != RESPONSE) {
             TEST_FAIL("MT field mismatch");
@@ -102,7 +102,7 @@ int main() {
     TEST_CASE(notification_header);
     {
         struct uci_packet_header header;
-        set_header_values(&header, NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_DATA_CREDIT_NTF, 5);
+        set_header_values_safe(&header, NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_DATA_CREDIT_NTF, 5);
         
         if (get_mt(&header) != NOTIFICATION) {
             TEST_FAIL("MT field mismatch");
@@ -133,11 +133,11 @@ int main() {
     TEST_CASE(header_struct_extraction);
     {
         struct uci_packet_header header;
-        set_header_values(&header, RESPONSE, NOT_COMPLETE, SESSION_CONTROL, SESSION_GET_RANGING_COUNT, 12);
+        set_header_values_safe(&header, RESPONSE, NOT_COMPLETE, SESSION_CONTROL, SESSION_GET_RANGING_COUNT, 12);
 
         uci_header_fields_t fields;
         memset(&fields, 0, sizeof(fields));
-        uci_extract_header_fields(&header, &fields);
+        uci_extract_header_fields_safe(&header, &fields);
 
         if (fields.message_type != RESPONSE) {
             TEST_FAIL("message_type mismatch");
@@ -168,7 +168,7 @@ int main() {
     TEST_CASE(header_field_masking);
     {
         struct uci_packet_header header;
-        set_header_values(&header,
+        set_header_values_safe(&header,
                           (unsigned char)(COMMAND | 0xF8),
                           (unsigned char)(NOT_COMPLETE | 0xF6),
                           (unsigned char)(SESSION_CONFIG | 0x30),
@@ -918,7 +918,7 @@ int main() {
         payload_len += sizeof(segment_metrics_sample);
 
         struct uci_packet_header header;
-        set_header_values(&header, NOTIFICATION, COMPLETE, VENDOR_ANDROID,
+        set_header_values_safe(&header, NOTIFICATION, COMPLETE, VENDOR_ANDROID,
                           ANDROID_FIRA_RANGE_DIAGNOSTICS, (unsigned char)payload_len);
 
         unsigned char packet[sizeof(struct uci_packet_header) + 128] = {0};
@@ -974,7 +974,7 @@ int main() {
         payload[offset++] = 0x07;
 
         struct uci_packet_header header;
-        set_header_values(&header, NOTIFICATION, COMPLETE, RANGING_DATA,
+        set_header_values_safe(&header, NOTIFICATION, COMPLETE, RANGING_DATA,
                           RANGE_DATA_NTF_OPCODE, (unsigned char)offset);
 
         unsigned char packet[sizeof(struct uci_packet_header) + 64] = {0};

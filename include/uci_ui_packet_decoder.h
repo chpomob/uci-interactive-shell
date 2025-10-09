@@ -16,6 +16,18 @@ void ui_decode_core_device_reset_rsp(unsigned char* payload, int payload_len);
 void ui_decode_core_device_suspend_rsp(unsigned char* payload, int payload_len);
 void ui_decode_core_query_uwbs_timestamp_rsp(unsigned char* payload, int payload_len);
 
+// Additional core response decoders (previously implemented but not declared)
+void ui_decode_core_get_state_rsp(unsigned char* payload, int payload_len);
+void ui_decode_core_set_active_rsp(unsigned char* payload, int payload_len);
+void ui_decode_core_set_ready_rsp(unsigned char* payload, int payload_len);
+void ui_decode_core_device_ready_rsp(unsigned char* payload, int payload_len);
+void ui_decode_core_get_caps_rsp(unsigned char* payload, int payload_len);
+void ui_decode_core_set_power_rsp(unsigned char* payload, int payload_len);
+void ui_decode_core_get_power_rsp(unsigned char* payload, int payload_len);
+void ui_decode_core_device_on_rsp(unsigned char* payload, int payload_len);
+void ui_decode_core_device_off_rsp(unsigned char* payload, int payload_len);
+void ui_decode_core_device_suspend_cmd_rsp(unsigned char* payload, int payload_len);
+
 void ui_decode_session_init_rsp(unsigned char* payload, int payload_len);
 void ui_decode_session_init_cmd(unsigned char* payload, int payload_len);
 void ui_decode_session_deinit_rsp(unsigned char* payload, int payload_len);

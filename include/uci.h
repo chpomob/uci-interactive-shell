@@ -2,6 +2,7 @@
 #define UCI_H
 
 #include "uci_pdl.h"
+#include "uci_utils.h"  // Include utilities for secure operations
 #include <stddef.h>
 
 // UCI Packet Header - aligned with Android UWB specification
@@ -74,16 +75,22 @@ static inline unsigned char uci_pack_second_byte(unsigned char opcode_id) {
     return (unsigned char)(opcode_id & 0x3F);  // opcode occupies lower 6 bits
 }
 
-static inline void set_header_values(struct uci_packet_header *header,
-                                    unsigned char message_type,
-                                    unsigned char packet_boundary,
-                                    unsigned char group_id,
-                                    unsigned char opcode_id,
-                                    unsigned char payload_length) {
+static inline uci_error_t set_header_values_safe(struct uci_packet_header *header,
+                                                 unsigned char message_type,
+                                                 unsigned char packet_boundary,
+                                                 unsigned char group_id,
+                                                 unsigned char opcode_id,
+                                                 unsigned char payload_length) {
+    if (!header) {
+        return UCI_ERROR_INVALID_PARAM;
+    }
+    
     header->first_byte = uci_pack_first_byte(message_type, packet_boundary, group_id);
     header->second_byte = uci_pack_second_byte(opcode_id);
     header->reserved2 = 0;
     header->payload_len = payload_length;
+    
+    return UCI_SUCCESS;
 }
 
 // Helper functions to extract header values
@@ -116,10 +123,10 @@ typedef struct {
     unsigned char payload_length;
 } uci_header_fields_t;
 
-static inline void uci_extract_header_fields(const struct uci_packet_header *header,
-                                             uci_header_fields_t *out_fields) {
-    if (!out_fields) {
-        return;
+static inline uci_error_t uci_extract_header_fields_safe(const struct uci_packet_header *header,
+                                                         uci_header_fields_t *out_fields) {
+    if (!header || !out_fields) {
+        return UCI_ERROR_INVALID_PARAM;
     }
 
     out_fields->message_type = get_mt(header);
@@ -128,6 +135,8 @@ static inline void uci_extract_header_fields(const struct uci_packet_header *hea
     out_fields->opcode_id = get_opcode(header);
     out_fields->reserved_opcode_bits = get_reserved_opcode_bits(header);
     out_fields->payload_length = header->payload_len;
+    
+    return UCI_SUCCESS;
 }
 
 // UCI packet analysis function

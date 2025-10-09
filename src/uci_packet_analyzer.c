@@ -23,7 +23,7 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
 
     struct uci_packet_header* header = (struct uci_packet_header*)packet;
     uci_header_fields_t header_fields;
-    uci_extract_header_fields(header, &header_fields);
+    uci_extract_header_fields_safe(header, &header_fields);
 
     if (ui_color_enabled) {
         printf("%s%s%s=== UCI Packet Analysis ===%s\n", 

@@ -38,7 +38,7 @@ void create_uci_header(
         return;
     }
 
-    set_header_values(header, mt, pbf, gid, oid, payload_len);
+    set_header_values_safe(header, mt, pbf, gid, oid, payload_len);
 }
 
 unsigned char* create_session_init_packet(

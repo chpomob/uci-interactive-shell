@@ -44,7 +44,7 @@ static int uci_fragment_process(const unsigned char* fragment,
 
     const struct uci_packet_header* header = (const struct uci_packet_header*)fragment;
     uci_header_fields_t header_fields;
-    uci_extract_header_fields(header, &header_fields);
+    uci_extract_header_fields_safe(header, &header_fields);
 
     size_t payload_len = header_fields.payload_length;
     size_t expected_len = sizeof(struct uci_packet_header) + payload_len;
@@ -144,7 +144,7 @@ static int uci_fragment_process(const unsigned char* fragment,
         }
 
         struct uci_packet_header final_header;
-        set_header_values(&final_header, mt, COMPLETE, gid, opcode, (unsigned char)total_len);
+        set_header_values_safe(&final_header, mt, COMPLETE, gid, opcode, (unsigned char)total_len);
         memcpy(out_buffer, &final_header, sizeof(final_header));
         memcpy(out_buffer + sizeof(final_header), g_fragment_buffer.payload, g_fragment_buffer.payload_len);
         memcpy(out_buffer + sizeof(final_header) + g_fragment_buffer.payload_len,
@@ -256,7 +256,7 @@ int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned 
         size_t fragment_size = sizeof(struct uci_packet_header) + chunk;
         unsigned char fragment[sizeof(struct uci_packet_header) + UCI_HAL_MAX_FRAGMENT_PAYLOAD];
         struct uci_packet_header* header = (struct uci_packet_header*)fragment;
-        set_header_values(header, mt, fragment_pbf, gid, oid, (unsigned char)chunk);
+        set_header_values_safe(header, mt, fragment_pbf, gid, oid, (unsigned char)chunk);
 
         if (chunk > 0 && payload) {
             memcpy(fragment + sizeof(struct uci_packet_header), payload + offset, chunk);

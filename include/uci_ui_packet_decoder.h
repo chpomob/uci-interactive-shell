@@ -26,6 +26,9 @@ void ui_decode_session_get_state_rsp(unsigned char* payload, int payload_len);
 void ui_decode_session_update_controller_multicast_list_rsp(unsigned char* payload, int payload_len);
 void ui_decode_session_update_active_rounds_dt_tag_rsp(unsigned char* payload, int payload_len);
 void ui_decode_session_data_transfer_phase_config_rsp(unsigned char* payload, int payload_len);
+void ui_decode_session_query_data_size_in_ranging_rsp(unsigned char* payload, int payload_len);
+void ui_decode_session_set_hybrid_controller_config_rsp(unsigned char* payload, int payload_len);
+void ui_decode_session_set_hybrid_controlee_config_rsp(unsigned char* payload, int payload_len);
 
 void ui_decode_session_start_rsp(unsigned char* payload, int payload_len);
 void ui_decode_session_stop_rsp(unsigned char* payload, int payload_len);

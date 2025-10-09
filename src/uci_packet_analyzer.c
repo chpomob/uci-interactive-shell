@@ -429,6 +429,15 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
                 case SESSION_DATA_TRANSFER_PHASE_CONFIG:
                     ui_decode_session_data_transfer_phase_config_rsp(payload_ptr, payload_len_int);
                     break;
+                case SESSION_QUERY_DATA_SIZE_IN_RANGING:
+                    ui_decode_session_query_data_size_in_ranging_rsp(payload_ptr, payload_len_int);
+                    break;
+                case SESSION_SET_HYBRID_CONTROLLER_CONFIG:
+                    ui_decode_session_set_hybrid_controller_config_rsp(payload_ptr, payload_len_int);
+                    break;
+                case SESSION_SET_HYBRID_CONTROLEE_CONFIG:
+                    ui_decode_session_set_hybrid_controlee_config_rsp(payload_ptr, payload_len_int);
+                    break;
                 default:
                     if (ui_color_enabled) {
                         printf("  %s%sNo specific decoder for SESSION_CONFIG_RESPONSE opcode 0x%02X%s\n", 

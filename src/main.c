@@ -295,6 +295,21 @@ int main() {
             char* action_str = strtok(NULL, " ");
             char* short_address_str = strtok(NULL, " ");
             handle_update_multicast_list_command(session_id_str, action_str, short_address_str);
+        } else if (strcmp(command, "session_set_hybrid_controller_config") == 0) {
+            char* session_id_str = strtok(NULL, " ");
+            char* config_data_str = strtok(NULL, " ");
+            handle_session_set_hybrid_controller_config_command(session_id_str, 
+                                                               config_data_str ? (unsigned char*)config_data_str : NULL, 
+                                                               config_data_str ? strlen(config_data_str) : 0);
+        } else if (strcmp(command, "session_set_hybrid_controlee_config") == 0) {
+            char* session_id_str = strtok(NULL, " ");
+            char* config_data_str = strtok(NULL, " ");
+            handle_session_set_hybrid_controlee_config_command(session_id_str, 
+                                                             config_data_str ? (unsigned char*)config_data_str : NULL, 
+                                                             config_data_str ? strlen(config_data_str) : 0);
+        } else if (strcmp(command, "session_query_data_size_in_ranging") == 0) {
+            char* session_id_str = strtok(NULL, " ");
+            handle_session_query_data_size_in_ranging_command(session_id_str);
         } else if (strcmp(command, "demo_session_flow") == 0) {
             printf("=== UCI Session Flow Demonstration ===\n");
             
@@ -692,6 +707,12 @@ int main() {
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_status", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
                 printf("  %s%s%s                - %s%sGet number of active sessions%s\n", 
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "get_session_count", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>              - %s%sQuery maximum data size in ranging%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_query_data_size_in_ranging", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> [config_data] - %s%sSet hybrid controller configuration%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_set_hybrid_controller_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> [config_data] - %s%sSet hybrid controlee configuration%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_set_hybrid_controlee_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
             } else {
                 printf("  session_init <id> <type>         - Initialize a ranging session\n");
                 printf("    Supported session types:\n");
@@ -711,6 +732,9 @@ int main() {
                 printf("  get_session_state <id>           - Get session state\n");
                 printf("  session_status <id>              - Alias for get_session_state\n");
                 printf("  get_session_count                - Get number of active sessions\n");
+                printf("  session_query_data_size_in_ranging <id>              - Query maximum data size in ranging\n");
+                printf("  session_set_hybrid_controller_config <id> [config_data] - Set hybrid controller configuration\n");
+                printf("  session_set_hybrid_controlee_config <id> [config_data] - Set hybrid controlee configuration\n");
             }
             printf("\n");
             
@@ -783,6 +807,25 @@ int main() {
                 printf("  simulate_multi_target_ranging    - Simulate multi-target ranging\n");
                 printf("  demo_session_flow                - Demonstrate a complete session flow\n");
                 printf("  analyze_packet <bytes...>        - Analyze hex packet bytes\n");
+            }
+            printf("\n");
+            
+            if (ui_color_enabled) {
+                printf("%s%sExtended Session Configuration Commands:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
+            } else {
+                printf("Extended Session Configuration Commands:\n");
+            }
+            if (ui_color_enabled) {
+                printf("  %s%s%s <id> [config_data] - %s%sSet hybrid controller configuration%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_set_hybrid_controller_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> [config_data] - %s%sSet hybrid controlee configuration%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_set_hybrid_controlee_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id>           - %s%sQuery data size in ranging%s\n", 
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_query_data_size_in_ranging", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+            } else {
+                printf("  session_set_hybrid_controller_config <id> [config_data] - Set hybrid controller configuration\n");
+                printf("  session_set_hybrid_controlee_config <id> [config_data] - Set hybrid controlee configuration\n");
+                printf("  session_query_data_size_in_ranging <id>           - Query data size in ranging\n");
             }
             printf("\n");
             

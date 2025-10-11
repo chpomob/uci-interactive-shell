@@ -22,6 +22,7 @@ $(TARGET): $(OBJ)
 
 src/main.o: src/main.c include/uci.h include/uci_functions.h
 src/uci.o: src/uci.c include/uci.h include/uci_functions.h
+src/uci_ui_packet_decoder.o: src/uci_ui_packet_decoder.c include/uci_ui_packet_decoder.h
 src/uci_secure.o: src/uci_secure.c include/uci.h include/uci_functions.h include/uci_utils.h
 src/uci_cmd_session_config_ext.o: src/uci_cmd_session_config_ext.c include/uci_cmd_session_config_ext.h include/uci.h include/uci_functions.h
 

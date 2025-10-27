@@ -154,6 +154,10 @@ static struct sim_packet_entry g_sim_packet_queue[UCI_SIM_MAX_QUEUED_PACKETS];
 static size_t g_sim_queue_head = 0;
 static size_t g_sim_queue_tail = 0;
 static size_t g_sim_queue_count = 0;
+static unsigned char g_sim_device_state = DEVICE_STATE_READY;
+
+void enqueue_notification(unsigned char gid, unsigned char oid, const unsigned char* payload, size_t payload_len);
+void uci_process_pending_notifications(void);
 
 static void sim_queue_reset(void)
 {
@@ -210,6 +214,29 @@ static void simulator_flush_queue(void)
     while ((len = sim_queue_dequeue(packet, sizeof(packet))) > 0) {
         parse_uci_packet(packet, (size_t)len);
     }
+    uci_process_pending_notifications();
+}
+
+static void sim_update_device_state(unsigned char new_state, bool notify)
+{
+    if (g_sim_device_state == new_state)
+        return;
+
+    g_sim_device_state = new_state;
+    if (notify) {
+        enqueue_notification(CORE, CORE_DEVICE_STATUS_NTF, &g_sim_device_state, 1);
+    }
+}
+
+static bool sim_command_allowed(uint8_t gid, uint8_t oid)
+{
+    if (g_sim_device_state != DEVICE_STATE_ERROR)
+        return true;
+
+    if (gid == CORE && oid == CORE_DEVICE_RESET)
+        return true;
+
+    return false;
 }
 #define ANDROID_GET_POWER_STATS 0x00
 #define ANDROID_SET_COUNTRY_CODE 0x01
@@ -751,6 +778,11 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
 
     printf("Simulating UCI response...\n");
 
+    if (!sim_command_allowed(gid, oid)) {
+        send_sim_status(gid, oid, UCI_STATUS_REJECTED);
+        return;
+    }
+
     const struct uci_command_handler_entry *handler = find_sim_handler(gid, oid);
     if (!handler) {
         uint8_t status = sim_gid_is_known(gid) ? UCI_STATUS_UNKNOWN_OID : UCI_STATUS_UNKNOWN_GID;
@@ -815,8 +847,33 @@ static int handle_core_get_config(unsigned char *response_payload, size_t max_le
 
 static int handle_core_set_config(unsigned char *response_payload, size_t max_len,
                                   const unsigned char *payload, size_t payload_len) {
-    return build_core_set_config_response(response_payload, max_len, payload,
-                                          (int)payload_len);
+    int len = build_core_set_config_response(response_payload, max_len, payload,
+                                             (int)payload_len);
+
+    if (len > 0 && response_payload[0] == UCI_STATUS_OK && payload && payload_len >= 1) {
+        unsigned char declared = payload[0];
+        const unsigned char *tlv_buffer = (payload_len > 1) ? &payload[1] : NULL;
+        size_t tlv_length = (payload_len > 1) ? (size_t)(payload_len - 1) : 0;
+        struct uci_tlv_reader reader;
+        uci_tlv_reader_init(&reader, tlv_buffer, tlv_length);
+
+        for (unsigned char i = 0; i < declared; i++) {
+            unsigned char cfg_id = 0;
+            unsigned char cfg_len = 0;
+            const unsigned char *value_ptr = NULL;
+
+            int res = uci_tlv_reader_next(&reader, &cfg_id, &value_ptr, &cfg_len);
+            if (res <= 0) {
+                break;
+            }
+
+            if (cfg_id == DEVICE_STATE && cfg_len >= 1) {
+                sim_update_device_state(value_ptr[0], true);
+            }
+        }
+    }
+
+    return len;
 }
 
 static int handle_core_device_reset(unsigned char *response_payload, size_t max_len,
@@ -825,8 +882,7 @@ static int handle_core_device_reset(unsigned char *response_payload, size_t max_
     (void)payload_len;
     int len = build_core_device_reset_response(response_payload, max_len);
     init_uci_sessions();
-    unsigned char device_state_payload = DEVICE_STATE_READY;
-    enqueue_notification(CORE, CORE_DEVICE_STATUS_NTF, &device_state_payload, 1);
+    sim_update_device_state(DEVICE_STATE_READY, true);
     return len;
 }
 

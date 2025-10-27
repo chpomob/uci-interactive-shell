@@ -26,9 +26,77 @@ typedef struct {
 
 static uci_fragment_buffer_t g_fragment_buffer = {0};
 
+#define UCI_HW_MAX_QUEUED_PACKETS 4
+
+typedef struct {
+    size_t len;
+    unsigned char data[sizeof(struct uci_packet_header) + UCI_MAX_REASSEMBLED_PAYLOAD];
+} uci_packet_queue_entry_t;
+
+static uci_packet_queue_entry_t g_packet_queue[UCI_HW_MAX_QUEUED_PACKETS];
+static size_t g_packet_queue_head = 0;
+static size_t g_packet_queue_tail = 0;
+static size_t g_packet_queue_count = 0;
+
 static void uci_fragment_reset(void) {
     g_fragment_buffer.active = 0;
     g_fragment_buffer.payload_len = 0;
+}
+
+static void packet_queue_reset(void) {
+    g_packet_queue_head = 0;
+    g_packet_queue_tail = 0;
+    g_packet_queue_count = 0;
+}
+
+static void uci_hw_interface_reset_state(void) {
+    uci_fragment_reset();
+    packet_queue_reset();
+}
+
+static int packet_queue_enqueue(const unsigned char *packet, size_t len) {
+    if (len > sizeof(g_packet_queue[0].data)) {
+        if (g_verbose_mode) {
+            printf("Packet too large for queue (%zu bytes)\n", len);
+        }
+        return -1;
+    }
+
+    if (g_packet_queue_count == UCI_HW_MAX_QUEUED_PACKETS) {
+        if (g_verbose_mode) {
+            printf("Packet queue full; dropping oldest entry\n");
+        }
+        g_packet_queue_head = (g_packet_queue_head + 1) % UCI_HW_MAX_QUEUED_PACKETS;
+        g_packet_queue_count--;
+    }
+
+    uci_packet_queue_entry_t *slot = &g_packet_queue[g_packet_queue_tail];
+    memcpy(slot->data, packet, len);
+    slot->len = len;
+
+    g_packet_queue_tail = (g_packet_queue_tail + 1) % UCI_HW_MAX_QUEUED_PACKETS;
+    g_packet_queue_count++;
+    return 0;
+}
+
+static int packet_queue_dequeue(unsigned char *buffer, size_t buffer_size) {
+    if (g_packet_queue_count == 0) {
+        return 0;
+    }
+
+    uci_packet_queue_entry_t *slot = &g_packet_queue[g_packet_queue_head];
+    if (slot->len > buffer_size) {
+        if (g_verbose_mode) {
+            printf("Provided buffer (%zu) smaller than queued packet (%zu)\n",
+                   buffer_size, slot->len);
+        }
+        return -1;
+    }
+
+    memcpy(buffer, slot->data, slot->len);
+    g_packet_queue_head = (g_packet_queue_head + 1) % UCI_HW_MAX_QUEUED_PACKETS;
+    g_packet_queue_count--;
+    return (int)slot->len;
 }
 
 static int uci_fragment_process(const unsigned char* fragment,
@@ -185,7 +253,7 @@ int uci_hw_interface_init(const char* device_path) {
         return 0; // Already initialized
     }
 
-    uci_fragment_reset();
+    uci_hw_interface_reset_state();
 
     if (g_verbose_mode) {
         printf("Initializing UCI hardware interface with device: %s\n", device_path);
@@ -317,32 +385,71 @@ int uci_hw_interface_receive_response(unsigned char* buffer, size_t buffer_size,
         }
         return -1;
     }
-    
+
+    int queued = packet_queue_dequeue(buffer, buffer_size);
+    if (queued > 0) {
+        return queued;
+    } else if (queued < 0) {
+        return -1;
+    }
+
     unsigned char fragment[sizeof(struct uci_packet_header) + UCI_HAL_MAX_FRAGMENT_PAYLOAD];
-    int bytes_received = uci_hw_chardev_receive(&g_uwb_chardev, fragment, sizeof(fragment), timeout_ms);
+    unsigned char assembled[sizeof(struct uci_packet_header) + UCI_MAX_REASSEMBLED_PAYLOAD];
 
-    if (bytes_received < 0) {
-        if (g_verbose_mode) {
-            printf("Failed to receive UCI response from hardware\n");
+    while (1) {
+        int bytes_received =
+            uci_hw_chardev_receive(&g_uwb_chardev, fragment, sizeof(fragment), timeout_ms);
+
+        if (bytes_received < 0) {
+            if (g_verbose_mode) {
+                printf("Failed to receive UCI response from hardware\n");
+            }
+            return -1;
         }
+
+        if (bytes_received == 0) {
+            break; // timeout/no data
+        }
+
+        if (g_verbose_mode) {
+            printf("Received fragment (%d bytes) from UCI hardware (%s)\n",
+                   bytes_received, g_device_path);
+        }
+
+        int assembled_len =
+            uci_fragment_process(fragment, (size_t)bytes_received, assembled, sizeof(assembled));
+        if (assembled_len < 0) {
+            return -1;
+        }
+
+        if (assembled_len == 0) {
+            // Waiting for additional fragments
+            continue;
+        }
+
+        if (g_packet_queue_count == 0 && (size_t)assembled_len <= buffer_size) {
+            memcpy(buffer, assembled, (size_t)assembled_len);
+            return assembled_len;
+        }
+
+        packet_queue_enqueue(assembled, (size_t)assembled_len);
+        queued = packet_queue_dequeue(buffer, buffer_size);
+        if (queued > 0) {
+            return queued;
+        } else if (queued < 0) {
+            return -1;
+        }
+    }
+
+    queued = packet_queue_dequeue(buffer, buffer_size);
+    if (queued > 0) {
+        return queued;
+    }
+    if (queued < 0) {
         return -1;
     }
-    
-    if (bytes_received == 0) {
-        return 0; // timeout/no data
-    }
 
-    if (g_verbose_mode) {
-        printf("Received fragment (%d bytes) from UCI hardware (%s)\n",
-               bytes_received, g_device_path);
-    }
-
-    int assembled_len = uci_fragment_process(fragment, (size_t)bytes_received, buffer, buffer_size);
-    if (assembled_len < 0) {
-        return -1;
-    }
-
-    return assembled_len;
+    return 0;
 }
 
 // Cleanup hardware interface
@@ -352,7 +459,7 @@ void uci_hw_interface_cleanup(void) {
             printf("Cleaning up UCI hardware interface\n");
         }
         uci_hw_chardev_close(&g_uwb_chardev);
-        uci_fragment_reset();
+        uci_hw_interface_reset_state();
         g_hw_initialized = 0;
     }
 }

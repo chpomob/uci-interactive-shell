@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
 #include "uci.h"
 
 // Utility functions for creating UCI packets with correct endianness
@@ -62,6 +63,79 @@ static inline uint64_t read_u64_le(const unsigned char* buffer) {
            ((uint64_t)buffer[2] << 16) | ((uint64_t)buffer[3] << 24) |
            ((uint64_t)buffer[4] << 32) | ((uint64_t)buffer[5] << 40) |
            ((uint64_t)buffer[6] << 48) | ((uint64_t)buffer[7] << 56);
+}
+
+struct uci_payload_builder {
+    unsigned char *buffer;
+    size_t capacity;
+    size_t length;
+};
+
+static inline void uci_payload_builder_init(struct uci_payload_builder *builder,
+                                            unsigned char *buffer,
+                                            size_t capacity) {
+    builder->buffer = buffer;
+    builder->capacity = capacity;
+    builder->length = 0;
+}
+
+static inline size_t uci_payload_builder_length(const struct uci_payload_builder *builder) {
+    return builder->length;
+}
+
+static inline int uci_payload_builder_reserve(struct uci_payload_builder *builder, size_t len) {
+    if (builder->length + len > builder->capacity) {
+        return -1;
+    }
+    return 0;
+}
+
+static inline int uci_payload_builder_put_u8(struct uci_payload_builder *builder, unsigned char value) {
+    if (uci_payload_builder_reserve(builder, 1) < 0) {
+        return -1;
+    }
+    builder->buffer[builder->length++] = value;
+    return 0;
+}
+
+static inline int uci_payload_builder_put_mem(struct uci_payload_builder *builder,
+                                              const unsigned char *data,
+                                              size_t len) {
+    if (uci_payload_builder_reserve(builder, len) < 0) {
+        return -1;
+    }
+    if (len > 0) {
+        memcpy(&builder->buffer[builder->length], data, len);
+    }
+    builder->length += len;
+    return 0;
+}
+
+static inline int uci_payload_builder_put_u16_le(struct uci_payload_builder *builder, uint16_t value) {
+    if (uci_payload_builder_reserve(builder, 2) < 0) {
+        return -1;
+    }
+    write_u16_le(&builder->buffer[builder->length], value);
+    builder->length += 2;
+    return 0;
+}
+
+static inline int uci_payload_builder_put_u32_le(struct uci_payload_builder *builder, uint32_t value) {
+    if (uci_payload_builder_reserve(builder, 4) < 0) {
+        return -1;
+    }
+    write_u32_le(&builder->buffer[builder->length], value);
+    builder->length += 4;
+    return 0;
+}
+
+static inline int uci_payload_builder_put_u64_le(struct uci_payload_builder *builder, uint64_t value) {
+    if (uci_payload_builder_reserve(builder, 8) < 0) {
+        return -1;
+    }
+    write_u64_le(&builder->buffer[builder->length], value);
+    builder->length += 8;
+    return 0;
 }
 
 /**

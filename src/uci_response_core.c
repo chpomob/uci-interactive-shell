@@ -15,24 +15,19 @@ extern int is_valid_device_config_id(unsigned char cfg_id);
 extern void enqueue_notification(unsigned char gid, unsigned char oid, unsigned char* payload, int payload_len);
 
 int build_core_device_info_response(unsigned char* response_payload, size_t max_len) {
-    // Per FiRa UCI spec (GetDeviceInfoRsp):
-    // Byte 0: status
-    // Bytes 1-2: uci_version (16-bit)
-    // Bytes 3-4: mac_version (16-bit)
-    // Bytes 5-6: phy_version (16-bit)
-    // Bytes 7-8: uci_test_version (16-bit)
-    // Byte 9: vendor_spec_info count
-    // Bytes 10+: vendor_spec_info array (empty in this implementation)
+    struct uci_payload_builder builder;
+    uci_payload_builder_init(&builder, response_payload, max_len);
 
-    if (max_len < 10) return 0;
+    if (uci_payload_builder_put_u8(&builder, UCI_STATUS_OK) < 0 ||
+        uci_payload_builder_put_u16_le(&builder, 0x0100) < 0 ||  // uci_version 1.0
+        uci_payload_builder_put_u16_le(&builder, 0x0200) < 0 ||  // mac_version 2.0
+        uci_payload_builder_put_u16_le(&builder, 0x0200) < 0 ||  // phy_version 2.0
+        uci_payload_builder_put_u16_le(&builder, 0x0100) < 0 ||  // uci_test_version 1.0
+        uci_payload_builder_put_u8(&builder, 0x00) < 0) {        // vendor_spec_info count
+        return 0;
+    }
 
-    response_payload[0] = UCI_STATUS_OK;
-    write_u16_le(&response_payload[1], 0x0100);  // uci_version 1.0
-    write_u16_le(&response_payload[3], 0x0200);  // mac_version 2.0
-    write_u16_le(&response_payload[5], 0x0200);  // phy_version 2.0
-    write_u16_le(&response_payload[7], 0x0100);  // uci_test_version 1.0
-    response_payload[9] = 0;  // vendor_spec_info count = 0 (no vendor info)
-    return 10;
+    return (int)uci_payload_builder_length(&builder);
 }
 
 int build_core_get_caps_info_response(unsigned char* response_payload, size_t max_len) {
@@ -48,17 +43,27 @@ int build_core_get_caps_info_response(unsigned char* response_payload, size_t ma
 }
 
 int build_core_query_timestamp_response(unsigned char* response_payload, size_t max_len) {
-    if (max_len < 9) return 0;
+    struct uci_payload_builder builder;
+    uci_payload_builder_init(&builder, response_payload, max_len);
 
-    response_payload[0] = UCI_STATUS_OK;
-    unsigned long long timestamp = g_fake_timestamp++;
-    write_u64_le(&response_payload[1], timestamp);
-    return 9;
+    if (uci_payload_builder_put_u8(&builder, UCI_STATUS_OK) < 0 ||
+        uci_payload_builder_put_u64_le(&builder, g_fake_timestamp++) < 0) {
+        return 0;
+    }
+
+    return (int)uci_payload_builder_length(&builder);
 }
 
 int build_core_get_config_response(unsigned char* response_payload, size_t max_len,
                                    const unsigned char* payload, int payload_len) {
-    size_t response_offset = 2;
+    struct uci_payload_builder builder;
+    uci_payload_builder_init(&builder, response_payload, max_len);
+
+    if (uci_payload_builder_put_u8(&builder, UCI_STATUS_OK) < 0 ||
+        uci_payload_builder_put_u8(&builder, 0x00) < 0) {
+        return 0;
+    }
+
     unsigned char cfg_count = 0;
     unsigned char status = UCI_STATUS_OK;
 
@@ -89,15 +94,12 @@ int build_core_get_config_response(unsigned char* response_payload, size_t max_l
             continue;
         }
 
-        if (response_offset + 2 + value_len > max_len) {
+        if (uci_payload_builder_put_u8(&builder, cfg_id) < 0 ||
+            uci_payload_builder_put_u8(&builder, (unsigned char)value_len) < 0 ||
+            uci_payload_builder_put_mem(&builder, value_buffer, value_len) < 0) {
             status = UCI_STATUS_INVALID_MSG_SIZE;
             break;
         }
-
-        response_payload[response_offset++] = cfg_id;
-        response_payload[response_offset++] = (unsigned char)value_len;
-        memcpy(&response_payload[response_offset], value_buffer, value_len);
-        response_offset += value_len;
         cfg_count++;
     }
 
@@ -108,17 +110,16 @@ int build_core_get_config_response(unsigned char* response_payload, size_t max_l
     response_payload[0] = (cfg_count > 0) ? status : UCI_STATUS_INVALID_PARAM;
     response_payload[1] = cfg_count;
 
-    if (response_offset == 2) {
+    if (uci_payload_builder_length(&builder) == 2) {
         unsigned char err = response_payload[0];
         enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
     }
 
-    return (int)response_offset;
+    return (int)uci_payload_builder_length(&builder);
 }
 
 int build_core_set_config_response(unsigned char* response_payload, size_t max_len,
                                    const unsigned char* payload, int payload_len) {
-    (void)max_len;
     unsigned char cfg_ids[MAX_RESPONSE_PAYLOAD_LEN] = {0};
     unsigned char cfg_status[MAX_RESPONSE_PAYLOAD_LEN] = {0};
     unsigned char processed_tlvs = 0;
@@ -169,25 +170,41 @@ int build_core_set_config_response(unsigned char* response_payload, size_t max_l
         processed_tlvs++;
     }
 
+    struct uci_payload_builder builder;
+    uci_payload_builder_init(&builder, response_payload, max_len);
+
+    if (uci_payload_builder_put_u8(&builder, status) < 0 ||
+        uci_payload_builder_put_u8(&builder, processed_tlvs) < 0) {
+        return 0;
+    }
+
+    for (unsigned char i = 0; i < processed_tlvs; i++) {
+        if (uci_payload_builder_put_u8(&builder, cfg_ids[i]) < 0 ||
+            uci_payload_builder_put_u8(&builder, cfg_status[i]) < 0) {
+            return 0;
+        }
+    }
+
     response_payload[0] = status;
     response_payload[1] = processed_tlvs;
 
-    for (unsigned char i = 0; i < processed_tlvs; i++) {
-        response_payload[2 + i * 2] = cfg_ids[i];
-        response_payload[2 + i * 2 + 1] = cfg_status[i];
-    }
-
-    return 2 + (processed_tlvs * 2);
+    return (int)uci_payload_builder_length(&builder);
 }
 
 int build_core_device_reset_response(unsigned char* response_payload, size_t max_len) {
-    if (max_len < 1) return 0;
-    response_payload[0] = UCI_STATUS_OK;
-    return 1;
+    struct uci_payload_builder builder;
+    uci_payload_builder_init(&builder, response_payload, max_len);
+    if (uci_payload_builder_put_u8(&builder, UCI_STATUS_OK) < 0) {
+        return 0;
+    }
+    return (int)uci_payload_builder_length(&builder);
 }
 
 int build_core_device_suspend_response(unsigned char* response_payload, size_t max_len) {
-    if (max_len < 1) return 0;
-    response_payload[0] = UCI_STATUS_OK;
-    return 1;
+    struct uci_payload_builder builder;
+    uci_payload_builder_init(&builder, response_payload, max_len);
+    if (uci_payload_builder_put_u8(&builder, UCI_STATUS_OK) < 0) {
+        return 0;
+    }
+    return (int)uci_payload_builder_length(&builder);
 }

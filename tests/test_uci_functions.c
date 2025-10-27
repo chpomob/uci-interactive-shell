@@ -3,6 +3,7 @@
 #include "../include/uci_functions.h"
 #include "../include/uci_config_manager.h"
 #include "../include/uci_response_core.h"
+#include "../include/uci_packet_utils.h"
 #include "../include/uci_ui_packet_decoder.h"
 #include <string.h>
 #include <stdint.h>
@@ -17,18 +18,6 @@
 #define TEST_RF_PERIODIC_TX 0x02
 #define TEST_RF_STOP 0x07
 #endif
-
-static inline void write_u16_le(unsigned char* buffer, uint16_t value) {
-    buffer[0] = value & 0xFF;
-    buffer[1] = (value >> 8) & 0xFF;
-}
-
-static inline void write_u32_le(unsigned char* buffer, uint32_t value) {
-    buffer[0] = value & 0xFF;
-    buffer[1] = (value >> 8) & 0xFF;
-    buffer[2] = (value >> 16) & 0xFF;
-    buffer[3] = (value >> 24) & 0xFF;
-}
 
 // Test suite for UCI functions
 int main() {

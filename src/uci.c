@@ -13,35 +13,7 @@
 #include "../include/uci_ui_main_patch.h"
 #include "../include/uci_response_core.h"
 #include "../include/uci_packet_analyzer.h"
-
-// Helper functions for Little-Endian conversion
-static inline uint16_t read_u16_le(const unsigned char* buffer) {
-    return (uint16_t)buffer[0] | ((uint16_t)buffer[1] << 8);
-}
-
-static inline uint32_t read_u32_le(const unsigned char* buffer) {
-    return (uint32_t)buffer[0] | ((uint32_t)buffer[1] << 8) |
-           ((uint32_t)buffer[2] << 16) | ((uint32_t)buffer[3] << 24);
-}
-
-static inline uint64_t read_u64_le(const unsigned char* buffer) {
-    return (uint64_t)buffer[0] | ((uint64_t)buffer[1] << 8) |
-           ((uint64_t)buffer[2] << 16) | ((uint64_t)buffer[3] << 24) |
-           ((uint64_t)buffer[4] << 32) | ((uint64_t)buffer[5] << 40) |
-           ((uint64_t)buffer[6] << 48) | ((uint64_t)buffer[7] << 56);
-}
-
-static inline void write_u16_le(unsigned char* buffer, uint16_t value) {
-    buffer[0] = value & 0xFF;
-    buffer[1] = (value >> 8) & 0xFF;
-}
-
-static inline void write_u32_le(unsigned char* buffer, uint32_t value) {
-    buffer[0] = value & 0xFF;
-    buffer[1] = (value >> 8) & 0xFF;
-    buffer[2] = (value >> 16) & 0xFF;
-    buffer[3] = (value >> 24) & 0xFF;
-}
+#include "../include/uci_packet_utils.h"
 
 static double q8_8_to_double(int16_t raw) {
     return (double)raw / 256.0;
@@ -162,12 +134,6 @@ static void decode_range_vendor_data(const unsigned char* data, int length) {
             printf("%02X ", data[i]);
         }
         printf("\n");
-    }
-}
-
-static inline void write_u64_le(unsigned char* buffer, uint64_t value) {
-    for (int i = 0; i < 8; i++) {
-        buffer[i] = (value >> (i * 8)) & 0xFF;
     }
 }
 

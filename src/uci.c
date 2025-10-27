@@ -158,6 +158,14 @@ static unsigned char g_sim_device_state = DEVICE_STATE_READY;
 
 void enqueue_notification(unsigned char gid, unsigned char oid, const unsigned char* payload, size_t payload_len);
 void uci_process_pending_notifications(void);
+static void sim_handle_data_message_send(const unsigned char *payload, size_t payload_len);
+static void log_outbound_fragment(const char *target_label,
+                                  unsigned char mt,
+                                  unsigned char pbf,
+                                  unsigned char gid,
+                                  unsigned char oid,
+                                  const unsigned char *payload,
+                                  size_t payload_len);
 
 static void sim_queue_reset(void)
 {
@@ -237,6 +245,41 @@ static bool sim_command_allowed(uint8_t gid, uint8_t oid)
         return true;
 
     return false;
+}
+
+static void log_outbound_fragment(const char *target_label,
+                                  unsigned char mt,
+                                  unsigned char pbf,
+                                  unsigned char gid,
+                                  unsigned char oid,
+                                  const unsigned char *payload,
+                                  size_t payload_len)
+{
+    (void)target_label;
+
+    unsigned char packet[sizeof(struct uci_packet_header) + UCI_MAX_DATA_PACKET_PAYLOAD_SIZE];
+    struct uci_packet_header *header = (struct uci_packet_header *)packet;
+    set_header_values_safe(header, mt, pbf, gid, oid, (unsigned char)payload_len);
+
+    if (payload_len > 0 && payload) {
+        memcpy(packet + sizeof(struct uci_packet_header), payload, payload_len);
+    }
+
+    unsigned char *header_bytes = (unsigned char *)header;
+    printf("  Header: %02X %02X %02X %02X\n", header_bytes[0], header_bytes[1],
+           header_bytes[2], header_bytes[3]);
+
+    if (payload_len > 0 && payload) {
+        printf("  Payload: ");
+        for (size_t i = 0; i < payload_len; i++) {
+            printf("%02X ", payload[i]);
+        }
+        printf("\n");
+    } else {
+        printf("  Payload: <empty>\n");
+    }
+
+    uci_analyze_packet_core(packet, sizeof(struct uci_packet_header) + payload_len);
 }
 #define ANDROID_GET_POWER_STATS 0x00
 #define ANDROID_SET_COUNTRY_CODE 0x01
@@ -818,6 +861,124 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     }
 }
 
+static void sim_handle_data_message_send(const unsigned char *payload, size_t payload_len)
+{
+    if (!payload || payload_len < UCI_DATA_MESSAGE_SND_HEADER) {
+        printf("Error: DATA_MESSAGE_SND payload too short.\n");
+        return;
+    }
+
+    uint32_t payload_identifier = read_u32_le(payload);
+    uint64_t destination = read_u64_le(payload + 4);
+    uint16_t sequence_number = read_u16_le(payload + 12);
+    uint16_t declared_length = read_u16_le(payload + 14);
+
+    size_t available = payload_len - UCI_DATA_MESSAGE_SND_HEADER;
+    if (declared_length > available) {
+        declared_length = (uint16_t)available;
+    }
+
+    const unsigned char *app_data = payload + UCI_DATA_MESSAGE_SND_HEADER;
+
+    int session_idx = find_session_by_token_or_id(payload_identifier);
+    struct uci_session *session = (session_idx >= 0) ? &uci_sessions[session_idx] : NULL;
+
+    uint8_t transfer_status = session ? UCI_DATA_TRANSFER_STATUS_OK
+                                      : UCI_DATA_TRANSFER_STATUS_ERROR_REJECTED;
+    uint32_t notification_session = session ? session->session_handle : payload_identifier;
+
+    if (session) {
+        session->last_data_sequence = sequence_number;
+        session->last_data_length = declared_length;
+        session->last_data_destination = destination;
+        if (declared_length > 0) {
+            size_t preview_len = declared_length;
+            if (preview_len > sizeof(session->last_data_preview)) {
+                preview_len = sizeof(session->last_data_preview);
+            }
+            memcpy(session->last_data_preview, app_data, preview_len);
+            session->last_data_preview_len = (unsigned char)preview_len;
+        } else {
+            session->last_data_preview_len = 0;
+        }
+    }
+
+    if (session) {
+        unsigned char credit_payload[5];
+        write_u32_le(credit_payload, session->session_handle);
+        credit_payload[4] = 1; // credit available again
+        enqueue_notification(SESSION_CONTROL, SESSION_DATA_CREDIT_NTF, credit_payload,
+                             sizeof(credit_payload));
+    }
+
+    unsigned char status_payload[8];
+    write_u32_le(status_payload, notification_session);
+    write_u16_le(&status_payload[4], sequence_number);
+    status_payload[6] = transfer_status;
+    status_payload[7] = 1; // tx count
+    enqueue_notification(SESSION_CONTROL, SESSION_DATA_TRANSFER_STATUS_NTF, status_payload,
+                         sizeof(status_payload));
+}
+
+void uci_send_data_message(uint32_t identifier,
+                           uint64_t destination_address,
+                           uint16_t sequence_number,
+                           const unsigned char *app_data,
+                           size_t app_data_len)
+{
+    size_t payload_capacity = UCI_DATA_MESSAGE_SND_HEADER + app_data_len;
+    unsigned char *payload = safe_malloc(payload_capacity);
+    if (!payload) {
+        printf("Error: Failed to allocate DATA_MESSAGE_SND payload buffer.\n");
+        return;
+    }
+
+    int session_idx = find_session_by_token_or_id(identifier);
+    uint32_t session_identifier = identifier;
+    if (session_idx >= 0 && uci_sessions[session_idx].session_handle != 0) {
+        session_identifier = uci_sessions[session_idx].session_handle;
+    }
+
+    size_t payload_len =
+        uci_build_data_message_snd_payload(payload, payload_capacity, session_identifier,
+                                           destination_address, sequence_number,
+                                           app_data, app_data_len);
+    if (payload_len == 0) {
+        printf("Error: Failed to compose DATA_MESSAGE_SND payload.\n");
+        free(payload);
+        return;
+    }
+
+    const char *target = g_hardware_mode ? g_hardware_device_path : "simulator";
+    ui_print_sending_uci_packet(target);
+
+    size_t remaining = payload_len;
+    size_t offset = 0;
+
+    while (remaining > 0) {
+        size_t chunk = remaining;
+        if (chunk > UCI_MAX_DATA_PACKET_PAYLOAD_SIZE) {
+            chunk = UCI_MAX_DATA_PACKET_PAYLOAD_SIZE;
+        }
+        unsigned char fragment_pbf = ((offset + chunk) < payload_len) ? NOT_COMPLETE : COMPLETE;
+
+        log_outbound_fragment(target, DATA, fragment_pbf, DATA_PACKET_FORMAT_SEND, 0x00,
+                              payload + offset, chunk);
+
+        offset += chunk;
+        remaining -= chunk;
+    }
+
+    if (g_hardware_mode) {
+        printf("  -> Would send to hardware device %s\n", g_hardware_device_path);
+    }
+
+    sim_handle_data_message_send(payload, payload_len);
+    uci_process_pending_notifications();
+
+    free(payload);
+}
+
 static int handle_core_device_info(unsigned char *response_payload, size_t max_len,
                                    const unsigned char *payload, size_t payload_len) {
     (void)payload;
@@ -934,6 +1095,11 @@ static int handle_session_init(unsigned char *response_payload, size_t max_len,
     memset(session->multicast_entries, 0, sizeof(session->multicast_entries));
     memset(session->dt_tag_round_indexes, 0, sizeof(session->dt_tag_round_indexes));
     memset(session->dtp_payload, 0, sizeof(session->dtp_payload));
+    session->last_data_sequence = 0;
+    session->last_data_length = 0;
+    session->last_data_destination = 0;
+    session->last_data_preview_len = 0;
+    memset(session->last_data_preview, 0, sizeof(session->last_data_preview));
 
     response_payload[0] = UCI_STATUS_OK;
     write_u32_le(&response_payload[1], session_handle);
@@ -976,6 +1142,11 @@ static int handle_session_deinit(unsigned char *response_payload, size_t max_len
         memset(session->multicast_entries, 0, sizeof(session->multicast_entries));
         memset(session->dt_tag_round_indexes, 0, sizeof(session->dt_tag_round_indexes));
         memset(session->dtp_payload, 0, sizeof(session->dtp_payload));
+        session->last_data_sequence = 0;
+        session->last_data_length = 0;
+        session->last_data_destination = 0;
+        session->last_data_preview_len = 0;
+        memset(session->last_data_preview, 0, sizeof(session->last_data_preview));
     } else {
         unsigned char err = UCI_STATUS_INVALID_PARAM;
         enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
@@ -2213,10 +2384,16 @@ void init_uci_sessions() {
         uci_sessions[i].dt_tag_round_count = 0;
         memset(uci_sessions[i].dt_tag_round_indexes, 0, sizeof(uci_sessions[i].dt_tag_round_indexes));
         uci_sessions[i].dtp_repetition = 0;
-        uci_sessions[i].dtp_control = 0;
-        uci_sessions[i].dtp_size = 0;
-        uci_sessions[i].dtp_payload_len = 0;
-        memset(uci_sessions[i].dtp_payload, 0, sizeof(uci_sessions[i].dtp_payload));
+       uci_sessions[i].dtp_control = 0;
+       uci_sessions[i].dtp_size = 0;
+       uci_sessions[i].dtp_payload_len = 0;
+       memset(uci_sessions[i].dtp_payload, 0, sizeof(uci_sessions[i].dtp_payload));
+        uci_sessions[i].last_data_sequence = 0;
+        uci_sessions[i].last_data_length = 0;
+        uci_sessions[i].last_data_destination = 0;
+        uci_sessions[i].last_data_preview_len = 0;
+        memset(uci_sessions[i].last_data_preview, 0,
+               sizeof(uci_sessions[i].last_data_preview));
     }
 }
 

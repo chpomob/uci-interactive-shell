@@ -199,6 +199,14 @@ unsigned char* create_uci_packet(
     size_t* packet_len
 );
 
+size_t uci_build_data_message_snd_payload(unsigned char *buffer,
+                                          size_t capacity,
+                                          uint32_t session_identifier,
+                                          uint64_t destination_address,
+                                          uint16_t sequence_number,
+                                          const unsigned char *app_data,
+                                          size_t app_data_len);
+
 /**
  * Create a UCI header with proper field packing
  */

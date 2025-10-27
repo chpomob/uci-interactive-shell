@@ -4,6 +4,7 @@
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
 #include "../include/uci_pdl.h"
+#include "../include/uci_config_manager.h"
 
 // Helper function to encode session_id in little-endian format
 static void encode_session_id_le(unsigned char* payload, unsigned int session_id) {
@@ -120,5 +121,36 @@ int handle_get_session_state_command(char* session_id_str) {
     unsigned char payload[4];
     encode_session_id_le(payload, session_id);
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_STATE, payload, sizeof(payload));
+    return 0;
+}
+
+int handle_session_send_data_command(char* session_id_str,
+                                    char* destination_str,
+                                    char* sequence_str,
+                                    char* payload_str) {
+    if (!session_id_str || !destination_str || !sequence_str || !payload_str) {
+        printf("Usage: session_send_data <session_id> <dest_address_hex> <sequence_number> <payload_hex>\n");
+        printf("  Example: session_send_data 1 0x0011223344556677 1 AABBCC\n");
+        return -1;
+    }
+
+    unsigned long session_id_ul = strtoul(session_id_str, NULL, 10);
+    uint64_t destination = strtoull(destination_str, NULL, 0);
+    unsigned long sequence_ul = strtoul(sequence_str, NULL, 0);
+
+    if (sequence_ul > 0xFFFF) {
+        printf("Invalid sequence_number: must be 0-65535.\n");
+        return -1;
+    }
+
+    unsigned char data_buffer[512];
+    size_t data_len = sizeof(data_buffer);
+    if (uci_config_parse_hex_value(payload_str, data_buffer, &data_len) != 0) {
+        printf("Invalid payload_hex. Use hexadecimal characters (e.g., AABBCC).\n");
+        return -1;
+    }
+
+    uci_send_data_message((uint32_t)session_id_ul, destination,
+                          (uint16_t)sequence_ul, data_buffer, data_len);
     return 0;
 }

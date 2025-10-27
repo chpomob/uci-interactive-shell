@@ -38,4 +38,10 @@ This note highlights concrete gaps between our current shell implementation and 
 - **Impact**: Our simulator happily accepts commands even if we previously sent an error state and never emits the matching status transitions unless the branch author remembered to enqueue them.
 - **Recommendation**: Track device state centrally and gate command handlers the same way the SDK does (reset-only while in `ERROR`, etc.), generating notifications from a single place instead of duplicating logic across branches.
 
+## 7. Data Message Handling
+- **SDK pattern**: transports accept `DATA_MESSAGE_SND/RCV` packets, chunk large application payloads automatically, and surface `SESSION_DATA_TRANSFER_STATUS_NTF` together with credit updates so higher layers can exercise in-band data delivery.
+- **Shell before**: the CLI had no command to emit data packets, the simulator ignored message type `0x0`, and sessions never recorded transfer metadata, making it impossible to mirror the SDK's in-band data flows.
+- **Impact**: We could not validate data-plane behaviour, exercise segmentation rules, or observe credit/status notifications the way the QM35 stack does.
+- **Update**: `uci_send_data_message` now builds DATA_MESSAGE_SND payloads, segments them at 255 bytes, updates session state, and synthesises credit/status notifications in the simulator. The CLI command `session_send_data` mirrors the SDK tooling, and the packet analyzer understands DPF-prefixed frames so comparison with the QM35 SDK is straightforward.
+
 These updates would move the CLI much closer to the SDK’s behaviour and make future comparisons or protocol validation far easier.

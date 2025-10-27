@@ -77,7 +77,9 @@ Byte 3: Payload Length
 Our implementation covers most core opcodes but could expand to include all possible opcodes defined in the spec.
 
 #### 2. Data Packets
-Missing support for DATA_SND/DATA_RCV packet types for actual UWB data transfer.
+Initial tooling lacked support for DATA_SND/DATA_RCV flows. The simulator now generates
+DATA_MESSAGE_SND packets (with credit/status notifications); receive-path handling remains a
+future enhancement.
 
 #### 3. Comprehensive Configuration TLV Support
 While we have basic TLV support, the spec includes over 70 different configuration types that we may not fully support.

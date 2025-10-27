@@ -18,6 +18,20 @@ struct uci_packet_header {
     unsigned char payload_len;  // Payload length
 };
 
+#define UCI_MAX_CONTROL_PAYLOAD_SIZE 255
+#define UCI_MAX_DATA_PACKET_PAYLOAD_SIZE 255
+#define UCI_DATA_MESSAGE_SND_HEADER 16
+#define UCI_MAX_APPLICATION_DATA_FIRST_SEGMENT \
+    (UCI_MAX_DATA_PACKET_PAYLOAD_SIZE - UCI_DATA_MESSAGE_SND_HEADER)
+
+enum uci_data_packet_format {
+    DATA_PACKET_FORMAT_SEND = 0x01,
+    DATA_PACKET_FORMAT_RECEIVE = 0x02,
+    DATA_PACKET_FORMAT_LL_SEND = 0x03,
+    DATA_PACKET_FORMAT_LL_RECEIVE = 0x04,
+    DATA_PACKET_FORMAT_RADAR = 0x0F,
+};
+
 // UCI Session context structure for tracking session state
 #define MAX_SESSIONS 10
 #define MAX_SESSION_CONFIGS 32
@@ -57,6 +71,11 @@ struct uci_session {
     unsigned char dtp_size;
     unsigned char dtp_payload[64];
     unsigned char dtp_payload_len;
+    uint16_t last_data_sequence;
+    uint16_t last_data_length;
+    uint64_t last_data_destination;
+    unsigned char last_data_preview[64];
+    unsigned char last_data_preview_len;
 };
 
 // Global session storage
@@ -189,5 +208,11 @@ void decode_android_range_diagnostics_ntf(unsigned char* payload, int payload_le
 
 // RANGING_DATA notification decoders
 void decode_range_data_ntf(unsigned char* payload, int payload_len);
+
+void uci_send_data_message(uint32_t identifier,
+                           uint64_t destination_address,
+                           uint16_t sequence_number,
+                           const unsigned char *app_data,
+                           size_t app_data_len);
 
 #endif // UCI_H

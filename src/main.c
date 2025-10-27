@@ -202,6 +202,13 @@ int main() {
         } else if (strcmp(command, "session_stop") == 0 || strcmp(command, "stop_ranging") == 0) {
             char* session_id_str = strtok(NULL, " ");
             handle_session_stop_command(session_id_str);
+        } else if (strcmp(command, "session_send_data") == 0 || strcmp(command, "send_data") == 0) {
+            char* session_id_str = strtok(NULL, " ");
+            char* destination_str = strtok(NULL, " ");
+            char* sequence_str = strtok(NULL, " ");
+            char* payload_str = strtok(NULL, " ");
+            handle_session_send_data_command(session_id_str, destination_str,
+                                             sequence_str, payload_str);
         } else if (strcmp(command, "get_session_state") == 0 || strcmp(command, "session_status") == 0) {
             char* session_id_str = strtok(NULL, " ");
             handle_get_session_state_command(session_id_str);
@@ -713,6 +720,10 @@ int main() {
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_set_hybrid_controller_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
                 printf("  %s%s%s <id> [config_data] - %s%sSet hybrid controlee configuration%s\n", 
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_set_hybrid_controlee_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <dest> <seq> <payload> - %s%sSend DATA_MESSAGE_SND payload%s\n",
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_send_data", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <dest> <seq> <payload> - %s%sAlias for session_send_data%s\n",
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "send_data", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
             } else {
                 printf("  session_init <id> <type>         - Initialize a ranging session\n");
                 printf("    Supported session types:\n");
@@ -731,6 +742,8 @@ int main() {
                 printf("  stop_ranging <id>                - Alias for session_stop\n");
                 printf("  get_session_state <id>           - Get session state\n");
                 printf("  session_status <id>              - Alias for get_session_state\n");
+                printf("  session_send_data <id> <dest> <seq> <payload> - Send DATA_MESSAGE_SND payload\n");
+                printf("  send_data <id> <dest> <seq> <payload>        - Alias for session_send_data\n");
                 printf("  get_session_count                - Get number of active sessions\n");
                 printf("  session_query_data_size_in_ranging <id>              - Query maximum data size in ranging\n");
                 printf("  session_set_hybrid_controller_config <id> [config_data] - Set hybrid controller configuration\n");

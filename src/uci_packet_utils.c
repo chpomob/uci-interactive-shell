@@ -97,3 +97,52 @@ unsigned char* create_get_session_state_packet(
     return create_uci_packet(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_GET_STATE, 
                             payload, sizeof(payload), packet_len);
 }
+
+size_t uci_build_data_message_snd_payload(unsigned char *buffer,
+                                          size_t capacity,
+                                          uint32_t session_identifier,
+                                          uint64_t destination_address,
+                                          uint16_t sequence_number,
+                                          const unsigned char *app_data,
+                                          size_t app_data_len) {
+    if (!buffer) {
+        return 0;
+    }
+
+    if (capacity < UCI_DATA_MESSAGE_SND_HEADER) {
+        return 0;
+    }
+
+    if (app_data_len > 0 && !app_data) {
+        return 0;
+    }
+
+    if (app_data_len > 0xFFFF) {
+        return 0;
+    }
+
+    if (UCI_DATA_MESSAGE_SND_HEADER + app_data_len > capacity) {
+        return 0;
+    }
+
+    struct uci_payload_builder builder;
+    uci_payload_builder_init(&builder, buffer, capacity);
+
+    if (uci_payload_builder_put_u32_le(&builder, session_identifier) < 0) {
+        return 0;
+    }
+    if (uci_payload_builder_put_u64_le(&builder, destination_address) < 0) {
+        return 0;
+    }
+    if (uci_payload_builder_put_u16_le(&builder, sequence_number) < 0) {
+        return 0;
+    }
+    if (uci_payload_builder_put_u16_le(&builder, (uint16_t)app_data_len) < 0) {
+        return 0;
+    }
+    if (uci_payload_builder_put_mem(&builder, app_data, app_data_len) < 0) {
+        return 0;
+    }
+
+    return uci_payload_builder_length(&builder);
+}

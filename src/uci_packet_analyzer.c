@@ -5,7 +5,115 @@
 #include "../include/uci_ui.h"
 #include "../include/uci_packet_analyzer.h"
 #include "../include/uci_ui_packet_decoder.h"
+#include "../include/uci_packet_utils.h"
 
+static const char *dpf_to_string(unsigned char dpf)
+{
+    switch (dpf) {
+        case DATA_PACKET_FORMAT_SEND:
+            return "DATA_MESSAGE_SND";
+        case DATA_PACKET_FORMAT_RECEIVE:
+            return "DATA_MESSAGE_RCV";
+        case DATA_PACKET_FORMAT_LL_SEND:
+            return "LL_DATA_MESSAGE_SND";
+        case DATA_PACKET_FORMAT_LL_RECEIVE:
+            return "LL_DATA_MESSAGE_RCV";
+        case DATA_PACKET_FORMAT_RADAR:
+            return "RADAR_DATA_MESSAGE";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+static void analyze_data_message_payload(unsigned char dpf,
+                                         unsigned char pbf,
+                                         const unsigned char *payload,
+                                         int payload_len)
+{
+    if (dpf != DATA_PACKET_FORMAT_SEND) {
+        if (ui_color_enabled) {
+            printf("  %s%sNo specific decoder for DPF 0x%02X%s\n",
+                   ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, dpf, ANSI_RESET);
+        } else {
+            printf("  No specific decoder for DPF 0x%02X\n", dpf);
+        }
+        return;
+    }
+
+    if (payload_len < UCI_DATA_MESSAGE_SND_HEADER) {
+        if (ui_color_enabled) {
+            printf("  %s%sDATA_MESSAGE_SND continuation fragment:%s %d application bytes\n",
+                   ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET, payload_len);
+        } else {
+            printf("  DATA_MESSAGE_SND continuation fragment: %d application bytes\n",
+                   payload_len);
+        }
+        if (payload_len > 0) {
+            size_t preview = (payload_len < 32) ? (size_t)payload_len : 32;
+            printf("    Data: ");
+            for (size_t i = 0; i < preview; i++) {
+                printf("%02X ", payload[i]);
+            }
+            if (payload_len > (int)preview) {
+                printf("... (%d more bytes)", payload_len - (int)preview);
+            }
+            printf("\n");
+        }
+        return;
+    }
+
+    uint32_t session_handle = read_u32_le(payload);
+    uint64_t destination_address = read_u64_le(payload + 4);
+    uint16_t sequence_number = read_u16_le(payload + 12);
+    uint16_t declared_len = read_u16_le(payload + 14);
+    size_t fragment_bytes = 0;
+    if (payload_len > UCI_DATA_MESSAGE_SND_HEADER) {
+        fragment_bytes = (size_t)(payload_len - UCI_DATA_MESSAGE_SND_HEADER);
+    }
+
+    if (ui_color_enabled) {
+        printf("  %s%sDATA_MESSAGE_SND:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+    } else {
+        printf("  DATA_MESSAGE_SND:\n");
+    }
+
+    if (ui_color_enabled) {
+        printf("    %s%sSession Handle:%s 0x%08X\n",
+               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_handle);
+        printf("    %s%sDestination Address:%s 0x%016llX\n",
+               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET,
+               (unsigned long long)destination_address);
+        printf("    %s%sSequence Number:%s %u\n",
+               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, sequence_number);
+        printf("    %s%sDeclared Data Length:%s %u bytes\n",
+               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, declared_len);
+        printf("    %s%sFragment Payload:%s %zu bytes%s\n",
+               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, fragment_bytes,
+               (pbf == NOT_COMPLETE) ? " (more fragments expected)" : "");
+    } else {
+        printf("    Session Handle: 0x%08X\n", session_handle);
+        printf("    Destination Address: 0x%016llX\n", (unsigned long long)destination_address);
+        printf("    Sequence Number: %u\n", sequence_number);
+        printf("    Declared Data Length: %u bytes\n", declared_len);
+        printf("    Fragment Payload: %zu bytes%s\n", fragment_bytes,
+               (pbf == NOT_COMPLETE) ? " (more fragments expected)" : "");
+    }
+
+    if (fragment_bytes > 0) {
+        size_t preview = fragment_bytes;
+        if (preview > 16) {
+            preview = 16;
+        }
+        printf("    Data Preview: ");
+        for (size_t i = 0; i < preview; i++) {
+            printf("%02X ", payload[UCI_DATA_MESSAGE_SND_HEADER + i]);
+        }
+        if (fragment_bytes > preview) {
+            printf("... (%zu more bytes in this fragment)", fragment_bytes - preview);
+        }
+        printf("\n");
+    }
+}
 // Unified packet analyzer that respects ui_color_enabled for formatted output
 // This is the single source of truth for packet analysis logic
 // Enhanced UI version of analyze_uci_packet
@@ -124,71 +232,80 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
     }
     printf("\n");
 
-    if (ui_color_enabled) {
-        printf("  %s%sGroup ID (GID):%s 0x%01X", 
-               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, gid);
+    if (mt == DATA) {
+        if (ui_color_enabled) {
+            printf("  %s%sData Packet Format (DPF):%s 0x%01X (%s)\n",
+                   ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, gid, dpf_to_string(gid));
+        } else {
+            printf("  Data Packet Format (DPF): 0x%01X (%s)\n", gid, dpf_to_string(gid));
+        }
     } else {
-        printf("  Group ID (GID): 0x%01X", gid);
+        if (ui_color_enabled) {
+            printf("  %s%sGroup ID (GID):%s 0x%01X", 
+                   ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, gid);
+        } else {
+            printf("  Group ID (GID): 0x%01X", gid);
+        }
+        switch(gid) {
+            case CORE: 
+                if (ui_color_enabled) {
+                    printf(" %s(CORE)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
+                } else {
+                    printf(" (CORE)");
+                }
+                break;
+            case SESSION_CONFIG: 
+                if (ui_color_enabled) {
+                    printf(" %s(SESSION_CONFIG)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
+                } else {
+                    printf(" (SESSION_CONFIG)");
+                }
+                break;
+            case SESSION_CONTROL: 
+                if (ui_color_enabled) {
+                    printf(" %s(SESSION_CONTROL)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
+                } else {
+                    printf(" (SESSION_CONTROL)");
+                }
+                break;
+            case DATA_CONTROL: 
+                if (ui_color_enabled) {
+                    printf(" %s(DATA_CONTROL)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
+                } else {
+                    printf(" (DATA_CONTROL)");
+                }
+                break;
+            case RANGING_DATA: 
+                if (ui_color_enabled) {
+                    printf(" %s(RANGING_DATA)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
+                } else {
+                    printf(" (RANGING_DATA)");
+                }
+                break;
+            case TEST: 
+                if (ui_color_enabled) {
+                    printf(" %s(TEST)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
+                } else {
+                    printf(" (TEST)");
+                }
+                break;
+            case VENDOR_ANDROID: 
+                if (ui_color_enabled) {
+                    printf(" %s(VENDOR_ANDROID)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
+                } else {
+                    printf(" (VENDOR_ANDROID)");
+                }
+                break;
+            default: 
+                if (ui_color_enabled) {
+                    printf(" %s(UNKNOWN)%s", ANSI_COLOR_RED, ANSI_RESET);
+                } else {
+                    printf(" (UNKNOWN)");
+                }
+                break;
+        }
+        printf("\n");
     }
-    switch(gid) {
-        case CORE: 
-            if (ui_color_enabled) {
-                printf(" %s(CORE)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
-            } else {
-                printf(" (CORE)");
-            }
-            break;
-        case SESSION_CONFIG: 
-            if (ui_color_enabled) {
-                printf(" %s(SESSION_CONFIG)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
-            } else {
-                printf(" (SESSION_CONFIG)");
-            }
-            break;
-        case SESSION_CONTROL: 
-            if (ui_color_enabled) {
-                printf(" %s(SESSION_CONTROL)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
-            } else {
-                printf(" (SESSION_CONTROL)");
-            }
-            break;
-        case DATA_CONTROL: 
-            if (ui_color_enabled) {
-                printf(" %s(DATA_CONTROL)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
-            } else {
-                printf(" (DATA_CONTROL)");
-            }
-            break;
-        case RANGING_DATA: 
-            if (ui_color_enabled) {
-                printf(" %s(RANGING_DATA)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
-            } else {
-                printf(" (RANGING_DATA)");
-            }
-            break;
-        case TEST: 
-            if (ui_color_enabled) {
-                printf(" %s(TEST)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
-            } else {
-                printf(" (TEST)");
-            }
-            break;
-        case VENDOR_ANDROID: 
-            if (ui_color_enabled) {
-                printf(" %s(VENDOR_ANDROID)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
-            } else {
-                printf(" (VENDOR_ANDROID)");
-            }
-            break;
-        default: 
-            if (ui_color_enabled) {
-                printf(" %s(UNKNOWN)%s", ANSI_COLOR_RED, ANSI_RESET);
-            } else {
-                printf(" (UNKNOWN)");
-            }
-            break;
-    }
-    printf("\n");
 
     if (ui_color_enabled) {
         printf("  %s%sOpcode:%s 0x%02X\n", 
@@ -241,6 +358,11 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
         // Call appropriate decoder based on MT, GID, and Opcode
         unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
         int payload_len_int = (int)payload_len_field;
+
+        if (mt == DATA) {
+            analyze_data_message_payload(gid, pbf, payload_ptr, payload_len_int);
+            return;
+        }
 
         if (mt == COMMAND && gid == SESSION_CONFIG) {
             switch(opcode) {

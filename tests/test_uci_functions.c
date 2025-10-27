@@ -118,6 +118,98 @@ int main() {
     }
     test_case_end3:;
 
+    TEST_CASE(data_message_builder);
+    {
+        unsigned char buffer[64];
+        unsigned char data_payload[] = {0x11, 0x22, 0x33, 0x44};
+        size_t total_len =
+            uci_build_data_message_snd_payload(buffer, sizeof(buffer),
+                                               0xAABBCCDD, 0x0123456789ABCDEFULL,
+                                               0x3344, data_payload,
+                                               sizeof(data_payload));
+
+        if (total_len != UCI_DATA_MESSAGE_SND_HEADER + sizeof(data_payload)) {
+            TEST_FAIL("Unexpected DATA_MESSAGE_SND length");
+            goto test_case_end_dm_builder;
+        }
+
+        if (read_u32_le(buffer) != 0xAABBCCDD) {
+            TEST_FAIL("Session handle not encoded in little-endian");
+            goto test_case_end_dm_builder;
+        }
+
+        if (read_u64_le(buffer + 4) != 0x0123456789ABCDEFULL) {
+            TEST_FAIL("Destination address not encoded correctly");
+            goto test_case_end_dm_builder;
+        }
+
+        if (read_u16_le(buffer + 12) != 0x3344) {
+            TEST_FAIL("Sequence number not encoded correctly");
+            goto test_case_end_dm_builder;
+        }
+
+        if (read_u16_le(buffer + 14) != sizeof(data_payload)) {
+            TEST_FAIL("Declared data length mismatch");
+            goto test_case_end_dm_builder;
+        }
+
+        if (memcmp(buffer + UCI_DATA_MESSAGE_SND_HEADER, data_payload,
+                   sizeof(data_payload)) != 0) {
+            TEST_FAIL("Application payload not copied correctly");
+            goto test_case_end_dm_builder;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_dm_builder:;
+
+    TEST_CASE(data_message_session_tracking);
+    {
+        init_uci_sessions();
+
+        struct uci_session *session = &uci_sessions[0];
+        session->is_allocated = 1;
+        session->session_id = 7;
+        session->session_handle = 0x1234ABCD;
+        session->session_state = SESSION_STATE_INIT;
+
+        unsigned char data_payload[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE};
+        uint64_t dest = 0x0102030405060708ULL;
+        uint16_t seq = 42;
+
+        uci_send_data_message(session->session_id, dest, seq,
+                              data_payload, sizeof(data_payload));
+
+        if (session->last_data_sequence != seq) {
+            TEST_FAIL("Session sequence number not updated");
+            goto test_case_end_dm_session;
+        }
+
+        if (session->last_data_length != sizeof(data_payload)) {
+            TEST_FAIL("Session data length not updated");
+            goto test_case_end_dm_session;
+        }
+
+        if (session->last_data_destination != dest) {
+            TEST_FAIL("Session destination not updated");
+            goto test_case_end_dm_session;
+        }
+
+        if (session->last_data_preview_len == 0) {
+            TEST_FAIL("Session preview length should be non-zero");
+            goto test_case_end_dm_session;
+        }
+
+        if (memcmp(session->last_data_preview, data_payload,
+                   session->last_data_preview_len) != 0) {
+            TEST_FAIL("Session preview payload mismatch");
+            goto test_case_end_dm_session;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_dm_session:;
+
     // Test header field extraction via struct helper
     TEST_CASE(header_struct_extraction);
     {

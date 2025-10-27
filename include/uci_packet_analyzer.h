@@ -9,4 +9,10 @@
  */
 void uci_analyze_packet_core(unsigned char* packet, size_t packet_len);
 
+/**
+ * Enhanced error analysis function for UCI status codes based on QM SDK patterns
+ * Provides detailed interpretation of UCI status codes with context
+ */
+void enhanced_error_analysis(unsigned char status_code);
+
 #endif // UCI_PACKET_ANALYZER_H

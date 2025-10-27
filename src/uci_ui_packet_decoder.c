@@ -6,6 +6,9 @@
 #include "../include/uci_ui_packet_decoder.h"
 #include "../include/uci_packet_analyzer.h"
 
+// Function declaration for enhanced error analysis from packet_analyzer.c
+void enhanced_error_analysis(unsigned char status_code);
+
 // Enhanced UI version of analyze_uci_packet - now just calls unified analyzer
 void ui_analyze_uci_packet(unsigned char* packet, size_t packet_len) {
     // Call unified analyzer which respects ui_color_enabled
@@ -326,6 +329,7 @@ void ui_decode_core_set_config_rsp(unsigned char* payload, int payload_len) {
     unsigned char status = payload[0];
     unsigned char num_configs = payload[1];
 
+    // Use enhanced error analysis
     if (ui_color_enabled) {
         printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
         switch(status) {
@@ -334,6 +338,10 @@ void ui_decode_core_set_config_rsp(unsigned char* payload, int payload_len) {
             case UCI_STATUS_FAILED: printf(" %s(FAILED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
             case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
             default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        // Call enhanced analysis for more detailed information
+        if (status != UCI_STATUS_OK) {
+            enhanced_error_analysis(status);
         }
         printf("    %s%sNumber of Config Status:%s %d\n",
                ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET, num_configs);
@@ -345,6 +353,10 @@ void ui_decode_core_set_config_rsp(unsigned char* payload, int payload_len) {
             case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
             case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
             default: printf(" (UNKNOWN)\n"); break;
+        }
+        // Call enhanced analysis for more detailed information
+        if (status != UCI_STATUS_OK) {
+            enhanced_error_analysis(status);
         }
         printf("    Number of Config Status: %d\n", num_configs);
     }
@@ -938,6 +950,10 @@ void ui_decode_session_set_app_config_rsp(unsigned char* payload, int payload_le
             case UCI_STATUS_INVALID_MSG_SIZE: printf(" %s(INVALID_MSG_SIZE)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
             default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
         }
+        // Call enhanced analysis for more detailed information
+        if (status != UCI_STATUS_OK) {
+            enhanced_error_analysis(status);
+        }
         printf("    %s%sNumber of Config Status:%s %d\n",
                ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET, num_configs);
     } else {
@@ -950,6 +966,10 @@ void ui_decode_session_set_app_config_rsp(unsigned char* payload, int payload_le
             case UCI_STATUS_INVALID_RANGE: printf(" (INVALID_RANGE)\n"); break;
             case UCI_STATUS_INVALID_MSG_SIZE: printf(" (INVALID_MSG_SIZE)\n"); break;
             default: printf(" (UNKNOWN)\n"); break;
+        }
+        // Call enhanced analysis for more detailed information
+        if (status != UCI_STATUS_OK) {
+            enhanced_error_analysis(status);
         }
         printf("    Number of Config Status: %d\n", num_configs);
     }
@@ -1011,6 +1031,10 @@ void ui_decode_session_get_app_config_rsp(unsigned char* payload, int payload_le
             case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
             default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
         }
+        // Call enhanced analysis for more detailed information
+        if (status != UCI_STATUS_OK) {
+            enhanced_error_analysis(status);
+        }
         printf("    %s%sNumber of TLVs:%s %d\n",
                ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET, num_tlvs);
     } else {
@@ -1021,6 +1045,10 @@ void ui_decode_session_get_app_config_rsp(unsigned char* payload, int payload_le
             case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
             case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
             default: printf(" (UNKNOWN)\n"); break;
+        }
+        // Call enhanced analysis for more detailed information
+        if (status != UCI_STATUS_OK) {
+            enhanced_error_analysis(status);
         }
         printf("    Number of TLVs: %d\n", num_tlvs);
     }

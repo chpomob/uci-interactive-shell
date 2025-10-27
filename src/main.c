@@ -527,20 +527,40 @@ int main() {
             
             printf("=== Multi-Target Ranging Simulation Complete ===\n");
         } else if (strcmp(command, "analyze_packet") == 0) {
-            // Parse hex bytes from command line
-            char* hex_byte_str = strtok(NULL, " ");
-            if (!hex_byte_str) {
+            // Parse flags and hex bytes from command line
+            char* arg = strtok(NULL, " ");
+            int verbose_mode = 0;
+            int tlv_mode = 0;
+            
+            // Parse optional flags first
+            while (arg && arg[0] == '-') {
+                if (strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0) {
+                    verbose_mode = 1;
+                } else if (strcmp(arg, "-t") == 0 || strcmp(arg, "--tlv") == 0) {
+                    tlv_mode = 1;
+                } else {
+                    printf("Unknown flag: %s\n", arg);
+                    printf("Usage: analyze_packet [-v|--verbose] [-t|--tlv] <hex_bytes...>\n");
+                    continue;
+                }
+                arg = strtok(NULL, " ");
+            }
+            
+            if (!arg) {
                 if (ui_color_enabled) {
-                    printf("%s%s%sUsage: analyze_packet <hex_bytes...>%s\n", 
+                    printf("%s%s%sUsage: analyze_packet [-v|--verbose] [-t|--tlv] <hex_bytes...>%s\n", 
                            ANSI_COLOR_BRIGHT_RED, ANSI_BOLD, ANSI_BG_RED, ANSI_RESET);
                     printf("%s%s%sExample: analyze_packet 20 08 00 00%s\n", 
                            ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_BG_BLUE, ANSI_RESET);
-                    printf("%s%s%s         analyze_packet 21 00 00 05 00 00 00 01 00%s\n", 
+                    printf("%s%s%s         analyze_packet -v 21 00 00 05 00 00 00 01 00%s\n", 
+                           ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_BG_BLUE, ANSI_RESET);
+                    printf("%s%s%s         analyze_packet -t 21 03 00 05 01 02 00 01 00%s\n", 
                            ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_BG_BLUE, ANSI_RESET);
                 } else {
-                    printf("Usage: analyze_packet <hex_bytes...>\n");
+                    printf("Usage: analyze_packet [-v|--verbose] [-t|--tlv] <hex_bytes...>\n");
                     printf("Example: analyze_packet 20 08 00 00\n");
-                    printf("         analyze_packet 21 00 00 05 00 00 00 01 00\n");
+                    printf("         analyze_packet -v 21 00 00 05 00 00 00 01 00\n");
+                    printf("         analyze_packet -t 21 03 00 05 01 02 00 01 00\n");
                 }
                 continue;
             }
@@ -560,25 +580,39 @@ int main() {
                     break;
                 }
                 char* endptr;
-                unsigned long value = strtoul(hex_byte_str, &endptr, 16);
+                unsigned long value = strtoul(arg, &endptr, 16);
                 if (*endptr != '\0' || value > 0xFF) {
                     if (ui_color_enabled) {
                         printf("%s%s%sError: Invalid hex byte '%s'%s\n", 
-                               ANSI_COLOR_RED, ANSI_BOLD, ANSI_BG_RED, ANSI_RESET, hex_byte_str);
+                               ANSI_COLOR_RED, ANSI_BOLD, ANSI_BG_RED, ANSI_RESET, arg);
                     } else {
-                        printf("Error: Invalid hex byte '%s'\n", hex_byte_str);
+                        printf("Error: Invalid hex byte '%s'\n", arg);
                     }
                     break;
                 }
                 packet[packet_len++] = (unsigned char)value;
-            } while ((hex_byte_str = strtok(NULL, " ")) != NULL);
+            } while ((arg = strtok(NULL, " ")) != NULL);
             
             if (packet_len > 0) {
                 if (ui_color_enabled) {
                     printf("%s%s%sAnalyzing UCI packet (%d bytes):%s\n", 
                            ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_BG_BLUE, packet_len, ANSI_RESET);
+                    if (verbose_mode) {
+                        printf("%s%s%sVerbose analysis mode enabled%s\n", 
+                               ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_BG_YELLOW, ANSI_RESET);
+                    }
+                    if (tlv_mode) {
+                        printf("%s%s%sTLV analysis mode enabled%s\n", 
+                               ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_BG_YELLOW, ANSI_RESET);
+                    }
                 } else {
                     printf("Analyzing UCI packet (%d bytes):\n", packet_len);
+                    if (verbose_mode) {
+                        printf("Verbose analysis mode enabled\n");
+                    }
+                    if (tlv_mode) {
+                        printf("TLV analysis mode enabled\n");
+                    }
                 }
                 for (int i = 0; i < packet_len; i++) {
                     if (ui_color_enabled) {
@@ -810,7 +844,7 @@ int main() {
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "simulate_multi_target_ranging", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
                 printf("  %s%s%s                - %s%sDemonstrate a complete session flow%s\n", 
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "demo_session_flow", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-                printf("  %s%s%s        - %s%sAnalyze hex packet bytes%s\n", 
+                printf("  %s%s%s <bytes...>        - %s%sAnalyze hex packet bytes (add -v for verbose, -t for TLV analysis)%s\n", 
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "analyze_packet", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
             } else {
                 printf("  simulate_notification            - Simulate a device status notification\n");
@@ -819,7 +853,7 @@ int main() {
                 printf("  simulate_ranging                 - Simulate ranging measurements\n");
                 printf("  simulate_multi_target_ranging    - Simulate multi-target ranging\n");
                 printf("  demo_session_flow                - Demonstrate a complete session flow\n");
-                printf("  analyze_packet <bytes...>        - Analyze hex packet bytes\n");
+                printf("  analyze_packet <bytes...>        - Analyze hex packet bytes (add -v for verbose, -t for TLV analysis)\n");
             }
             printf("\n");
             

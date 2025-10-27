@@ -132,42 +132,48 @@ int build_core_set_config_response(unsigned char* response_payload, size_t max_l
     }
 
     unsigned char declared_tlvs = payload[0];
-    int offset = 1;
+    const unsigned char *tlv_buffer = (payload_len > 1) ? &payload[1] : NULL;
+    size_t tlv_length = (payload_len > 1) ? (size_t)(payload_len - 1) : 0;
+    struct uci_tlv_reader reader;
+    uci_tlv_reader_init(&reader, tlv_buffer, tlv_length);
 
-    for (unsigned char i = 0; i < declared_tlvs && offset < payload_len; i++) {
-        if (offset + 2 > payload_len) {
+    for (unsigned char i = 0; i < declared_tlvs; i++) {
+        unsigned char cfg_id = 0;
+        unsigned char len = 0;
+        const unsigned char *value_ptr = NULL;
+
+        int res = uci_tlv_reader_next(&reader, &cfg_id, &value_ptr, &len);
+        if (res <= 0) {
             cfg_status[i] = UCI_STATUS_INVALID_MSG_SIZE;
             status = UCI_STATUS_INVALID_MSG_SIZE;
             break;
         }
 
-        unsigned char cfg_id = payload[offset++];
-        unsigned char len = payload[offset++];
         cfg_ids[i] = cfg_id;
-
-        if (offset + len > payload_len) {
-            cfg_status[i] = UCI_STATUS_INVALID_MSG_SIZE;
-            status = UCI_STATUS_INVALID_MSG_SIZE;
-            break;
-        }
 
         if (!is_valid_device_config_id(cfg_id)) {
             cfg_status[i] = UCI_STATUS_INVALID_PARAM;
             status = UCI_STATUS_INVALID_PARAM;
-            offset += len;
             processed_tlvs++;
             continue;
         }
 
-        if (uci_config_set_device_param((DeviceConfigId)cfg_id, &payload[offset], len) != 0) {
+        if (uci_config_set_device_param((DeviceConfigId)cfg_id, value_ptr, len) != 0) {
             cfg_status[i] = UCI_STATUS_FAILED;
             status = UCI_STATUS_FAILED;
         } else {
             cfg_status[i] = UCI_STATUS_OK;
         }
 
-        offset += len;
         processed_tlvs++;
+    }
+
+    if (status == UCI_STATUS_OK) {
+        unsigned char tmp_type;
+        unsigned char tmp_len;
+        if (uci_tlv_reader_next(&reader, &tmp_type, NULL, &tmp_len) > 0) {
+            status = UCI_STATUS_INVALID_PARAM;
+        }
     }
 
     struct uci_payload_builder builder;

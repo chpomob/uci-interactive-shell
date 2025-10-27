@@ -138,6 +138,53 @@ static inline int uci_payload_builder_put_u64_le(struct uci_payload_builder *bui
     return 0;
 }
 
+struct uci_tlv_reader {
+    const unsigned char *buffer;
+    size_t length;
+    size_t offset;
+};
+
+static inline void uci_tlv_reader_init(struct uci_tlv_reader *reader,
+                                       const unsigned char *buffer,
+                                       size_t length) {
+    reader->buffer = buffer;
+    reader->length = length;
+    reader->offset = 0;
+}
+
+static inline int uci_tlv_reader_next(struct uci_tlv_reader *reader,
+                                      unsigned char *type,
+                                      const unsigned char **value,
+                                      unsigned char *len) {
+    if (reader->offset >= reader->length) {
+        return 0;
+    }
+
+    if (reader->length - reader->offset < 2) {
+        return -1;
+    }
+
+    unsigned char tlv_type = reader->buffer[reader->offset++];
+    unsigned char tlv_len = reader->buffer[reader->offset++];
+
+    if (reader->length - reader->offset < tlv_len) {
+        return -1;
+    }
+
+    if (type) {
+        *type = tlv_type;
+    }
+    if (len) {
+        *len = tlv_len;
+    }
+    if (value) {
+        *value = &reader->buffer[reader->offset];
+    }
+
+    reader->offset += tlv_len;
+    return 1;
+}
+
 /**
  * Create a complete UCI packet with header and payload
  * Returns dynamically allocated packet - caller must free()

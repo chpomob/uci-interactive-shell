@@ -1247,31 +1247,30 @@ static int handle_session_set_app_config(unsigned char *response_payload, size_t
         declared_tlvs = payload[4];
         session_idx = find_session_by_token_or_id(identifier);
 
-        int offset = 5;
+        const unsigned char *tlv_buffer = (payload_len > 5) ? &payload[5] : NULL;
+        size_t tlv_length = (payload_len > 5) ? (size_t)(payload_len - 5) : 0;
+        struct uci_tlv_reader reader;
+        uci_tlv_reader_init(&reader, tlv_buffer, tlv_length);
+
         for (unsigned char i = 0; i < declared_tlvs; i++) {
-            if (offset + 2 > (int)payload_len) {
-                break;
-            }
+            unsigned char cfg_id = 0;
+            unsigned char cfg_len = 0;
+            const unsigned char *value_ptr = NULL;
 
-            unsigned char cfg_id = payload[offset];
-            unsigned char cfg_len = payload[offset + 1];
-            offset += 2;
-
-            if (offset + cfg_len > (int)payload_len) {
+            int res = uci_tlv_reader_next(&reader, &cfg_id, &value_ptr, &cfg_len);
+            if (res <= 0) {
                 break;
             }
 
             if (session_idx >= 0) {
                 store_session_config(session_idx, cfg_id,
-                                     (unsigned char *)&payload[offset], cfg_len);
+                                     (unsigned char *)value_ptr, cfg_len);
             }
 
             if (processed_tlvs < (MAX_RESPONSE_PAYLOAD_LEN - 2) / 2) {
                 cfg_ids[processed_tlvs] = cfg_id;
                 processed_tlvs++;
             }
-
-            offset += cfg_len;
         }
     }
 

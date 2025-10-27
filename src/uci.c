@@ -142,6 +142,75 @@ int is_valid_device_config_id(unsigned char cfg_id) {
 }
 
 #define MAX_RESPONSE_PAYLOAD_LEN 255
+#define UCI_SIM_MAX_QUEUED_PACKETS 8
+#define UCI_SIM_PACKET_STORAGE (sizeof(struct uci_packet_header) + MAX_RESPONSE_PAYLOAD_LEN)
+
+struct sim_packet_entry {
+    size_t len;
+    unsigned char data[UCI_SIM_PACKET_STORAGE];
+};
+
+static struct sim_packet_entry g_sim_packet_queue[UCI_SIM_MAX_QUEUED_PACKETS];
+static size_t g_sim_queue_head = 0;
+static size_t g_sim_queue_tail = 0;
+static size_t g_sim_queue_count = 0;
+
+static void sim_queue_reset(void)
+{
+    g_sim_queue_head = 0;
+    g_sim_queue_tail = 0;
+    g_sim_queue_count = 0;
+}
+
+static void sim_queue_drop_oldest(void)
+{
+    if (g_sim_queue_count == 0)
+        return;
+    g_sim_queue_head = (g_sim_queue_head + 1) % UCI_SIM_MAX_QUEUED_PACKETS;
+    g_sim_queue_count--;
+}
+
+static int sim_queue_enqueue(const unsigned char *packet, size_t len)
+{
+    if (len > UCI_SIM_PACKET_STORAGE)
+        return -1;
+
+    if (g_sim_queue_count == UCI_SIM_MAX_QUEUED_PACKETS) {
+        sim_queue_drop_oldest();
+    }
+
+    struct sim_packet_entry *slot = &g_sim_packet_queue[g_sim_queue_tail];
+    memcpy(slot->data, packet, len);
+    slot->len = len;
+
+    g_sim_queue_tail = (g_sim_queue_tail + 1) % UCI_SIM_MAX_QUEUED_PACKETS;
+    g_sim_queue_count++;
+    return 0;
+}
+
+static int sim_queue_dequeue(unsigned char *buffer, size_t buffer_size)
+{
+    if (g_sim_queue_count == 0)
+        return 0;
+
+    struct sim_packet_entry *slot = &g_sim_packet_queue[g_sim_queue_head];
+    if (slot->len > buffer_size)
+        return -1;
+
+    memcpy(buffer, slot->data, slot->len);
+    g_sim_queue_head = (g_sim_queue_head + 1) % UCI_SIM_MAX_QUEUED_PACKETS;
+    g_sim_queue_count--;
+    return (int)slot->len;
+}
+
+static void simulator_flush_queue(void)
+{
+    unsigned char packet[UCI_SIM_PACKET_STORAGE];
+    int len;
+    while ((len = sim_queue_dequeue(packet, sizeof(packet))) > 0) {
+        parse_uci_packet(packet, (size_t)len);
+    }
+}
 #define ANDROID_GET_POWER_STATS 0x00
 #define ANDROID_SET_COUNTRY_CODE 0x01
 #define ANDROID_FIRA_RANGE_DIAGNOSTICS 0x02
@@ -606,7 +675,11 @@ static void send_sim_status(uint8_t gid, uint8_t oid, uint8_t status) {
     set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid, 1);
     response_packet[sizeof(struct uci_packet_header)] = status;
 
-    parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + 1);
+    if (sim_queue_enqueue(response_packet, sizeof(struct uci_packet_header) + 1) == 0) {
+        simulator_flush_queue();
+    } else {
+        parse_uci_packet(response_packet, sizeof(struct uci_packet_header) + 1);
+    }
 }
 
 void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid,
@@ -614,6 +687,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     static int initialized = 0;
     if (!initialized) {
         init_uci_sessions();
+        sim_queue_reset();
         initialized = 1;
     }
 
@@ -704,8 +778,12 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid,
                            (unsigned char)generated_len);
 
-    parse_uci_packet(response_packet,
-                     sizeof(struct uci_packet_header) + response_header->payload_len);
+    size_t total_len = sizeof(struct uci_packet_header) + response_header->payload_len;
+    if (sim_queue_enqueue(response_packet, total_len) == 0) {
+        simulator_flush_queue();
+    } else {
+        parse_uci_packet(response_packet, total_len);
+    }
 }
 
 static int handle_core_device_info(unsigned char *response_payload, size_t max_len,

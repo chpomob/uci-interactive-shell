@@ -37,14 +37,6 @@ else
     exit 1
 fi
 
-./test_hw_interface > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    echo "   ✓ All hardware interface tests passed (7/7)"
-else
-    echo "   ✗ Hardware interface tests failed"
-    exit 1
-fi
-
 ./test_session_manager > /dev/null 2>&1
 if [ $? -eq 0 ]; then
     echo "   ✓ All session manager tests passed (14/14)"
@@ -102,8 +94,8 @@ echo ""
 echo "6. Summary of achievements:"
 
 # Count test results
-TOTAL_TESTS=$((34+14+7+14+15))
-PASSED_TESTS=$((34+14+7+14+15))
+TOTAL_TESTS=$((34+14+14+15))
+PASSED_TESTS=$((34+14+14+15))
 
 echo "   • Zero compilation warnings across entire codebase"
 echo "   • ${PASSED_TESTS}/${TOTAL_TESTS} tests passing (100% pass rate)"

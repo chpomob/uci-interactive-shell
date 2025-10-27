@@ -4,6 +4,8 @@
 
 This project is an interactive command-line shell for communicating with Ultra-Wideband (UWB) devices using the UCI (Ultra-wideband Communication Interface) protocol. It provides a unified interface for both simulation and hardware modes, allowing developers to test and interact with UWB devices.
 
+> **Preservation Reminder:** Keep `uci_analysis/qm35-sdk/` intact; the snapshot fuels protocol analysis workflows.
+
 The project is written in C and uses the `readline` library for the interactive shell. It is built with a `Makefile` and includes a suite of unit tests.
 
 **Key Features:**
@@ -49,7 +51,7 @@ To run the tests, you can use the following commands:
 *   `make test`: Builds and runs a test for the character device.
 *   `make unit-test`: Builds and runs the unit tests for the UCI functions.
 *   `make config-test`: Builds and runs the unit tests for the configuration manager.
-*   `make hw-interface-test`: Builds and runs the unit tests for the hardware interface.
+*   Hardware interface test target has been removed; use simulation suites instead.
 *   `make session-manager-test`: Builds and runs the unit tests for the session manager.
 *   `make all`: Builds the main application and runs all the unit tests.
 

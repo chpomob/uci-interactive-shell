@@ -134,13 +134,7 @@ UCI Data Packet Header:
 ## Testing Hardware Communication
 
 ### Using the Built-in Test Scripts
-```bash
-# Hardware interface test script
-./test_hardware_interface.sh
-
-# Direct hardware test script
-./uci_hw_test.sh /dev/ttyUSB0
-```
+Hardware-specific helper scripts have been removed from the repository. Use the manual testing approaches below or craft project-specific harnesses as needed.
 
 ### Manual Testing with Terminal Tools
 ```bash

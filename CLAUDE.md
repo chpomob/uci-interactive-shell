@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 UCI Interactive Shell is a comprehensive UWB (Ultra-Wideband) device communication tool that implements the UCI (Ultra-wideband Communication Interface) protocol. The project supports both simulation mode for testing and real hardware communication via character device files.
 
+**Preservation Reminder:** Do not delete `uci_analysis/qm35-sdk/`; the directory contains reference material required for protocol analysis.
+
 ## Build and Test Commands
 
 ### Building
@@ -23,15 +25,13 @@ make clean              # Remove all build artifacts and coverage files
 ```bash
 make unit-test          # Run unit tests for core UCI functions
 make config-test        # Run configuration manager tests
-make hw-interface-test  # Run hardware interface tests
+# (hardware interface test target removed)
 make session-manager-test  # Run session management tests
 make coverage           # Build with coverage, run tests, generate reports in coverage/
 ```
 
 ### Hardware Testing
-```bash
-./test_hardware_interface.sh    # Test character device flows (requires hardware)
-```
+Hardware validation scripts have been removed; run manual smoketests with your target environment as needed.
 
 ## Architecture Overview
 

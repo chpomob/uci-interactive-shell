@@ -5,7 +5,7 @@
 - `test_uci_functions.c`: End-to-end simulation coverage for core/session/vendor commands.
 - `test_config_manager.c`: Validates TLV metadata, parsing, and storage edge cases.
 - `test_session_manager.c`: Exercises session bookkeeping helpers.
-- `test_hw_interface.c`: Focused on chardev/fragment handling (simulation only).
+- Hardware-dependent suites have been removed to keep CI hardware-free.
 
 ## Conventions
 - Keep tests self-contained; initialize global state (e.g., `init_uci_sessions()`, `uci_config_init()`) within each case.

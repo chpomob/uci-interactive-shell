@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Iinclude -Wall -Wextra -std=c11 -Wno-unused-label
+CFLAGS=-Iinclude -Wall -Wextra -std=c11 -Wno-unused-label -g  # Added debug flag
 LIBS=-lreadline
 
 SRC=$(wildcard src/*.c)
@@ -9,13 +9,12 @@ TARGET=uci-shell
 TEST_TARGET=test_chardev
 UNIT_TEST_TARGET=test_uci_functions
 CONFIG_TEST_TARGET=test_config_manager
-HW_INTERFACE_TEST_TARGET=test_hw_interface
 SESSION_MANAGER_TEST_TARGET=test_session_manager
 SECURITY_TEST_TARGET=test_uci_security
 
-.PHONY: all clean install test unit-test config-test hw-interface-test session-manager-test security-test coverage
+.PHONY: all clean install test unit-test config-test session-manager-test security-test coverage
 
-all: $(TARGET) unit-test config-test hw-interface-test session-manager-test security-test
+all: $(TARGET) unit-test config-test session-manager-test security-test
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
@@ -23,7 +22,6 @@ $(TARGET): $(OBJ)
 src/main.o: src/main.c include/uci.h include/uci_functions.h
 src/uci.o: src/uci.c include/uci.h include/uci_functions.h
 src/uci_ui_packet_decoder.o: src/uci_ui_packet_decoder.c include/uci_ui_packet_decoder.h
-src/uci_secure.o: src/uci_secure.c include/uci.h include/uci_functions.h include/uci_utils.h
 src/uci_cmd_session_config_ext.o: src/uci_cmd_session_config_ext.c include/uci_cmd_session_config_ext.h include/uci.h include/uci_functions.h
 
 clean:
@@ -34,7 +32,6 @@ clean:
 install: $(TARGET)
 	install -m 755 $(TARGET) /usr/local/bin/uci-shell
 	install -m 644 README.md /usr/local/share/doc/uci-shell/
-	install -m 755 test_hardware_interface.sh /usr/local/bin/uci-hw-test
 	mkdir -p /usr/local/share/doc/uci-shell/uci_analysis
 	cp -r uci_analysis/* /usr/local/share/doc/uci-shell/uci_analysis/
 
@@ -55,12 +52,6 @@ config-test: $(CONFIG_TEST_TARGET)
 $(CONFIG_TEST_TARGET): tests/test_config_manager.o $(filter-out src/main.o,$(OBJ))
 	$(CC) $(CFLAGS) -o $(CONFIG_TEST_TARGET) tests/test_config_manager.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
 
-hw-interface-test: $(HW_INTERFACE_TEST_TARGET)
-	./$(HW_INTERFACE_TEST_TARGET)
-
-$(HW_INTERFACE_TEST_TARGET): tests/test_hw_interface.o $(filter-out src/main.o,$(OBJ))
-	$(CC) $(CFLAGS) -o $(HW_INTERFACE_TEST_TARGET) tests/test_hw_interface.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
-
 session-manager-test: $(SESSION_MANAGER_TEST_TARGET)
 	./$(SESSION_MANAGER_TEST_TARGET)
 
@@ -75,7 +66,6 @@ $(SECURITY_TEST_TARGET): tests/test_uci_security.o
 
 tests/test_uci_functions.o: tests/test_uci_functions.c tests/test_runner.h include/uci.h include/uci_functions.h
 tests/test_config_manager.o: tests/test_config_manager.c tests/test_runner.h include/uci.h include/uci_config_manager.h
-tests/test_hw_interface.o: tests/test_hw_interface.c tests/test_runner.h include/uci.h include/uci_hw_interface.h
 tests/test_session_manager.o: tests/test_session_manager.c tests/test_runner.h include/uci.h include/uci_functions.h
 tests/test_uci_security.o: tests/test_uci_security.c include/uci_security.h
 

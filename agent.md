@@ -5,14 +5,15 @@
 - **Primary language**: C (C11); command-line UX built on GNU Readline.
 - **Key entrypoints**: `src/main.c` (CLI loop), `src/uci.c` (protocol core), `src/uci_hw_interface.c` + `src/uci_hw_chardev.c` (hardware transport), `src/uci_config_manager.c` (TLV catalog + storage).
 - **Documentation**: `README.md` for user flow, `FINAL_SUMMARY.md` for feature matrix, `COMMAND_SUPPORT.md` for coverage/limitations, `uci_analysis/` for protocol reference notes.
+- **Preservation**: Never delete `uci_analysis/qm35-sdk/`; the SDK snapshot feeds ongoing analysis efforts.
 
 ## Build & Test Workflow
-- `make` builds `uci-shell` plus unit/config/session/hw-interface test binaries.
+- `make` builds `uci-shell` plus unit/config/session/security test binaries.
 - Focused targets:
   - `make unit-test`
   - `make config-test`
   - `make session-manager-test`
-  - `make hw-interface-test`
+  - (hardware interface target removed)
 - Unit harness prints to stdout; capture regressions by grepping for `FAILED`.
 - Clean artifacts with `make clean` (also removes generated binaries produced by tests).
 

@@ -210,6 +210,60 @@ int main() {
     }
     test_case_end_dm_session:;
 
+    TEST_CASE(data_message_builder_invalid_params);
+    {
+        unsigned char buffer[8];
+        unsigned char data_payload[] = {0xAA, 0xBB};
+
+        if (uci_build_data_message_snd_payload(NULL, sizeof(buffer), 1, 2, 3,
+                                               data_payload, sizeof(data_payload)) != 0) {
+            TEST_FAIL("Builder should fail when buffer is NULL");
+            goto test_case_end_dm_invalid;
+        }
+
+        if (uci_build_data_message_snd_payload(buffer, 4, 1, 2, 3,
+                                               data_payload, sizeof(data_payload)) != 0) {
+            TEST_FAIL("Builder should fail when capacity is smaller than header");
+            goto test_case_end_dm_invalid;
+        }
+
+        if (uci_build_data_message_snd_payload(buffer, sizeof(buffer), 1, 2, 3,
+                                               data_payload, (size_t)0x10000) != 0) {
+            TEST_FAIL("Builder should reject payload lengths larger than 0xFFFF");
+            goto test_case_end_dm_invalid;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_dm_invalid:;
+
+    TEST_CASE(data_message_unknown_session);
+    {
+        init_uci_sessions();
+
+        unsigned char data_payload[] = {0x01, 0x02, 0x03};
+        uci_send_data_message(0x9999, 0x0102030405060708ULL, 17,
+                              data_payload, sizeof(data_payload));
+
+        for (int i = 0; i < MAX_SESSIONS; ++i) {
+            if (uci_sessions[i].last_data_sequence != 0) {
+                TEST_FAIL("Non-allocated sessions should remain untouched");
+                goto test_case_end_dm_unknown;
+            }
+            if (uci_sessions[i].last_data_length != 0) {
+                TEST_FAIL("Non-allocated sessions should keep zero data length");
+                goto test_case_end_dm_unknown;
+            }
+            if (uci_sessions[i].last_data_preview_len != 0) {
+                TEST_FAIL("Non-allocated sessions should not hold previews");
+                goto test_case_end_dm_unknown;
+            }
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_dm_unknown:;
+
     // Test header field extraction via struct helper
     TEST_CASE(header_struct_extraction);
     {

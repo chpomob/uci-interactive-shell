@@ -41,7 +41,7 @@ void handle_analyze_command(int argc, char* argv[]) {
     int verbose_mode = 0;
     int tlv_mode = 0;
     int compare_mode = 0;
-    int arg_index = 1;
+    int arg_index = 0;
     
     // Parse optional flags first
     while (arg_index < argc && argv[arg_index][0] == '-') {
@@ -753,26 +753,26 @@ static void print_analysis_help(void) {
     
     if (ui_color_enabled) {
         printf("%s%s%sUsage:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s <bytes...>                    - %s%sAnalyze hex packet bytes%s\n", 
+        printf("  %s%sanalyze_packet%s <bytes...>                    - %s%sAnalyze hex packet bytes%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s -v|--verbose <bytes...>       - %s%sEnable verbose analysis%s\n", 
+        printf("  %s%sanalyze_packet%s -v|--verbose <bytes...>       - %s%sEnable verbose analysis%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s -t|--tlv <bytes...>           - %s%sEnable TLV analysis%s\n", 
+        printf("  %s%sanalyze_packet%s -t|--tlv <bytes...>           - %s%sEnable TLV analysis%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s -c|--compare <packet1> <packet2> - %s%sCompare two packets%s\n", 
+        printf("  %s%sanalyze_packet%s -c|--compare <packet1> <packet2> - %s%sCompare two packets%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s -e|--examples                 - %s%sShow usage examples%s\n", 
+        printf("  %s%sanalyze_packet%s -e|--examples                 - %s%sShow usage examples%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s -h|--help                    - %s%sShow this help%s\n", 
+        printf("  %s%sanalyze_packet%s -h|--help                    - %s%sShow this help%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
     } else {
         printf("Usage:\n");
-        printf("  analyze <bytes...>                    - Analyze hex packet bytes\n");
-        printf("  analyze -v|--verbose <bytes...>       - Enable verbose analysis\n");
-        printf("  analyze -t|--tlv <bytes...>           - Enable TLV analysis\n");
-        printf("  analyze -c|--compare <packet1> <packet2> - Compare two packets\n");
-        printf("  analyze -e|--examples                 - Show usage examples\n");
-        printf("  analyze -h|--help                    - Show this help\n");
+        printf("  analyze_packet <bytes...>                    - Analyze hex packet bytes\n");
+        printf("  analyze_packet -v|--verbose <bytes...>       - Enable verbose analysis\n");
+        printf("  analyze_packet -t|--tlv <bytes...>           - Enable TLV analysis\n");
+        printf("  analyze_packet -c|--compare <packet1> <packet2> - Compare two packets\n");
+        printf("  analyze_packet -e|--examples                 - Show usage examples\n");
+        printf("  analyze_packet -h|--help                    - Show this help\n");
     }
     
     printf("\n");
@@ -824,7 +824,7 @@ static void print_analysis_help(void) {
 }
 
 /**
- * @brief Print usage examples for the analyze command
+ * @brief Print usage examples for the analyze_packet command
  */
 static void print_analysis_examples(void) {
     if (ui_color_enabled) {
@@ -839,72 +839,72 @@ static void print_analysis_examples(void) {
     
     if (ui_color_enabled) {
         printf("%s%s%sBasic Analysis:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s 20 08 00 00                  - %s%sAnalyze CORE_DEVICE_INFO command%s\n", 
+        printf("  %s%sanalyze_packet%s 20 08 00 00                  - %s%sAnalyze CORE_DEVICE_INFO command%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s 21 00 00 05 00 01 00 00 00  - %s%sAnalyze SESSION_INIT command%s\n", 
+        printf("  %s%sanalyze_packet%s 21 00 00 05 00 01 00 00 00  - %s%sAnalyze SESSION_INIT command%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s 41 00 00 05 00 01 00 00 00  - %s%sAnalyze SESSION_INIT response%s\n", 
+        printf("  %s%sanalyze_packet%s 41 00 00 05 00 01 00 00 00  - %s%sAnalyze SESSION_INIT response%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
     } else {
         printf("Basic Analysis:\n");
-        printf("  analyze 20 08 00 00                  - Analyze CORE_DEVICE_INFO command\n");
-        printf("  analyze 21 00 00 05 00 01 00 00 00  - Analyze SESSION_INIT command\n");
-        printf("  analyze 41 00 00 05 00 01 00 00 00  - Analyze SESSION_INIT response\n");
+        printf("  analyze_packet 20 08 00 00                  - Analyze CORE_DEVICE_INFO command\n");
+        printf("  analyze_packet 21 00 00 05 00 01 00 00 00  - Analyze SESSION_INIT command\n");
+        printf("  analyze_packet 41 00 00 05 00 01 00 00 00  - Analyze SESSION_INIT response\n");
     }
     
     printf("\n");
     
     if (ui_color_enabled) {
         printf("%s%s%sVerbose Analysis:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s -v 41 03 00 06 00 02 48 00 E5 00  - %s%sVerbose SESSION_SET_APP_CONFIG response%s\n", 
+        printf("  %s%sanalyze_packet%s -v 41 03 00 06 00 02 48 00 E5 00  - %s%sVerbose SESSION_SET_APP_CONFIG response%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s -v 61 02 00 06 01 00 00 00 00 00  - %s%sVerbose SESSION_STATUS notification%s\n", 
+        printf("  %s%sanalyze_packet%s -v 61 02 00 06 01 00 00 00 00 00  - %s%sVerbose SESSION_STATUS notification%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
     } else {
         printf("Verbose Analysis:\n");
-        printf("  analyze -v 41 03 00 06 00 02 48 00 E5 00  - Verbose SESSION_SET_APP_CONFIG response\n");
-        printf("  analyze -v 61 02 00 06 01 00 00 00 00 00  - Verbose SESSION_STATUS notification\n");
+        printf("  analyze_packet -v 41 03 00 06 00 02 48 00 E5 00  - Verbose SESSION_SET_APP_CONFIG response\n");
+        printf("  analyze_packet -v 61 02 00 06 01 00 00 00 00 00  - Verbose SESSION_STATUS notification\n");
     }
     
     printf("\n");
     
     if (ui_color_enabled) {
         printf("%s%s%sTLV Analysis:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s -t 41 04 00 07 DD CC BB AA 02 48 E5  - %s%sTLV SESSION_GET_APP_CONFIG response%s\n", 
+        printf("  %s%sanalyze_packet%s -t 41 04 00 07 DD CC BB AA 02 48 E5  - %s%sTLV SESSION_GET_APP_CONFIG response%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s -t 40 05 00 09 00 02 00 01 01 01 02 34 12  - %s%sTLV CORE_GET_CONFIG response%s\n", 
+        printf("  %s%sanalyze_packet%s -t 40 05 00 09 00 02 00 01 01 01 02 34 12  - %s%sTLV CORE_GET_CONFIG response%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
     } else {
         printf("TLV Analysis:\n");
-        printf("  analyze -t 41 04 00 07 DD CC BB AA 02 48 E5  - TLV SESSION_GET_APP_CONFIG response\n");
-        printf("  analyze -t 40 05 00 09 00 02 00 01 01 01 02 34 12  - TLV CORE_GET_CONFIG response\n");
+        printf("  analyze_packet -t 41 04 00 07 DD CC BB AA 02 48 E5  - TLV SESSION_GET_APP_CONFIG response\n");
+        printf("  analyze_packet -t 40 05 00 09 00 02 00 01 01 01 02 34 12  - TLV CORE_GET_CONFIG response\n");
     }
     
     printf("\n");
     
     if (ui_color_enabled) {
         printf("%s%s%sPacket Comparison:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s -c \"41 00 00 05 00 01 00 00 00\" \"41 00 00 05 00 02 00 00 00\"  - %s%sCompare SESSION_INIT responses%s\n", 
+        printf("  %s%sanalyze_packet%s -c \"41 00 00 05 00 01 00 00 00\" \"41 00 00 05 00 02 00 00 00\"  - %s%sCompare SESSION_INIT responses%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s -c \"20 08 00 00\" \"21 00 00 05 00 01 00 00 00\"  - %s%sCompare different packet types%s\n", 
+        printf("  %s%sanalyze_packet%s -c \"20 08 00 00\" \"21 00 00 05 00 01 00 00 00\"  - %s%sCompare different packet types%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
     } else {
         printf("Packet Comparison:\n");
-        printf("  analyze -c \"41 00 00 05 00 01 00 00 00\" \"41 00 00 05 00 02 00 00 00\"  - Compare SESSION_INIT responses\n");
-        printf("  analyze -c \"20 08 00 00\" \"21 00 00 05 00 01 00 00 00\"  - Compare different packet types\n");
+        printf("  analyze_packet -c \"41 00 00 05 00 01 00 00 00\" \"41 00 00 05 00 02 00 00 00\"  - Compare SESSION_INIT responses\n");
+        printf("  analyze_packet -c \"20 08 00 00\" \"21 00 00 05 00 01 00 00 00\"  - Compare different packet types\n");
     }
     
     printf("\n");
     
     if (ui_color_enabled) {
         printf("%s%s%sData Message Analysis:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s 01 00 00 15 CD AB 34 12 08 07 06 05 04 03 02 01 2A 00 05 00 AA BB CC DD EE  - %s%sDATA_MESSAGE_SND%s\n", 
+        printf("  %s%sanalyze_packet%s 01 00 00 15 CD AB 34 12 08 07 06 05 04 03 02 01 2A 00 05 00 AA BB CC DD EE  - %s%sDATA_MESSAGE_SND%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
-        printf("  %s%sanalyze%s 62 04 00 05 CD AB 34 12 01  - %s%sSESSION_DATA_CREDIT_NTF%s\n", 
+        printf("  %s%sanalyze_packet%s 62 04 00 05 CD AB 34 12 01  - %s%sSESSION_DATA_CREDIT_NTF%s\n", 
                ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
     } else {
         printf("Data Message Analysis:\n");
-        printf("  analyze 01 00 00 15 CD AB 34 12 08 07 06 05 04 03 02 01 2A 00 05 00 AA BB CC DD EE  - DATA_MESSAGE_SND\n");
-        printf("  analyze 62 04 00 05 CD AB 34 12 01  - SESSION_DATA_CREDIT_NTF\n");
+        printf("  analyze_packet 01 00 00 15 CD AB 34 12 08 07 06 05 04 03 02 01 2A 00 05 00 AA BB CC DD EE  - DATA_MESSAGE_SND\n");
+        printf("  analyze_packet 62 04 00 05 CD AB 34 12 01  - SESSION_DATA_CREDIT_NTF\n");
     }
 }

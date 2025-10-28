@@ -54,7 +54,12 @@ void ui_decode_session_data_transfer_status_ntf(unsigned char* payload, int payl
 void ui_decode_session_info_ntf(unsigned char* payload, int payload_len);
 void ui_decode_range_data_ntf(unsigned char* payload, int payload_len);
 void ui_decode_android_range_diagnostics_ntf(unsigned char* payload, int payload_len);
+
+// Android vendor command response decoders
 void ui_decode_android_get_power_stats_rsp(unsigned char* payload, int payload_len);
+void ui_decode_android_set_country_code_rsp(unsigned char* payload, int payload_len);
+void ui_decode_android_radar_set_app_config_rsp(unsigned char* payload, int payload_len);
+void ui_decode_android_radar_get_app_config_rsp(unsigned char* payload, int payload_len);
 
 // Utility functions for reading values in little-endian format
 static inline uint16_t ui_read_u16_le(const unsigned char* buffer) {

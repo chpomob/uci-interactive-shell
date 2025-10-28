@@ -542,24 +542,6 @@ int main() {
             
             // Call enhanced analysis command handler to leverage existing functionality
             handle_analyze_command(arg_count, args);
-        } else if (strcmp(command, "analyze") == 0) {
-            // Collect all remaining arguments including command name
-            char* args[256];
-            int arg_count = 1;  // Start with 1 to account for command name
-            
-            // Add command name as first argument to match expected argc/argv pattern
-            args[0] = "analyze"; // Command name
-            
-            // Parse all remaining arguments
-            char* arg = strtok(NULL, " ");
-            while (arg && arg_count < 255) {
-                args[arg_count++] = arg;
-                arg = strtok(NULL, " ");
-            }
-            args[arg_count] = NULL;
-            
-            // Call enhanced analysis command handler
-            handle_analyze_command(arg_count, args);
         } else if (strcmp(command, "help") == 0) {
             // Print comprehensive help information with UI enhancements
             ui_print_header("UCI Interactive Shell - Enhanced UI");

@@ -1,30 +1,24 @@
-# UCI Command Implementation Gap Analysis
+# UCI Command Implementation Gap Analysis (UPDATED)
 
-## Official UCI Specification Commands (from Qorvo SDK)
+## ⚠️ NOTICE: This document is OUTDATED ⚠️
 
-### Session Config Commands (GID = SESSION_CONFIG)
-1. SESSION_INIT (Opcode 0x0)
-2. SESSION_DEINIT (Opcode 0x1)  
-3. SESSION_SET_APP_CONFIG (Opcode 0x3)
-4. SESSION_GET_APP_CONFIG (Opcode 0x4)
-5. SESSION_GET_COUNT (Opcode 0x5)
-6. SESSION_GET_STATE (Opcode 0x6)
-7. SESSION_UPDATE_CONTROLLER_MULTICAST_LIST (Opcode 0x7)
-8. SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG (Opcode 0x9)
-9. QUERY_MAX_DATA_SIZE/SESSION_QUERY_DATA_SIZE_IN_RANGING (Opcode 0xB)
-10. SESSION_DATA_TRANSFER_PHASE_CONFIG (Opcode 0x0E)
-11. SESSION_SET_HUS_CONTROLLER_CONFIG (Opcode 0x0C)
-12. SESSION_SET_HUS_CONTROLEE_CONFIG (Opcode 0x0D)
+This document contains outdated information about missing UCI commands in the current implementation. A comprehensive analysis has revealed that the "missing" Hybrid UWB System commands were ALREADY IMPLEMENTED in the current codebase.
 
-### Session Control Commands (GID = SESSION_CONTROL)
-1. SESSION_START/RANGE_START (Opcode 0x0)
-2. SESSION_STOP (Opcode 0x1)
-3. SESSION_GET_RANGING_COUNT (Opcode 0x3)
+## 📊 Updated Reality Check
 
-### Test Commands (GID = TEST)
-1. RF_TEST_CONFIG_SET (Opcode 0x00)
+### Previously "Missing" HUS Commands - Now Implemented ✅
 
-## Currently Implemented Commands (from our code)
+1. **SESSION_SET_HYBRID_CONTROLLER_CONFIG** (previously shown as "SESSION_SET_HUS_CONTROLLER_CONFIG")
+   - **Current Status**: ✅ **IMPLEMENTED** - Available as `session_set_hybrid_controller_config` command
+   - **Location**: `src/uci_cmd_session_config_ext.c` and `src/uci_ui_packet_decoder.c`
+   - **Function**: Sets Hybrid UWB System controller configuration
+
+2. **SESSION_SET_HYBRID_CONTROLEE_CONFIG** (previously shown as "SESSION_SET_HUS_CONTROLEE_CONFIG") 
+   - **Current Status**: ✅ **IMPLEMENTED** - Available as `session_set_hybrid_controlee_config` command
+   - **Location**: `src/uci_cmd_session_config_ext.c` and `src/uci_ui_packet_decoder.c`
+   - **Function**: Sets Hybrid UWB System controlee configuration
+
+## Current Actual Implementation Status
 
 ### Session Config Commands
 ✓ SESSION_INIT (Opcode 0x0) - Implemented
@@ -37,62 +31,23 @@
 ✓ SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG (Opcode 0x9) - Implemented
 ✓ SESSION_QUERY_DATA_SIZE_IN_RANGING (Opcode 0xB) - Implemented
 ✓ SESSION_DATA_TRANSFER_PHASE_CONFIG (Opcode 0x0E) - Implemented
-✗ SESSION_SET_HUS_CONTROLLER_CONFIG (Opcode 0x0C) - Missing
-✗ SESSION_SET_HUS_CONTROLEE_CONFIG (Opcode 0x0D) - Missing
+✓ SESSION_SET_HYBRID_CONTROLLER_CONFIG (Opcode 0x0C) - **NOW IMPLEMENTED**
+✓ SESSION_SET_HYBRID_CONTROLEE_CONFIG (Opcode 0x0D) - **NOW IMPLEMENTED**
 
 ### Session Control Commands  
 ✓ SESSION_START/RANGE_START (Opcode 0x0) - Implemented
 ✓ SESSION_STOP (Opcode 0x1) - Implemented
 ✓ SESSION_GET_RANGING_COUNT (Opcode 0x3) - Implemented
 
-## Missing Commands Analysis
+## 🎯 Current Development Focus
 
-### High Priority Missing Commands
+Rather than implementing the "missing" HUS commands mentioned in this outdated analysis, the current focus should be on:
 
-1. **SESSION_SET_HUS_CONTROLLER_CONFIG (Opcode 0x0C)**
-   - Purpose: Set Hybrid UWB System (HUS) controller configuration
-   - Importance: Essential for hybrid mode support in Android UWB
-   
-2. **SESSION_SET_HUS_CONTROLEE_CONFIG (Opcode 0x0D)**  
-   - Purpose: Set Hybrid UWB System (HUS) controlee configuration
-   - Importance: Essential for hybrid mode support in Android UWB
+1. **Expanding test command coverage** - Only RF_TEST_CONFIG_SET is currently implemented
+2. **Adding remaining vendor-specific commands** - Android power stats, country codes, etc.
+3. **Performance optimization and validation** - Testing the already-implemented HUS functionality
+4. **Enhanced debugging and diagnostic capabilities** - Improving the user experience
 
-### Medium Priority Missing Commands
+## 📋 Recommendation
 
-3. **Additional Test Commands**
-   - Currently we have basic RF test command support but could expand
-
-## Enhancement Opportunities
-
-### 1. Hybrid UWB System Support
-Adding SESSION_SET_HUS_CONTROLLER_CONFIG and SESSION_SET_HUS_CONTROLEE_CONFIG would enable:
-- Full Android HUS mode support
-- Better interoperability with hybrid positioning systems
-- Support for combined UWB + other positioning technologies
-
-### 2. Enhanced Testing Capabilities
-Expanding test command support for:
-- More comprehensive RF testing
-- Better diagnostic capabilities
-- Hardware validation tools
-
-### 3. Android-Specific Features
-Additional Android vendor commands that could be implemented:
-- Power management features  
-- Country code settings
-- Radar configuration (for motion detection)
-
-## Priority Recommendation
-
-1. **High Priority**: Implement SESSION_SET_HUS_CONTROLLER_CONFIG and SESSION_SET_HUS_CONTROLEE_CONFIG
-   - Enables hybrid positioning support
-   - Aligns with Android UWB requirements
-   - Completes core UCI command set
-
-2. **Medium Priority**: Enhance test command support
-   - Improves diagnostic capabilities
-   - Better hardware validation
-
-3. **Low Priority**: Additional vendor-specific commands
-   - Nice to have for completeness
-   - May be device-specific
+This gap analysis document should be considered **PARTIALLY OUTDATED**. The Hybrid UWB System commands (HUS/Hybrid) have been successfully implemented and the focus should now shift to other genuinely missing commands and features rather than the incorrectly identified "missing" HUS commands.

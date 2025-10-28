@@ -21,19 +21,24 @@ int handle_set_app_config_command(char* session_id_str, char* config_name, char*
 /**
  * @brief Handle get_app_config command to retrieve session parameters
  * @param session_id_str String representation of session ID
- * @param config_name Configuration parameter name
+ * @param config_names Array of configuration parameter names
+ * @param config_count Number of configuration names provided
  * @return 0 on success, -1 on error
  */
-int handle_get_app_config_command(char* session_id_str, char* config_name);
+int handle_get_app_config_command(char* session_id_str, char** config_names, int config_count);
 
 /**
  * @brief Handle session_update_multicast_list command
  * @param session_id_str String representation of session ID
  * @param action_str Action to perform ("add" or "remove")
  * @param address_str Short address to add/remove
+ * @param subsession_id_str Sub-session identifier string
  * @return 0 on success, -1 on error
  */
-int handle_update_multicast_list_command(char* session_id_str, char* action_str, char* address_str);
+int handle_update_multicast_list_command(char* session_id_str,
+                                         char* action_str,
+                                         char* address_str,
+                                         char* subsession_id_str);
 
 /**
  * @brief Handle session_set_hybrid_controller_config command

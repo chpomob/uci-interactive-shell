@@ -8,7 +8,12 @@ void uci_cmd_hardware_init(int* hw_mode, uci_hw_chardev_t* chardev);
 
 // Hardware initialization and management commands
 int handle_hw_init_command(char* device_path);
-int handle_hw_send_command(char* mt_str, char* pbf_str, char* gid_str, char* oid_str);
+int handle_hw_send_command(char* mt_str,
+                           char* pbf_str,
+                           char* gid_str,
+                           char* oid_str,
+                           char** payload_tokens,
+                           int payload_count);
 
 // Mode switching commands
 void handle_mode_sim_command(void);

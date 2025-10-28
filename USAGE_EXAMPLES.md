@@ -1,5 +1,7 @@
 # UCI Interactive Shell - Usage Examples
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 This document provides comprehensive examples of how to use the UCI Interactive Shell, highlighting its unified command interface that works seamlessly in both simulation and hardware modes.
 
 ## Table of Contents
@@ -139,14 +141,17 @@ The shell provides tab completion and command history:
 
 ### Using Hardware Commands
 ```bash
-# Send a raw command to hardware (MT=01, PBF=00, GID=00, OID=02 = CORE_DEVICE_INFO)
+# After mode_hw, standard commands talk to hardware
+> mode_hw /dev/ttyUSB0
+> get_device_info
+> session_init 1 fira_ranging
+> session_start 1
+
+# Send a raw command directly when needed (MT=01, PBF=00, GID=00, OID=02 = CORE_DEVICE_INFO)
 > hw_send 01 00 00 02
 
-# Send raw hex bytes to hardware
-> hw_send_raw 20 08 00 00
-
-# Get hardware information
-> hw_info
+# Return to simulation mode when finished
+> mode_sim
 ```
 
 ### Switching Between Modes

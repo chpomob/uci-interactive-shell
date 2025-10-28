@@ -1,5 +1,7 @@
 # UCI Interactive Shell
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 An interactive shell to communicate with a UWB (Ultra-Wideband) device using the UCI (Ultra-wideband Communication Interface) protocol.
 
 ## Overview
@@ -56,11 +58,10 @@ Once the shell is running, you can use the following commands:
 - `demo_session_flow`
 
 ### Hardware Mode
-- `hw_init <device_path>`, `hw_connect <device_path>`
-- `hw_info`, `hw_device_reset`, `hw_get_device_state`
-- `hw_send <mt> <pbf> <gid> <oid> [payload...]`
-- `hw_send_raw <bytes...>`
-- Hardware-prefixed variants mirror the session/config commands above (e.g. `hw_session_init`, `hw_set_app_config`).
+- `mode_hw <device_path>`, `hw_init <device_path>` (alias `hw_connect`)
+- `mode_sim` / `mode_info` – switch modes and display active transport
+- `hw_send <mt> <pbf> <gid> <oid> [payload...]` – stream raw hex to the connected device
+- After connecting, reuse the standard device/session commands (e.g. `get_device_info`, `session_start 1`) to operate on hardware.
 
 ## Command Examples
 
@@ -88,10 +89,10 @@ Once the shell is running, you can use the following commands:
 - Get application configuration: `get_app_config 1 device_type`
 
 ### Hardware Commands
-- Connect to hardware: `hw_connect /dev/ttyUSB0`
-- Get hardware device info: `hw_get_device_info`
+- Connect to hardware: `mode_hw /dev/ttyUSB0` (alias `hw_init`)
+- Inspect active transport: `mode_info`
 - Send raw command: `hw_send 01 00 00 02` (MT=1, PBF=0, GID=0, OID=2 for CORE_DEVICE_INFO)
-- Send raw packet bytes: `hw_send_raw 20 08 00 00`
+- Once connected, issue any standard command (`get_device_info`, `session_start 1`, etc.) to act on hardware.
 
 ### Simulation Commands
 - Simulate ranging notification: `simulate_ranging`
@@ -120,7 +121,7 @@ This project has been enhanced from a simple UCI protocol simulation to a compre
 The UCI Interactive Shell can communicate with real UWB hardware through character device files:
 ```bash
 ./uci-shell
-> hw_connect /dev/ttyUSB0
+> mode_hw /dev/ttyUSB0
 > hw_send 01 00 00 02  # Send CORE_DEVICE_INFO command
 ```
 
@@ -171,17 +172,19 @@ The UCI Interactive Shell can communicate with real UWB hardware through charact
 #### Hardware Mode (with real UWB device)
 ```bash
 ./uci-shell
-> hw_connect /dev/ttyUSB0          # Connect to hardware device
-> hw_get_device_info               # Get device info from hardware
-> hw_device_reset                  # Reset hardware device
-> hw_get_device_state              # Check hardware device state
-> hw_session_init 1 ranging        # Initialize ranging session
-> hw_set_app_config 1 device_type responder  # Configure as responder
-> hw_set_app_config 1 channel 5    # Set channel
-> hw_session_start 1               # Start hardware session
-> hw_get_session_state 1           # Check session state on hardware
-> hw_session_stop 1                # Stop hardware session
-> hw_session_deinit 1              # Deinitialize hardware session
+> mode_hw /dev/ttyUSB0             # Connect to the hardware transport
+> mode_info                        # Confirm we are in HARDWARE mode
+> get_device_info                  # Query the device over hardware
+> device_reset                     # Reset the controller
+> set_device_active                # Bring the device to ACTIVE
+> session_init 1 fira_ranging      # Create a ranging session on hardware
+> set_app_config 1 device_type responder
+> set_app_config 1 channel 5
+> session_start 1                  # Begin ranging on hardware
+> get_session_state 1              # Observe live session state
+> session_stop 1
+> session_deinit 1
+> mode_sim                         # Return to simulation mode when finished
 > quit
 ```
 
@@ -189,8 +192,8 @@ The UCI Interactive Shell can communicate with real UWB hardware through charact
 ```bash
 ./uci-shell
 > hw_send 01 00 00 02             # Send CORE_DEVICE_INFO (MT=0x01, GID=0x00, OID=0x02)
-> hw_send_raw 20 08 00 00         # Send raw packet bytes (alternative format)
 > hw_send 01 00 00 04 01 00 01 02 # Send SET_CONFIG to set device to ACTIVE (num_tlvs=1, cfg_id=0, len=1, value=2)
+> hw_send 01 00 00 05 01 00       # Request GET_CONFIG for device_state
 ```
 
 For complete technical details of all improvements, see:

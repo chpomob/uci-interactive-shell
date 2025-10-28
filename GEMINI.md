@@ -1,5 +1,7 @@
 # Gemini Project Analysis: UCI Interactive Shell
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Project Overview
 
 This project is an interactive command-line shell for communicating with Ultra-Wideband (UWB) devices using the UCI (Ultra-wideband Communication Interface) protocol. It provides a unified interface for both simulation and hardware modes, allowing developers to test and interact with UWB devices.
@@ -81,7 +83,7 @@ The coverage reports will be generated in the `coverage` directory.
 *   `src/uci_cmd_core.c`: Core UCI command implementations (device_info, device_reset, caps_info, etc.)
 *   `src/uci_cmd_session.c`: Session management command implementations (session_init, session_start, etc.)
 *   `src/uci_cmd_session_config.c`: Application configuration command implementations (set_app_config, get_app_config, etc.)
-*   `src/uci_cmd_hardware.c`: Hardware communication command implementations (hw_connect, hw_send, etc.)
+*   `src/uci_cmd_hardware.c`: Hardware communication command implementations (mode_hw, hw_send, etc.)
 *   `src/uci_cmd_simulation.c`: Simulation command implementations (simulate_ranging, demo_session_flow, etc.)
 *   `src/uci_config_manager.c`: Configuration management with TLV support for device and session configuration
 *   `src/uci_hw_interface.c`: Hardware communication interface for sending and receiving UCI packets to/from UWB devices
@@ -128,14 +130,14 @@ To start the shell in hardware mode:
 
 ```bash
 ./uci-shell
-> hw_connect /dev/ttyUSB0
+> mode_hw /dev/ttyUSB0
 ```
 
-Once connected to hardware, you can use the `hw_*` commands:
-*   `hw_get_device_info` - Get information from the connected device
-*   `hw_send 01 00 00 02` - Send raw UCI command (CORE_DEVICE_INFO)
-*   `hw_session_init 1 ranging` - Initialize a ranging session on the device
-*   `hw_session_start 1` - Start the ranging session on the device
+Once connected to hardware, continue using the standard commands:
+*   `get_device_info` - Query the connected device
+*   `session_init 1 fira_ranging` - Initialize a ranging session on hardware
+*   `session_start 1` - Start the ranging session on hardware
+*   `hw_send 01 00 00 02` - Manually transmit a raw UCI command when needed
 
 ## Advanced Features
 

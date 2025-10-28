@@ -1,5 +1,7 @@
 # UCI Hardware Communication Guide
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 This guide explains how to use the UCI Interactive Shell with real UWB hardware devices through character device files.
@@ -27,15 +29,18 @@ Common device paths for UWB hardware:
 # Start the interactive shell
 ./uci-shell
 
-# Connect to UWB device
-> hw_connect /dev/ttyUSB0
+# Connect to the UWB device transport
+> mode_hw /dev/ttyUSB0
+> mode_info                     # Confirm HARDWARE mode
 
-# Send UCI commands
+# Issue standard commands over hardware
 > get_device_info
 > device_reset
-> session_init
-> session_start
-> simulate_ranging
+> session_init 1 fira_ranging
+> session_start 1
+> get_session_state 1
+> session_stop 1
+> mode_sim                      # Return to simulation when done
 > quit
 ```
 
@@ -98,37 +103,39 @@ UCI Data Packet Header:
 > get_caps_info
 
 # Set device configuration
-> set_config DEVICE_STATE 01 02  # Set to ACTIVE state
+> set_config device_state active
+> set_config low_power_mode on
 
 # Get device configuration
-> get_config DEVICE_STATE
+> get_config device_state
 ```
 
 ### Session Management
 ```bash
-# Initialize session
-> session_init 01 02 03 04 00  # Session ID: 0x01020304, Type: FIRA_RANGING_SESSION
-
-# Deinitialize session
-> session_deinit 01 02 03 04
+# Initialize session (ID 1, FiRa ranging)
+> session_init 1 fira_ranging
 
 # Start session
-> session_start 01 02 03 04
+> session_start 1
 
 # Stop session
-> session_stop 01 02 03 04
+> session_stop 1
 
 # Get session state
-> get_session_state 01 02 03 04
+> get_session_state 1
+
+# Deinitialize session
+> session_deinit 1
 ```
 
 ### Application Configuration
 ```bash
 # Set application configuration
-> set_app_config 01 02 03 04 01 00 01 01  # Session ID: 0x01020304, DEVICE_TYPE: 0x01
+> set_app_config 1 device_type responder
+> set_app_config 1 channel 5
 
 # Get application configuration
-> get_app_config 01 02 03 04 01 00  # Session ID: 0x01020304, Request DEVICE_TYPE
+> get_app_config 1 device_type
 ```
 
 ## Testing Hardware Communication
@@ -155,7 +162,7 @@ socat -d -d pty,raw,echo=0,link=/tmp/uwb_master pty,raw,echo=0,link=/tmp/uwb_sla
 
 # Connect to the virtual device
 ./uci-shell
-> hw_connect /tmp/uwb_slave
+> mode_hw /tmp/uwb_slave
 > get_device_info
 ```
 
@@ -203,7 +210,7 @@ socat -d -d pty,raw,echo=0,link=/tmp/uwb_master pty,raw,echo=0,link=/tmp/uwb_sla
 ```bash
 # Start shell with verbose output
 ./uci-shell
-> hw_connect /dev/ttyUSB0
+> mode_hw /dev/ttyUSB0
 # Verbose output will show:
 # - Packet headers and payloads
 # - Communication status
@@ -248,8 +255,8 @@ The UCI Interactive Shell can manage multiple UWB devices simultaneously:
 ```bash
 # Connect to multiple devices
 ./uci-shell
-> hw_connect /dev/ttyUSB0  # Primary device
-> hw_connect /dev/ttyUSB1  # Secondary device (future enhancement)
+> mode_hw /dev/ttyUSB0  # Primary device
+> mode_hw /dev/ttyUSB1  # Secondary device (future enhancement)
 ```
 
 ### Ranging Data Processing

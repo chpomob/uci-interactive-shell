@@ -11,26 +11,22 @@
 #define COMPLETION_BUFFER_SIZE 512
 
 static const char* const g_cli_commands[] = {
-    "quit", "hw_init", "hw_send", "hw_send_raw", "hw_info", "hw_connect",
-    "hw_get_device_info", "hw_device_info", "hw_device_reset", "hw_get_caps_info",
-    "hw_set_config", "hw_get_config", "hw_get_device_state", "hw_set_device_active",
-    "hw_set_device_ready", "hw_device_suspend", "hw_session_init", "hw_session_new",
-    "hw_session_deinit", "hw_session_close", "hw_session_start", "hw_start_ranging",
-    "hw_session_stop", "hw_stop_ranging", "hw_get_session_state", "hw_session_status",
-    "hw_set_app_config", "hw_get_app_config",
-    "get_device_info", "device_info", "device_reset", "get_caps_info", "set_config", "get_config",
-    "get_device_state", "set_device_active", "set_device_ready", "device_suspend",
+    "quit", "help", "complete", "alias", "unalias",
+    "mode_sim", "sim_mode", "mode_hw", "hw_mode", "mode_info", "current_mode",
+    "hw_init", "hw_connect", "hw_send",
+    "get_device_info", "device_info", "device_reset", "set_power", "device_on", "device_off",
+    "get_caps_info", "get_config", "get_device_state", "set_device_active", "set_device_ready", "set_config", "device_suspend", "query_timestamp",
     "session_init", "session_new", "session_deinit", "session_close", "session_start", "start_ranging",
     "session_stop", "stop_ranging", "session_send_data", "send_data",
-    "session_update_multicast_list", "session_update_dt_tag_rounds",
-    "session_data_transfer_phase_config", "session_query_data_size_in_ranging",
-    "session_logical_link_create", "session_logical_link_close",
-    "session_logical_link_get_param",
+    "session_logical_link_create", "session_logical_link_close", "session_logical_link_get_param",
     "get_session_state", "session_status",
-    "set_app_config", "get_app_config", "simulate_notification", "simulate_session_status",
-    "simulate_data_credit", "simulate_ranging", "simulate_multi_target_ranging", "demo_session_flow",
-    "set_power", "device_on", "device_off", "analyze_packet", "complete", "history", "alias", "unalias",
-    NULL
+    "set_app_config", "get_app_config", "session_update_multicast_list", "update_multicast_list",
+    "session_update_dt_tag_rounds", "session_data_transfer_phase_config",
+    "session_set_hybrid_controller_config", "session_set_hybrid_controlee_config",
+    "session_query_data_size_in_ranging",
+    "simulate_notification", "simulate_session_status", "simulate_data_credit",
+    "simulate_ranging", "simulate_multi_target_ranging", "demo_session_flow",
+    "analyze_packet", "history", NULL
 };
 
 static size_t cli_command_count(void) {
@@ -392,8 +388,7 @@ static char** cli_completion(const char* text, int start, int end) {
         command[(size_t)j < sizeof(command) ? j : (int)sizeof(command) - 1] = '\0';
         
         // Check if this is a command that we should provide parameter completion for
-        if (strcmp(command, "session_init") == 0 || strcmp(command, "session_new") == 0 || 
-            strcmp(command, "hw_session_init") == 0 || strcmp(command, "hw_session_new") == 0) {
+        if (strcmp(command, "session_init") == 0 || strcmp(command, "session_new") == 0) {
             // For session_init commands, provide session type completion after the session ID
             if (word_count == 1) {
                 // After session ID, suggest session types using the generator function
@@ -403,17 +398,13 @@ static char** cli_completion(const char* text, int start, int end) {
         else if (strcmp(command, "session_start") == 0 || strcmp(command, "start_ranging") == 0 ||
                  strcmp(command, "session_stop") == 0 || strcmp(command, "stop_ranging") == 0 ||
                  strcmp(command, "get_session_state") == 0 || strcmp(command, "session_status") == 0 ||
-                 strcmp(command, "session_deinit") == 0 || strcmp(command, "session_close") == 0 ||
-                 strcmp(command, "hw_session_start") == 0 || strcmp(command, "hw_start_ranging") == 0 ||
-                 strcmp(command, "hw_session_stop") == 0 || strcmp(command, "hw_stop_ranging") == 0 ||
-                 strcmp(command, "hw_get_session_state") == 0 || strcmp(command, "hw_session_status") == 0 ||
-                 strcmp(command, "hw_session_deinit") == 0 || strcmp(command, "hw_session_close") == 0) {
+                 strcmp(command, "session_deinit") == 0 || strcmp(command, "session_close") == 0) {
             if (word_count == 1) {
                 // For session commands that expect a session ID, provide dummy completion
                 return rl_completion_matches(text, parameter_generator_session_id);
             }
         }
-        else if (strcmp(command, "set_config") == 0 || strcmp(command, "hw_set_config") == 0) {
+        else if (strcmp(command, "set_config") == 0) {
             if (word_count == 1) {
                 // For the config parameter name
                 return rl_completion_matches(text, parameter_generator_config_name);
@@ -444,7 +435,7 @@ static char** cli_completion(const char* text, int start, int end) {
                 }
             }
         }
-        else if (strcmp(command, "set_app_config") == 0 || strcmp(command, "hw_set_app_config") == 0) {
+        else if (strcmp(command, "set_app_config") == 0) {
             if (word_count == 1) {
                 // For session ID
                 return rl_completion_matches(text, parameter_generator_session_id);
@@ -454,13 +445,13 @@ static char** cli_completion(const char* text, int start, int end) {
             }
             // We could extend this for value completion as well
         }
-        else if (strcmp(command, "get_config") == 0 || strcmp(command, "hw_get_config") == 0) {
+        else if (strcmp(command, "get_config") == 0) {
             if (word_count == 1) {
                 // For the config parameter name
                 return rl_completion_matches(text, parameter_generator_config_name);
             }
         }
-        else if (strcmp(command, "get_app_config") == 0 || strcmp(command, "hw_get_app_config") == 0) {
+        else if (strcmp(command, "get_app_config") == 0) {
             if (word_count == 1) {
                 // For session ID
                 return rl_completion_matches(text, parameter_generator_session_id);

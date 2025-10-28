@@ -51,7 +51,12 @@ int handle_hw_init_command(char* device_path) {
     }
 }
 
-int handle_hw_send_command(char* mt_str, char* pbf_str, char* gid_str, char* oid_str) {
+int handle_hw_send_command(char* mt_str,
+                           char* pbf_str,
+                           char* gid_str,
+                           char* oid_str,
+                           char** payload_tokens,
+                           int payload_count) {
     if (!g_hw_mode_ptr || !*g_hw_mode_ptr) {
         printf("Hardware mode not enabled\n");
         return -1;
@@ -80,9 +85,10 @@ int handle_hw_send_command(char* mt_str, char* pbf_str, char* gid_str, char* oid
     unsigned char payload[MAX_PAYLOAD_LENGTH];
     int payload_len = 0;
 
-    char* token;
-    while ((token = strtok(NULL, " ")) != NULL && payload_len < MAX_PAYLOAD_LENGTH) {
-        payload[payload_len++] = (unsigned char)strtol(token, NULL, 16);
+    if (payload_tokens != NULL) {
+        for (int i = 0; i < payload_count && i < MAX_PAYLOAD_LENGTH; i++) {
+            payload[payload_len++] = (unsigned char)strtol(payload_tokens[i], NULL, 16);
+        }
     }
 
     // Send command to hardware using the character device interface

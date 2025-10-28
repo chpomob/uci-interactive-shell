@@ -240,11 +240,12 @@ int handle_set_app_config_command(char* session_id_str, char* config_name, char*
     return 0;
 }
 
-int handle_get_app_config_command(char* session_id_str, char* config_name) {
-    if (!session_id_str) {
+int handle_get_app_config_command(char* session_id_str, char** config_names, int config_count) {
+    if (!session_id_str || !config_names || config_count <= 0) {
         printf("Usage: get_app_config <session_id> <config_name_1> [config_name_2]...\n");
         return -1;
     }
+
     unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
 
     unsigned char payload[MAX_PAYLOAD_LENGTH];
@@ -255,7 +256,18 @@ int handle_get_app_config_command(char* session_id_str, char* config_name) {
     payload[3] = (session_id >> 24) & 0xFF;   // MSB last
 
     int num_configs = 0;
-    while (config_name != NULL) {
+
+    for (int i = 0; i < config_count; i++) {
+        char* config_name = config_names[i];
+        if (!config_name) {
+            continue;
+        }
+
+        if (5 + num_configs >= MAX_PAYLOAD_LENGTH) {
+            printf("Too many config names provided.\n");
+            return -1;
+        }
+
         int valid_config = 0;
         if (strcmp(config_name, "device_type") == 0) {
             payload[5 + num_configs] = DEVICE_TYPE;
@@ -338,11 +350,11 @@ int handle_get_app_config_command(char* session_id_str, char* config_name) {
             num_configs++;
             valid_config = 1;
         }
+
         if (!valid_config) {
             printf("Unknown config_name: %s\n", config_name);
             printf("Supported config names: device_type, ranging_usage, sts_config, multi_node_mode, channel, device_role, aoa_request, scheduled_mode, slot_duration, ranging_duration, sts_index, preamble_code_index, sfd_id, psdu_data_rate, prf_mode, hopping_mode, result_report_config, max_rr_retry, uwb_initiation_time, sub_session_id\n");
         }
-        config_name = strtok(NULL, " ");
     }
 
     if (num_configs == 0) {
@@ -350,14 +362,15 @@ int handle_get_app_config_command(char* session_id_str, char* config_name) {
         return -1;
     }
 
-    payload[4] = num_configs;
+    payload[4] = (unsigned char)num_configs;
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_APP_CONFIG, payload, 5 + num_configs);
     return 0;
 }
 
-int handle_update_multicast_list_command(char* session_id_str, char* action_str, char* short_address_str) {
-    char* subsession_id_str = strtok(NULL, " ");
-
+int handle_update_multicast_list_command(char* session_id_str,
+                                         char* action_str,
+                                         char* short_address_str,
+                                         char* subsession_id_str) {
     if (!session_id_str || !action_str || !short_address_str || !subsession_id_str) {
         printf("Usage: session_update_multicast_list <session_id> <action> <short_address> <subsession_id>\n");
         printf("  Examples:\n");

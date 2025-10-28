@@ -1,5 +1,7 @@
 # UCI Interactive Shell - Complete Feature Summary
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 The UCI Interactive Shell has been enhanced from a simple simulation to a comprehensive UWB protocol implementation that supports both simulation mode and real hardware communication via character device files.
 
@@ -107,11 +109,10 @@ The UCI Interactive Shell has been enhanced from a simple simulation to a compre
 - `demo_session_flow` - Demonstrate complete session lifecycle
 
 ### Hardware Communication
-- `hw_init <device_path>` - Initialize hardware mode with character device
-- `hw_connect <device_path>` - Connect to real UWB hardware device
-- `hw_send <mt> <pbf> <gid> <oid> [payload_bytes...]` - Send raw UCI command to hardware
-- `hw_send_raw <hex_bytes...>` - Send raw UCI packet bytes to hardware
-- `hw_info` - Display hardware interface information
+- `mode_hw <device_path>` / `hw_init <device_path>` (alias `hw_connect`) - Connect to a hardware transport
+- `mode_sim` / `mode_info` - Switch between transports and check the active mode
+- `hw_send <mt> <pbf> <gid> <oid> [payload_bytes...]` - Stream raw UCI packets to the connected device
+- Standard commands (`get_device_info`, `session_start 1`, etc.) automatically target hardware once mode_hw is active
 
 ## Usage Examples
 
@@ -129,9 +130,12 @@ The UCI Interactive Shell has been enhanced from a simple simulation to a compre
 ### Hardware Mode (with real UWB device)
 ```bash
 ./uci-shell
-> hw_connect /dev/ttyUSB0
-> hw_send 01 00 00 02  # Send CORE_DEVICE_INFO command
-> hw_send_raw 20 08 00 00  # Alternative way to send CORE_DEVICE_INFO
+> mode_hw /dev/ttyUSB0          # Connect to hardware transport
+> get_device_info               # All standard commands now talk to hardware
+> session_init 1 fira_ranging   # Create a session on hardware
+> session_start 1               # Begin live ranging
+> hw_send 01 00 00 02           # Send CORE_DEVICE_INFO manually when needed
+> mode_sim                      # Return to simulation mode
 > quit
 ```
 

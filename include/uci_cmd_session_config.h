@@ -60,4 +60,32 @@ int handle_session_set_hybrid_controlee_config_command(char* session_id_str, uns
  */
 int handle_session_query_data_size_in_ranging_command(char* session_id_str);
 
+/**
+ * @brief Handle session_update_dt_tag_rounds command to configure DT-Tag active rounds
+ * @param session_id_str String representation of session ID
+ * @param round_values Array of string arguments representing round indices
+ * @param round_count Number of provided round indices
+ * @return 0 on success, -1 on error
+ */
+int handle_session_update_dt_tag_rounds_command(char* session_id_str,
+                                               char** round_values,
+                                               int round_count);
+
+/**
+ * @brief Handle session_data_transfer_phase_config command to configure DTP settings
+ * @param session_id_str String representation of session ID
+ * @param repetition_str Repetition count argument
+ * @param control_str Control flags argument
+ * @param size_str Declared payload size argument
+ * @param payload_values Optional payload byte arguments
+ * @param payload_count Number of payload byte arguments
+ * @return 0 on success, -1 on error
+ */
+int handle_session_data_transfer_phase_config_command(char* session_id_str,
+                                                      char* repetition_str,
+                                                      char* control_str,
+                                                      char* size_str,
+                                                      char** payload_values,
+                                                      int payload_count);
+
 #endif /* UCI_CMD_SESSION_CONFIG_H */

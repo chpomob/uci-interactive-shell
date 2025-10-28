@@ -22,6 +22,8 @@ static const char* const g_cli_commands[] = {
     "get_device_state", "set_device_active", "set_device_ready", "device_suspend",
     "session_init", "session_new", "session_deinit", "session_close", "session_start", "start_ranging",
     "session_stop", "stop_ranging", "session_send_data", "send_data",
+    "session_update_multicast_list", "session_update_dt_tag_rounds",
+    "session_data_transfer_phase_config", "session_query_data_size_in_ranging",
     "get_session_state", "session_status",
     "set_app_config", "get_app_config", "simulate_notification", "simulate_session_status",
     "simulate_data_credit", "simulate_ranging", "simulate_multi_target_ranging", "demo_session_flow",

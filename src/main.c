@@ -303,6 +303,34 @@ int main() {
             char* action_str = strtok(NULL, " ");
             char* short_address_str = strtok(NULL, " ");
             handle_update_multicast_list_command(session_id_str, action_str, short_address_str);
+        } else if (strcmp(command, "session_update_dt_tag_rounds") == 0) {
+            char* session_id_str = strtok(NULL, " ");
+            char* round_values[255];
+            int round_count = 0;
+            char* round_arg = strtok(NULL, " ");
+            while (round_arg && round_count < 255) {
+                round_values[round_count++] = round_arg;
+                round_arg = strtok(NULL, " ");
+            }
+            handle_session_update_dt_tag_rounds_command(session_id_str, round_values, round_count);
+        } else if (strcmp(command, "session_data_transfer_phase_config") == 0) {
+            char* session_id_str = strtok(NULL, " ");
+            char* repetition_str = strtok(NULL, " ");
+            char* control_str = strtok(NULL, " ");
+            char* size_str = strtok(NULL, " ");
+            char* payload_values[64];
+            int payload_count = 0;
+            char* payload_arg = strtok(NULL, " ");
+            while (payload_arg && payload_count < 64) {
+                payload_values[payload_count++] = payload_arg;
+                payload_arg = strtok(NULL, " ");
+            }
+            handle_session_data_transfer_phase_config_command(session_id_str,
+                                                              repetition_str,
+                                                              control_str,
+                                                              size_str,
+                                                              payload_values,
+                                                              payload_count);
         } else if (strcmp(command, "session_set_hybrid_controller_config") == 0) {
             char* session_id_str = strtok(NULL, " ");
             char* config_data_str = strtok(NULL, " ");
@@ -670,6 +698,12 @@ int main() {
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_send_data", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
                 printf("  %s%s%s <id> <dest> <seq> <payload> - %s%sAlias for session_send_data%s\n",
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "send_data", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <action> <short> <subsession> - %s%sUpdate multicast list entry%s\n",
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_update_multicast_list", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> [round_index ...] - %s%sConfigure DT-Tag active rounds%s\n",
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_update_dt_tag_rounds", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <repetition> <control> <size> [payload...] - %s%sConfigure data transfer phase%s\n",
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_data_transfer_phase_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
             } else {
                 printf("  session_init <id> <type>         - Initialize a ranging session\n");
                 printf("    Supported session types:\n");
@@ -694,6 +728,9 @@ int main() {
                 printf("  session_query_data_size_in_ranging <id>              - Query maximum data size in ranging\n");
                 printf("  session_set_hybrid_controller_config <id> [config_data] - Set hybrid controller configuration\n");
                 printf("  session_set_hybrid_controlee_config <id> [config_data] - Set hybrid controlee configuration\n");
+                printf("  session_update_multicast_list <id> <action> <short> <subsession> - Update multicast list entry\n");
+                printf("  session_update_dt_tag_rounds <id> [round_index ...] - Configure DT-Tag active rounds\n");
+                printf("  session_data_transfer_phase_config <id> <repetition> <control> <size> [payload...] - Configure data transfer phase\n");
             }
             printf("\n");
             
@@ -781,10 +818,19 @@ int main() {
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_set_hybrid_controlee_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
                 printf("  %s%s%s <id>           - %s%sQuery data size in ranging%s\n", 
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_query_data_size_in_ranging", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <action> <short> <subsession> - %s%sUpdate multicast list entry%s\n",
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_update_multicast_list", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> [round_index ...] - %s%sConfigure DT-Tag active rounds%s\n",
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_update_dt_tag_rounds", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <repetition> <control> <size> [payload...] - %s%sConfigure data transfer phase%s\n",
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_data_transfer_phase_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
             } else {
                 printf("  session_set_hybrid_controller_config <id> [config_data] - Set hybrid controller configuration\n");
                 printf("  session_set_hybrid_controlee_config <id> [config_data] - Set hybrid controlee configuration\n");
                 printf("  session_query_data_size_in_ranging <id>           - Query data size in ranging\n");
+                printf("  session_update_multicast_list <id> <action> <short> <subsession> - Update multicast list entry\n");
+                printf("  session_update_dt_tag_rounds <id> [round_index ...] - Configure DT-Tag active rounds\n");
+                printf("  session_data_transfer_phase_config <id> <repetition> <control> <size> [payload...] - Configure data transfer phase\n");
             }
             printf("\n");
             

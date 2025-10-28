@@ -1671,32 +1671,216 @@ void ui_decode_session_get_state_rsp(unsigned char* payload, int payload_len) {
 }
 
 void ui_decode_session_update_controller_multicast_list_rsp(unsigned char* payload, int payload_len) {
-    (void)payload;
-    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:\n");
     }
+
+    if (payload_len < 2) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 2)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned char processed = payload[1];
+    int offset = 2;
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_REJECTED: printf(" %s(REJECTED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_FAILED: printf(" %s(FAILED)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        if (status != UCI_STATUS_OK) {
+            enhanced_error_analysis(status);
+        }
+        printf("    %s%sEntries Processed:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, processed);
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
+            case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        if (status != UCI_STATUS_OK) {
+            enhanced_error_analysis(status);
+        }
+        printf("    Entries Processed: %u\n", processed);
+    }
+
+    for (unsigned char i = 0; i < processed; i++) {
+        if (offset + 7 > payload_len) {
+            if (ui_color_enabled) {
+                printf("    %s%sError: Truncated entry %u in response%s\n",
+                       ANSI_COLOR_RED, ANSI_BOLD, i, ANSI_RESET);
+            } else {
+                printf("    Error: Truncated entry %u in response\n", i);
+            }
+            return;
+        }
+
+        unsigned short short_address = ui_read_u16_le(&payload[offset]);
+        offset += 2;
+        unsigned int subsession_id = ui_read_u32_le(&payload[offset]);
+        offset += 4;
+        unsigned char entry_status = payload[offset++];
+
+        if (ui_color_enabled) {
+            printf("    %sEntry[%u]:%s Short=0x%04X, Subsession=0x%08X, Status=0x%02X",
+                   ANSI_COLOR_BRIGHT_CYAN, i, ANSI_RESET, short_address, subsession_id, entry_status);
+            switch (entry_status) {
+                case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+                case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+                case UCI_STATUS_MULTICAST_LIST_FULL: printf(" %s(LIST_FULL)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+                case UCI_STATUS_ADDRESS_ALREADY_PRESENT: printf(" %s(ALREADY_PRESENT)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+                case UCI_STATUS_ADDRESS_NOT_FOUND: printf(" %s(NOT_FOUND)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+                default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+            }
+        } else {
+            printf("    Entry[%u]: Short=0x%04X, Subsession=0x%08X, Status=0x%02X",
+                   i, short_address, subsession_id, entry_status);
+            switch (entry_status) {
+                case UCI_STATUS_OK: printf(" (OK)\n"); break;
+                case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+                case UCI_STATUS_MULTICAST_LIST_FULL: printf(" (LIST_FULL)\n"); break;
+                case UCI_STATUS_ADDRESS_ALREADY_PRESENT: printf(" (ALREADY_PRESENT)\n"); break;
+                case UCI_STATUS_ADDRESS_NOT_FOUND: printf(" (NOT_FOUND)\n"); break;
+                default: printf(" (UNKNOWN)\n"); break;
+            }
+        }
+    }
 }
 
 void ui_decode_session_update_active_rounds_dt_tag_rsp(unsigned char* payload, int payload_len) {
-    (void)payload;
-    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG Response:\n");
     }
+
+    if (payload_len < 2) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 2)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned char stored_count = payload[1];
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_MSG_SIZE: printf(" %s(INVALID_MSG_SIZE)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        if (status != UCI_STATUS_OK) {
+            enhanced_error_analysis(status);
+        }
+        printf("    %s%sStored Round Indices:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, stored_count);
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+            case UCI_STATUS_INVALID_MSG_SIZE: printf(" (INVALID_MSG_SIZE)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        if (status != UCI_STATUS_OK) {
+            enhanced_error_analysis(status);
+        }
+        printf("    Stored Round Indices: %u\n", stored_count);
+    }
+
+    if (stored_count == 0) {
+        return;
+    }
+
+    if (payload_len < 2 + stored_count) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Declared %u indices but payload shorter than expected%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, stored_count, ANSI_RESET);
+        } else {
+            printf("    Error: Declared %u indices but payload shorter than expected\n", stored_count);
+        }
+        return;
+    }
+
+    if (ui_color_enabled) {
+        printf("    %sRound Indices:%s ", ANSI_COLOR_BRIGHT_CYAN, ANSI_RESET);
+    } else {
+        printf("    Round Indices: ");
+    }
+
+    for (unsigned char i = 0; i < stored_count; i++) {
+        unsigned char value = payload[2 + i];
+        if (ui_color_enabled) {
+            printf("%s0x%02X%s", ANSI_COLOR_BRIGHT_GREEN, value, ANSI_RESET);
+        } else {
+            printf("0x%02X", value);
+        }
+        if (i + 1 < stored_count) {
+            printf(" ");
+        }
+    }
+    printf("\n");
 }
 
 void ui_decode_session_data_transfer_phase_config_rsp(unsigned char* payload, int payload_len) {
-    (void)payload;
-    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_DATA_TRANSFER_PHASE_CONFIG Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  SESSION_DATA_TRANSFER_PHASE_CONFIG Response:\n");
+    }
+
+    if (payload_len < 1) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 1)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 1)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_MSG_SIZE: printf(" %s(INVALID_MSG_SIZE)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+            case UCI_STATUS_INVALID_MSG_SIZE: printf(" (INVALID_MSG_SIZE)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+    }
+
+    if (status != UCI_STATUS_OK) {
+        enhanced_error_analysis(status);
     }
 }
 

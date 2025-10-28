@@ -414,3 +414,140 @@ int handle_update_multicast_list_command(char* session_id_str, char* action_str,
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_UPDATE_CONTROLLER_MULTICAST_LIST, payload, sizeof(payload));
     return 0;
 }
+
+int handle_session_update_dt_tag_rounds_command(char* session_id_str,
+                                               char** round_values,
+                                               int round_count) {
+    if (!session_id_str) {
+        printf("Usage: session_update_dt_tag_rounds <session_id> [round_index ...]\n");
+        printf("  Examples:\n");
+        printf("    session_update_dt_tag_rounds 1 0 1 2\n");
+        printf("    session_update_dt_tag_rounds 1 0x00 0x01\n");
+        return -1;
+    }
+
+    unsigned long session_id_ul = strtoul(session_id_str, NULL, 10);
+    if (session_id_ul > 0xFFFFFFFFUL) {
+        printf("Error: session_id out of range (must be 0-4294967295).\n");
+        return -1;
+    }
+
+    if (round_count < 0) {
+        round_count = 0;
+    }
+    if (round_count > 255) {
+        printf("Error: Too many round indices provided (maximum 255).\n");
+        return -1;
+    }
+
+    unsigned char payload[5 + 255];
+    unsigned int session_id = (unsigned int)session_id_ul;
+    payload[0] = session_id & 0xFF;
+    payload[1] = (session_id >> 8) & 0xFF;
+    payload[2] = (session_id >> 16) & 0xFF;
+    payload[3] = (session_id >> 24) & 0xFF;
+    payload[4] = (unsigned char)round_count;
+
+    for (int i = 0; i < round_count; i++) {
+        char* arg = round_values[i];
+        if (!arg) {
+            printf("Error: Missing round index at position %d.\n", i + 1);
+            return -1;
+        }
+        char* endptr = NULL;
+        long value = strtol(arg, &endptr, 0);
+        if (endptr == arg || *endptr != '\0' || value < 0 || value > 0xFF) {
+            printf("Error: Invalid round index '%s'. Provide values between 0 and 255 (decimal or hex).\n", arg);
+            return -1;
+        }
+        payload[5 + i] = (unsigned char)value;
+    }
+
+    int payload_len = 5 + round_count;
+    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG, payload, payload_len);
+    return 0;
+}
+
+int handle_session_data_transfer_phase_config_command(char* session_id_str,
+                                                      char* repetition_str,
+                                                      char* control_str,
+                                                      char* size_str,
+                                                      char** payload_values,
+                                                      int payload_count) {
+    if (!session_id_str || !repetition_str || !control_str || !size_str) {
+        printf("Usage: session_data_transfer_phase_config <session_id> <repetition> <control> <size> [payload_byte ...]\n");
+        printf("  Example: session_data_transfer_phase_config 1 1 0x02 4 AA BB CC DD\n");
+        return -1;
+    }
+
+    unsigned long session_id_ul = strtoul(session_id_str, NULL, 10);
+    if (session_id_ul > 0xFFFFFFFFUL) {
+        printf("Error: session_id out of range (must be 0-4294967295).\n");
+        return -1;
+    }
+
+    char* endptr = NULL;
+    long repetition_val = strtol(repetition_str, &endptr, 0);
+    if (endptr == repetition_str || *endptr != '\0' || repetition_val < 0 || repetition_val > 0xFF) {
+        printf("Error: Invalid repetition value '%s'. Provide 0-255.\n", repetition_str);
+        return -1;
+    }
+
+    endptr = NULL;
+    long control_val = strtol(control_str, &endptr, 0);
+    if (endptr == control_str || *endptr != '\0' || control_val < 0 || control_val > 0xFF) {
+        printf("Error: Invalid control value '%s'. Provide 0-255.\n", control_str);
+        return -1;
+    }
+
+    endptr = NULL;
+    long size_val = strtol(size_str, &endptr, 0);
+    if (endptr == size_str || *endptr != '\0' || size_val < 0 || size_val > 0xFF) {
+        printf("Error: Invalid size value '%s'. Provide 0-255.\n", size_str);
+        return -1;
+    }
+
+    if (payload_count < 0) {
+        payload_count = 0;
+    }
+
+    if (payload_count != size_val) {
+        if (payload_count == 0 && size_val == 0) {
+            // OK
+        } else {
+            printf("Error: Provided payload byte count (%d) does not match declared size (%ld).\n",
+                   payload_count, size_val);
+            return -1;
+        }
+    }
+
+    if (payload_count > 64) {
+        printf("Error: Payload byte count exceeds maximum supported length (64).\n");
+        return -1;
+    }
+
+    unsigned char payload[7 + 64];
+    unsigned int session_id = (unsigned int)session_id_ul;
+    payload[0] = session_id & 0xFF;
+    payload[1] = (session_id >> 8) & 0xFF;
+    payload[2] = (session_id >> 16) & 0xFF;
+    payload[3] = (session_id >> 24) & 0xFF;
+    payload[4] = (unsigned char)repetition_val;
+    payload[5] = (unsigned char)control_val;
+    payload[6] = (unsigned char)size_val;
+
+    for (int i = 0; i < payload_count; i++) {
+        char* arg = payload_values[i];
+        char* local_endptr = NULL;
+        long value = strtol(arg, &local_endptr, 0);
+        if (local_endptr == arg || *local_endptr != '\0' || value < 0 || value > 0xFF) {
+            printf("Error: Invalid payload byte '%s'. Provide values between 0 and 255 (decimal or hex).\n", arg);
+            return -1;
+        }
+        payload[7 + i] = (unsigned char)value;
+    }
+
+    int payload_len = 7 + payload_count;
+    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_DATA_TRANSFER_PHASE_CONFIG, payload, payload_len);
+    return 0;
+}

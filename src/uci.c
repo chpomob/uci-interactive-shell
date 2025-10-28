@@ -600,7 +600,8 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
 void uci_enable_hardware_mode(const char* device_path) {
     g_hardware_mode = 1;
     if (device_path && strlen(device_path) < sizeof(g_hardware_device_path)) {
-        strcpy(g_hardware_device_path, device_path);
+        strncpy(g_hardware_device_path, device_path, sizeof(g_hardware_device_path) - 1);
+        g_hardware_device_path[sizeof(g_hardware_device_path) - 1] = '\0';
     }
     printf("Hardware mode enabled with device: %s\n", g_hardware_device_path);
 }

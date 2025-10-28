@@ -2015,6 +2015,134 @@ void ui_decode_session_set_hybrid_controlee_config_rsp(unsigned char* payload, i
     }
 }
 
+void ui_decode_session_logical_link_create_rsp(unsigned char* payload, int payload_len) {
+    if (ui_color_enabled) {
+        printf("  %s%sSESSION_LOGICAL_LINK_CREATE Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+    } else {
+        printf("  SESSION_LOGICAL_LINK_CREATE Response:\n");
+    }
+
+    if (payload_len < 3) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 3)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 3)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned char link_id = payload[1];
+    unsigned char credit = payload[2];
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_MULTICAST_LIST_FULL: printf(" %s(NO_SLOTS)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        printf("    %s%sLogical Link ID:%s 0x%02X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, link_id);
+        printf("    %s%sInitial Credit:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, credit);
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_MULTICAST_LIST_FULL: printf(" (NO_SLOTS)\n"); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        printf("    Logical Link ID: 0x%02X\n", link_id);
+        printf("    Initial Credit: %u\n", credit);
+    }
+}
+
+void ui_decode_session_logical_link_close_rsp(unsigned char* payload, int payload_len) {
+    if (ui_color_enabled) {
+        printf("  %s%sSESSION_LOGICAL_LINK_CLOSE Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+    } else {
+        printf("  SESSION_LOGICAL_LINK_CLOSE Response:\n");
+    }
+
+    if (payload_len < 2) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 2)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 2)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned char link_id = payload[1];
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        printf("    %s%sLogical Link ID:%s 0x%02X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, link_id);
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        printf("    Logical Link ID: 0x%02X\n", link_id);
+    }
+}
+
+void ui_decode_session_logical_link_get_param_rsp(unsigned char* payload, int payload_len) {
+    if (ui_color_enabled) {
+        printf("  %s%sSESSION_LOGICAL_LINK_GET_PARAM Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+    } else {
+        printf("  SESSION_LOGICAL_LINK_GET_PARAM Response:\n");
+    }
+
+    if (payload_len < 4) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 4)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 4)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    unsigned char link_id = payload[1];
+    unsigned char mode = payload[2];
+    unsigned char credit = payload[3];
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" %s(INVALID_PARAM)%s\n", ANSI_COLOR_RED, ANSI_RESET); break;
+            default: printf(" %s(UNKNOWN)%s\n", ANSI_COLOR_YELLOW, ANSI_RESET); break;
+        }
+        printf("    %s%sLogical Link ID:%s 0x%02X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, link_id);
+        printf("    %s%sMode:%s 0x%02X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, mode);
+        printf("    %s%sCredits:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, credit);
+    } else {
+        printf("    Status: 0x%02X", status);
+        switch (status) {
+            case UCI_STATUS_OK: printf(" (OK)\n"); break;
+            case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
+            default: printf(" (UNKNOWN)\n"); break;
+        }
+        printf("    Logical Link ID: 0x%02X\n", link_id);
+        printf("    Mode: 0x%02X\n", mode);
+        printf("    Credits: %u\n", credit);
+    }
+}
+
 void ui_decode_session_start_rsp(unsigned char* payload, int payload_len) {
     if (ui_color_enabled) {
         printf("  %s%sSESSION_START Response:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
@@ -2174,6 +2302,70 @@ void ui_decode_session_data_transfer_status_ntf(unsigned char* payload, int payl
         printf("  %s%sSESSION_DATA_TRANSFER_STATUS_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  SESSION_DATA_TRANSFER_STATUS_NTF:\n");
+    }
+}
+
+void ui_decode_session_logical_link_uwbs_create_ntf(unsigned char* payload, int payload_len) {
+    if (ui_color_enabled) {
+        printf("  %s%sSESSION_LOGICAL_LINK_UWBS_CREATE_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+    } else {
+        printf("  SESSION_LOGICAL_LINK_UWBS_CREATE_NTF:\n");
+    }
+
+    if (payload_len < 6) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 6)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 6)\n", payload_len);
+        }
+        return;
+    }
+
+    uint32_t session_handle = ui_read_u32_le(payload);
+    unsigned char link_id = payload[4];
+    unsigned char credit = payload[5];
+
+    if (ui_color_enabled) {
+        printf("    %s%sSession Handle:%s 0x%08X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_handle);
+        printf("    %s%sLogical Link ID:%s 0x%02X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, link_id);
+        printf("    %s%sCredits:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, credit);
+    } else {
+        printf("    Session Handle: 0x%08X\n", session_handle);
+        printf("    Logical Link ID: 0x%02X\n", link_id);
+        printf("    Credits: %u\n", credit);
+    }
+}
+
+void ui_decode_session_logical_link_uwbs_close_ntf(unsigned char* payload, int payload_len) {
+    if (ui_color_enabled) {
+        printf("  %s%sSESSION_LOGICAL_LINK_UWBS_CLOSE_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+    } else {
+        printf("  SESSION_LOGICAL_LINK_UWBS_CLOSE_NTF:\n");
+    }
+
+    if (payload_len < 6) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 6)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 6)\n", payload_len);
+        }
+        return;
+    }
+
+    uint32_t session_handle = ui_read_u32_le(payload);
+    unsigned char link_id = payload[4];
+    unsigned char reason = payload[5];
+
+    if (ui_color_enabled) {
+        printf("    %s%sSession Handle:%s 0x%08X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_handle);
+        printf("    %s%sLogical Link ID:%s 0x%02X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, link_id);
+        printf("    %s%sReason:%s 0x%02X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, reason);
+    } else {
+        printf("    Session Handle: 0x%08X\n", session_handle);
+        printf("    Logical Link ID: 0x%02X\n", link_id);
+        printf("    Reason: 0x%02X\n", reason);
     }
 }
 

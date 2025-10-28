@@ -9,7 +9,9 @@ host tooling. The following control flows are explicitly handled:
   update controller multicast list, DT-Tag active rounds, data transfer phase
   configuration, hybrid controller/controlee configuration, and data-size
   queries.
-- **SESSION CONTROL**: start/stop sessions and ranging-count queries.
+- **SESSION CONTROL**: start/stop sessions, ranging-count queries, logical link
+  creation/closure/get-param flow, and simulated UWBS create/close
+  notifications.
 - **VENDOR ANDROID**: country code, power stats, and radar config commands.
 - **TEST**: RF test configuration, periodic TX, PER RX, generic RX, and stop
   commands.
@@ -21,8 +23,6 @@ Key limitations to keep in mind:
 - Device configuration TLVs preserve the byte lengths supplied by the host;
   validation still focuses on known IDs rather than full schema checks.
 - Session handles are synthesized locally and do not survive resets.
-- Logical-link management opcodes (0x07–0x0B) are still stubbed and return
-  generic success responses without state tracking.
 - Unsupported commands fall back to `UCI_STATUS_OK` without side effects.
 
 When adding new features, ensure the corresponding command path returns a

@@ -12,4 +12,15 @@ int handle_session_send_data_command(char* session_id_str,
                                     char* sequence_str,
                                     char* payload_str);
 
+int handle_session_logical_link_create_command(char* session_id_str,
+                                               char* link_id_str,
+                                               char* mode_str,
+                                               char* credit_str);
+
+int handle_session_logical_link_close_command(char* session_id_str,
+                                              char* link_id_str);
+
+int handle_session_logical_link_get_param_command(char* session_id_str,
+                                                  char* link_id_str);
+
 #endif // UCI_CMD_SESSION_H

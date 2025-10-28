@@ -689,6 +689,15 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
                 case SESSION_GET_RANGING_COUNT:
                     ui_decode_session_get_ranging_count_rsp(payload_ptr, payload_len_int);
                     break;
+                case SESSION_LOGICAL_LINK_CREATE:
+                    ui_decode_session_logical_link_create_rsp(payload_ptr, payload_len_int);
+                    break;
+                case SESSION_LOGICAL_LINK_CLOSE:
+                    ui_decode_session_logical_link_close_rsp(payload_ptr, payload_len_int);
+                    break;
+                case SESSION_LOGICAL_LINK_GET_PARAM:
+                    ui_decode_session_logical_link_get_param_rsp(payload_ptr, payload_len_int);
+                    break;
                 default:
                     if (ui_color_enabled) {
                         printf("  %s%sNo specific decoder for SESSION_CONTROL_RESPONSE opcode 0x%02X%s\n", 
@@ -711,6 +720,12 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
                     break;
                 case SESSION_INFO_NTF:
                     ui_decode_session_info_ntf(payload_ptr, payload_len_int);
+                    break;
+                case SESSION_LOGICAL_LINK_UWBS_CREATE:
+                    ui_decode_session_logical_link_uwbs_create_ntf(payload_ptr, payload_len_int);
+                    break;
+                case SESSION_LOGICAL_LINK_UWBS_CLOSE:
+                    ui_decode_session_logical_link_uwbs_close_ntf(payload_ptr, payload_len_int);
                     break;
                 default:
                     if (ui_color_enabled) {

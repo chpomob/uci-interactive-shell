@@ -24,6 +24,8 @@ static const char* const g_cli_commands[] = {
     "session_stop", "stop_ranging", "session_send_data", "send_data",
     "session_update_multicast_list", "session_update_dt_tag_rounds",
     "session_data_transfer_phase_config", "session_query_data_size_in_ranging",
+    "session_logical_link_create", "session_logical_link_close",
+    "session_logical_link_get_param",
     "get_session_state", "session_status",
     "set_app_config", "get_app_config", "simulate_notification", "simulate_session_status",
     "simulate_data_credit", "simulate_ranging", "simulate_multi_target_ranging", "demo_session_flow",

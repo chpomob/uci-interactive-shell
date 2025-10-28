@@ -64,12 +64,7 @@ Additional Android-specific commands that enhance compatibility:
 ### Phase 1: Critical Missing Features (High Priority)
 🎯 **Target Completion: 2-3 weeks**
 
-1. **Implement Logical-Link Session Control**
-   - Add handlers and decoders for SESSION_LOGICAL_LINK_CREATE / CLOSE / GET_PARAM
-   - Track per-link state and credits in the simulator
-   - Emit appropriate notifications for UWBS-triggered create/close events
-
-2. **Extend TEST Command Reporting**
+1. **Extend TEST Command Reporting**
    - Provide structured decoders for RF_TEST_* responses
    - Add analyzer coverage for success and failure cases
    - Document CLI workflows for RF validation
@@ -78,15 +73,14 @@ Additional Android-specific commands that enhance compatibility:
 🎯 **Target Completion: 1-2 weeks**
 
 3. **Broaden Automated Testing**
-   - Add regression tests for DT-Tag rounds and data-transfer-phase configuration
+   - Add regression tests for logical-link, DT-Tag, and data-transfer-phase configuration flows
    - Cover Android vendor responses in unit tests
-   - Introduce golden-log comparisons for logical-link flows
+   - Introduce golden-log comparisons for RF test telemetry
 
 ### Phase 3: Documentation and Validation (Low Priority)
 🎯 **Target Completion: 1 week**
 
 4. **Complete Documentation Refresh**
-   - Expand README and command reference with logical-link usage examples
    - Capture RF test workflows and expected outputs
    - Update protocol coverage tables
 

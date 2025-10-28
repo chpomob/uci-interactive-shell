@@ -210,6 +210,20 @@ int main() {
             char* payload_str = strtok(NULL, " ");
             handle_session_send_data_command(session_id_str, destination_str,
                                              sequence_str, payload_str);
+        } else if (strcmp(command, "session_logical_link_create") == 0) {
+            char* session_id_str = strtok(NULL, " ");
+            char* link_id_str = strtok(NULL, " ");
+            char* mode_str = strtok(NULL, " ");
+            char* credit_str = strtok(NULL, " ");
+            handle_session_logical_link_create_command(session_id_str, link_id_str, mode_str, credit_str);
+        } else if (strcmp(command, "session_logical_link_close") == 0) {
+            char* session_id_str = strtok(NULL, " ");
+            char* link_id_str = strtok(NULL, " ");
+            handle_session_logical_link_close_command(session_id_str, link_id_str);
+        } else if (strcmp(command, "session_logical_link_get_param") == 0) {
+            char* session_id_str = strtok(NULL, " ");
+            char* link_id_str = strtok(NULL, " ");
+            handle_session_logical_link_get_param_command(session_id_str, link_id_str);
         } else if (strcmp(command, "get_session_state") == 0 || strcmp(command, "session_status") == 0) {
             char* session_id_str = strtok(NULL, " ");
             handle_get_session_state_command(session_id_str);
@@ -704,6 +718,12 @@ int main() {
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_update_dt_tag_rounds", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
                 printf("  %s%s%s <id> <repetition> <control> <size> [payload...] - %s%sConfigure data transfer phase%s\n",
                        ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_data_transfer_phase_config", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> [link_id] [mode] [credit] - %s%sCreate a logical link%s\n",
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_logical_link_create", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <link_id> - %s%sClose a logical link%s\n",
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_logical_link_close", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
+                printf("  %s%s%s <id> <link_id> - %s%sQuery logical link parameters%s\n",
+                       ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, "session_logical_link_get_param", ANSI_COLOR_WHITE, ANSI_RESET, ANSI_RESET);
             } else {
                 printf("  session_init <id> <type>         - Initialize a ranging session\n");
                 printf("    Supported session types:\n");
@@ -731,6 +751,9 @@ int main() {
                 printf("  session_update_multicast_list <id> <action> <short> <subsession> - Update multicast list entry\n");
                 printf("  session_update_dt_tag_rounds <id> [round_index ...] - Configure DT-Tag active rounds\n");
                 printf("  session_data_transfer_phase_config <id> <repetition> <control> <size> [payload...] - Configure data transfer phase\n");
+                printf("  session_logical_link_create <id> [link_id] [mode] [credit] - Create a logical link\n");
+                printf("  session_logical_link_close <id> <link_id>    - Close a logical link\n");
+                printf("  session_logical_link_get_param <id> <link_id> - Query logical link parameters\n");
             }
             printf("\n");
             

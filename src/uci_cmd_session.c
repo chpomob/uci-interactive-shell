@@ -154,3 +154,108 @@ int handle_session_send_data_command(char* session_id_str,
                           (uint16_t)sequence_ul, data_buffer, data_len);
     return 0;
 }
+
+int handle_session_logical_link_create_command(char* session_id_str,
+                                               char* link_id_str,
+                                               char* mode_str,
+                                               char* credit_str) {
+    if (!session_id_str) {
+        printf("Usage: session_logical_link_create <session_id> [link_id] [mode] [credit]\n");
+        return -1;
+    }
+
+    unsigned long session_id_ul = strtoul(session_id_str, NULL, 10);
+    if (session_id_ul > 0xFFFFFFFFUL) {
+        printf("Error: session_id out of range.\n");
+        return -1;
+    }
+
+    unsigned char payload[7];
+    encode_session_id_le(payload, (uint32_t)session_id_ul);
+
+    size_t payload_len = 5;
+    unsigned long link_id = 0xFFUL;
+    if (link_id_str) {
+        link_id = strtoul(link_id_str, NULL, 0);
+        if (link_id > 0xFFUL) {
+            printf("Error: link_id must be 0-255.\n");
+            return -1;
+        }
+    }
+    payload[4] = (unsigned char)link_id;
+
+    unsigned long mode = 0;
+    if (mode_str) {
+        mode = strtoul(mode_str, NULL, 0);
+        if (mode > 0xFFUL) {
+            printf("Error: mode must be 0-255.\n");
+            return -1;
+        }
+        payload[5] = (unsigned char)mode;
+        payload_len = 6;
+    }
+
+    unsigned long credit = 1;
+    if (credit_str) {
+        credit = strtoul(credit_str, NULL, 0);
+        if (credit > 0xFFUL) {
+            printf("Error: credit must be 0-255.\n");
+            return -1;
+        }
+        payload[6] = (unsigned char)credit;
+        payload_len = 7;
+    } else if (mode_str) {
+        payload[6] = 1;
+        payload_len = 7;
+    }
+
+    send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_LOGICAL_LINK_CREATE,
+                     payload, (int)payload_len);
+    return 0;
+}
+
+int handle_session_logical_link_close_command(char* session_id_str,
+                                              char* link_id_str) {
+    if (!session_id_str || !link_id_str) {
+        printf("Usage: session_logical_link_close <session_id> <link_id>\n");
+        return -1;
+    }
+
+    unsigned long session_id_ul = strtoul(session_id_str, NULL, 10);
+    unsigned long link_id_ul = strtoul(link_id_str, NULL, 0);
+    if (session_id_ul > 0xFFFFFFFFUL || link_id_ul > 0xFFUL) {
+        printf("Error: session_id or link_id out of range.\n");
+        return -1;
+    }
+
+    unsigned char payload[5];
+    encode_session_id_le(payload, (uint32_t)session_id_ul);
+    payload[4] = (unsigned char)link_id_ul;
+
+    send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_LOGICAL_LINK_CLOSE,
+                     payload, sizeof(payload));
+    return 0;
+}
+
+int handle_session_logical_link_get_param_command(char* session_id_str,
+                                                  char* link_id_str) {
+    if (!session_id_str || !link_id_str) {
+        printf("Usage: session_logical_link_get_param <session_id> <link_id>\n");
+        return -1;
+    }
+
+    unsigned long session_id_ul = strtoul(session_id_str, NULL, 10);
+    unsigned long link_id_ul = strtoul(link_id_str, NULL, 0);
+    if (session_id_ul > 0xFFFFFFFFUL || link_id_ul > 0xFFUL) {
+        printf("Error: session_id or link_id out of range.\n");
+        return -1;
+    }
+
+    unsigned char payload[5];
+    encode_session_id_le(payload, (uint32_t)session_id_ul);
+    payload[4] = (unsigned char)link_id_ul;
+
+    send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_LOGICAL_LINK_GET_PARAM,
+                     payload, sizeof(payload));
+    return 0;
+}

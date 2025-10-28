@@ -38,6 +38,7 @@ enum uci_data_packet_format {
 #define MAX_SESSION_CONFIG_VALUE_SIZE 255
 #define MAX_MULTICAST_CONTROLEES 16
 #define MAX_DT_TAG_ROUNDS 32
+#define MAX_LOGICAL_LINKS 8
 
 typedef struct {
     unsigned short short_address;
@@ -52,6 +53,13 @@ typedef struct {
     unsigned char value[MAX_SESSION_CONFIG_VALUE_SIZE];
     unsigned char in_use;
 } uci_session_config_entry;
+
+typedef struct {
+    unsigned char link_id;
+    unsigned char mode;
+    unsigned char credit;
+    unsigned char active;
+} uci_logical_link_entry;
 
 struct uci_session {
     unsigned int session_id;
@@ -71,6 +79,8 @@ struct uci_session {
     unsigned char dtp_size;
     unsigned char dtp_payload[64];
     unsigned char dtp_payload_len;
+    uci_logical_link_entry logical_links[MAX_LOGICAL_LINKS];
+    unsigned char logical_link_count;
     uint16_t last_data_sequence;
     uint16_t last_data_length;
     uint64_t last_data_destination;

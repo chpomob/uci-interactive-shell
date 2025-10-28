@@ -31,6 +31,9 @@ These commands have both implementations and proper header declarations, and are
 - SESSION_START (Opcode 0x00)
 - SESSION_STOP (Opcode 0x01)
 - SESSION_GET_RANGING_COUNT (Opcode 0x03)
+- SESSION_LOGICAL_LINK_CREATE (Opcode 0x07)
+- SESSION_LOGICAL_LINK_CLOSE (Opcode 0x08)
+- SESSION_LOGICAL_LINK_GET_PARAM (Opcode 0x0B)
 
 ### CORE_RESPONSE Commands:
 - CORE_DEVICE_INFO (Opcode 0x02)
@@ -56,6 +59,8 @@ These commands have both implementations and proper header declarations, and are
 - SESSION_DATA_CREDIT_NTF (Opcode 0x04)
 - SESSION_DATA_TRANSFER_STATUS_NTF (Opcode 0x05)
 - SESSION_INFO_NTF (Opcode 0x03)
+- SESSION_LOGICAL_LINK_UWBS_CLOSE (Opcode 0x09)
+- SESSION_LOGICAL_LINK_UWBS_CREATE (Opcode 0x0A)
 
 ### VENDOR_ANDROID Commands:
 - ANDROID_GET_POWER_STATS (Opcode 0x00)
@@ -87,39 +92,35 @@ No discrepancies were identified between header declarations and implementations
 
 These commands are neither declared nor implemented and represent true gaps in coverage:
 
-- SESSION_LOGICAL_LINK_CREATE / CLOSE / GET_PARAM / UWBS_CREATE / UWBS_CLOSE (GID=0x02, Opcodes 0x07–0x0B)
 - TEST group notification decoders (GID=0x0D)
 
 ## Current Test Results Analysis
 
-The current simulated test logs still emit "No specific decoder" messages for:
-
-- SESSION_LOGICAL_LINK_* responses (GID=0x02, Opcodes 0x07–0x0B)
-- TEST command responses (GID=0x0D, Opcodes 0x00, 0x02, 0x07)
+The current simulated test logs still emit "No specific decoder" messages for
+TEST command responses (GID=0x0D, Opcodes 0x00, 0x02, 0x07).
 
 ## Progress Summary
 
 ### Recent Achievements
-1. ✅ Added hybrid configuration handlers and decoders (Opcodes 0x0C/0x0D)
-2. ✅ Implemented DT-Tag round updates and data-transfer-phase configuration (Opcodes 0x09/0x0E)
-3. ✅ Delivered Android vendor decoders for power stats, country code, radar app config, and range diagnostics
-4. ✅ Expanded CLI documentation to expose the new session configuration commands
+1. ✅ Added logical-link command handlers and decoders (Opcodes 0x07–0x0B)
+2. ✅ Added hybrid configuration handlers and decoders (Opcodes 0x0C/0x0D)
+3. ✅ Implemented DT-Tag round updates and data-transfer-phase configuration (Opcodes 0x09/0x0E)
+4. ✅ Delivered Android vendor decoders for power stats, country code, radar app config, and range diagnostics
+5. ✅ Expanded CLI documentation to expose the new session configuration commands
 
 ### Remaining Work
-1. Implement full logical-link command handling and decoding
-2. Provide rich TEST group decoders to match the simulator handlers
-3. Harden Android range diagnostics notification parsing
-4. Achieve zero "No specific decoder" messages in automated regression logs
+1. Provide rich TEST group decoders to match the simulator handlers
+2. Harden Android range diagnostics notification parsing
+3. Achieve zero "No specific decoder" messages in automated regression logs
 
 ## Priority Recommendations for Phase 2
 
 ### High Priority (Essential for Android UWB Compatibility):
-1. Implement logical-link command handlers and decoders (Opcodes 0x07–0x0B)
-2. Produce detailed TEST RF decoders to match simulator behaviour
+1. Produce detailed TEST RF decoders to match simulator behaviour
 
 ### Medium Priority (Useful for Enhanced Functionality):
 1. Enrich Android range diagnostics notification decoding (Opcode 0x02)
-2. Add regression tests covering the new session configuration commands
+2. Add regression tests covering the new session configuration commands and logical-link flows
 
 ## Impact Assessment
 
@@ -144,14 +145,12 @@ The current simulated test logs still emit "No specific decoder" messages for:
 ## Next Steps
 
 ### Immediate Actions:
-1. Design logical-link state tracking and response decoding
-2. Specify expected payload layouts for RF TEST responses and notifications
-3. Add automated coverage checks for the new session configuration commands
+1. Specify expected payload layouts for RF TEST responses and notifications
+2. Add automated coverage checks for the new session and logical-link commands
 
 ### Short-Term Goals:
-1. Implement logical-link command handlers and corresponding decoders
-2. Flesh out TEST command decoders with structured output
-3. Extend analyzer tests to assert the new decoder behaviour
+1. Flesh out TEST command decoders with structured output
+2. Extend analyzer tests to assert the new decoder behaviour
 
 ### Long-Term Vision:
 1. Achieve 100% UCI packet decoder coverage (no fallback output)

@@ -41,6 +41,9 @@ void ui_decode_session_data_transfer_phase_config_rsp(unsigned char* payload, in
 void ui_decode_session_query_data_size_in_ranging_rsp(unsigned char* payload, int payload_len);
 void ui_decode_session_set_hybrid_controller_config_rsp(unsigned char* payload, int payload_len);
 void ui_decode_session_set_hybrid_controlee_config_rsp(unsigned char* payload, int payload_len);
+void ui_decode_session_logical_link_create_rsp(unsigned char* payload, int payload_len);
+void ui_decode_session_logical_link_close_rsp(unsigned char* payload, int payload_len);
+void ui_decode_session_logical_link_get_param_rsp(unsigned char* payload, int payload_len);
 
 void ui_decode_session_start_rsp(unsigned char* payload, int payload_len);
 void ui_decode_session_stop_rsp(unsigned char* payload, int payload_len);
@@ -54,6 +57,8 @@ void ui_decode_session_data_transfer_status_ntf(unsigned char* payload, int payl
 void ui_decode_session_info_ntf(unsigned char* payload, int payload_len);
 void ui_decode_range_data_ntf(unsigned char* payload, int payload_len);
 void ui_decode_android_range_diagnostics_ntf(unsigned char* payload, int payload_len);
+void ui_decode_session_logical_link_uwbs_create_ntf(unsigned char* payload, int payload_len);
+void ui_decode_session_logical_link_uwbs_close_ntf(unsigned char* payload, int payload_len);
 
 // Android vendor command response decoders
 void ui_decode_android_get_power_stats_rsp(unsigned char* payload, int payload_len);

@@ -58,6 +58,11 @@
 #define SESSION_DATA_CREDIT_NTF     0x04
 #define SESSION_DATA_TRANSFER_STATUS_NTF 0x05
 #define SESSION_INFO_NTF            0x00  // Session info/ranging notification
+#define SESSION_LOGICAL_LINK_CREATE 0x07
+#define SESSION_LOGICAL_LINK_CLOSE  0x08
+#define SESSION_LOGICAL_LINK_UWBS_CLOSE 0x09
+#define SESSION_LOGICAL_LINK_UWBS_CREATE 0x0A
+#define SESSION_LOGICAL_LINK_GET_PARAM 0x0B
 
 // Session types - aligned with Android UWB spec
 

@@ -501,6 +501,53 @@ int main() {
         TEST_PASS();
     }
     test_case_end7:;
+
+    TEST_CASE(logical_link_management);
+    {
+        init_uci_sessions();
+
+        unsigned char init_payload[] = {0x01, 0x00, 0x00, 0x00, FIRA_RANGING_SESSION};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONFIG, SESSION_INIT,
+                         init_payload, sizeof(init_payload));
+
+        int session_idx = find_session_by_id(1);
+        if (session_idx < 0) {
+            TEST_FAIL("Session should exist after SESSION_INIT command");
+            goto test_case_logical_link_end;
+        }
+
+        struct uci_session *session = &uci_sessions[session_idx];
+        unsigned char create_payload[] = {0x01, 0x00, 0x00, 0x00, 0xFF, 0x02, 0x05};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONTROL, SESSION_LOGICAL_LINK_CREATE,
+                         create_payload, sizeof(create_payload));
+
+        if (session->logical_link_count != 1) {
+            TEST_FAIL("Logical link count should be 1 after creation");
+            goto test_case_logical_link_end;
+        }
+
+        unsigned char link_id = session->logical_links[0].link_id;
+        if (!session->logical_links[0].active) {
+            TEST_FAIL("Logical link should be marked active");
+            goto test_case_logical_link_end;
+        }
+
+        unsigned char get_payload[] = {0x01, 0x00, 0x00, 0x00, link_id};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONTROL, SESSION_LOGICAL_LINK_GET_PARAM,
+                         get_payload, sizeof(get_payload));
+
+        unsigned char close_payload[] = {0x01, 0x00, 0x00, 0x00, link_id};
+        send_uci_command(COMMAND, COMPLETE, SESSION_CONTROL, SESSION_LOGICAL_LINK_CLOSE,
+                         close_payload, sizeof(close_payload));
+
+        if (session->logical_link_count != 0) {
+            TEST_FAIL("Logical link count should return to 0 after close");
+            goto test_case_logical_link_end;
+        }
+
+        TEST_PASS();
+    }
+    test_case_logical_link_end:;
     
     // Test notification handler for session info
     TEST_CASE(notification_handler_session_info);

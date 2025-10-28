@@ -158,6 +158,12 @@ static unsigned char g_sim_device_state = DEVICE_STATE_READY;
 
 void enqueue_notification(unsigned char gid, unsigned char oid, const unsigned char* payload, size_t payload_len);
 void uci_process_pending_notifications(void);
+static void session_clear_logical_links(struct uci_session* session);
+static uci_logical_link_entry* session_find_logical_link(struct uci_session* session,
+                                                         unsigned char link_id);
+static uci_logical_link_entry* session_allocate_logical_link(struct uci_session* session,
+                                                             unsigned char requested_id,
+                                                             unsigned char* assigned_id);
 static void sim_handle_data_message_send(const unsigned char *payload, size_t payload_len);
 static void log_outbound_fragment(const char *target_label,
                                   unsigned char mt,
@@ -665,6 +671,12 @@ static int handle_session_update_active_rounds_dt_tag(unsigned char *response_pa
                                                       const unsigned char *payload, size_t payload_len);
 static int handle_session_data_transfer_phase_config(unsigned char *response_payload, size_t max_len,
                                                      const unsigned char *payload, size_t payload_len);
+static int handle_session_logical_link_create(unsigned char *response_payload, size_t max_len,
+                                              const unsigned char *payload, size_t payload_len);
+static int handle_session_logical_link_close(unsigned char *response_payload, size_t max_len,
+                                             const unsigned char *payload, size_t payload_len);
+static int handle_session_logical_link_get_param(unsigned char *response_payload, size_t max_len,
+                                                 const unsigned char *payload, size_t payload_len);
 static int handle_session_set_app_config(unsigned char *response_payload, size_t max_len,
                                          const unsigned char *payload, size_t payload_len);
 static int handle_session_get_app_config(unsigned char *response_payload, size_t max_len,
@@ -703,6 +715,9 @@ static const struct uci_command_handler_entry k_sim_handlers[] = {
     {SESSION_CONTROL, SESSION_START, handle_session_start},
     {SESSION_CONTROL, SESSION_STOP, handle_session_stop},
     {SESSION_CONTROL, SESSION_GET_RANGING_COUNT, handle_session_get_ranging_count},
+    {SESSION_CONTROL, SESSION_LOGICAL_LINK_CREATE, handle_session_logical_link_create},
+    {SESSION_CONTROL, SESSION_LOGICAL_LINK_CLOSE, handle_session_logical_link_close},
+    {SESSION_CONTROL, SESSION_LOGICAL_LINK_GET_PARAM, handle_session_logical_link_get_param},
     {TEST, TEST_RF_SET_CONFIG, handle_test_rf_set_config},
     {TEST, TEST_RF_PERIODIC_TX, handle_test_rf_simple_status},
     {TEST, TEST_RF_PER_RX, handle_test_rf_simple_status},
@@ -1095,6 +1110,7 @@ static int handle_session_init(unsigned char *response_payload, size_t max_len,
     memset(session->multicast_entries, 0, sizeof(session->multicast_entries));
     memset(session->dt_tag_round_indexes, 0, sizeof(session->dt_tag_round_indexes));
     memset(session->dtp_payload, 0, sizeof(session->dtp_payload));
+    session_clear_logical_links(session);
     session->last_data_sequence = 0;
     session->last_data_length = 0;
     session->last_data_destination = 0;
@@ -1142,6 +1158,7 @@ static int handle_session_deinit(unsigned char *response_payload, size_t max_len
         memset(session->multicast_entries, 0, sizeof(session->multicast_entries));
         memset(session->dt_tag_round_indexes, 0, sizeof(session->dt_tag_round_indexes));
         memset(session->dtp_payload, 0, sizeof(session->dtp_payload));
+        session_clear_logical_links(session);
         session->last_data_sequence = 0;
         session->last_data_length = 0;
         session->last_data_destination = 0;
@@ -1536,6 +1553,180 @@ static int handle_session_data_transfer_phase_config(unsigned char *response_pay
 
     response_payload[0] = status;
     return 1;
+}
+
+static void enqueue_logical_link_notification(struct uci_session* session,
+                                              unsigned char opcode,
+                                              unsigned char link_id,
+                                              unsigned char reason_or_credit) {
+    unsigned char notif_payload[6];
+    write_u32_le(notif_payload, session->session_handle);
+    notif_payload[4] = link_id;
+    notif_payload[5] = reason_or_credit;
+    enqueue_notification(SESSION_CONTROL, opcode, notif_payload, sizeof(notif_payload));
+}
+
+static int handle_session_logical_link_create(unsigned char *response_payload, size_t max_len,
+                                              const unsigned char *payload, size_t payload_len) {
+    (void)max_len;
+    unsigned char status = UCI_STATUS_OK;
+    struct uci_session *session = NULL;
+    unsigned char requested_id = 0xFF;
+    unsigned char mode = 0;
+    unsigned char credit = 1;
+    unsigned char assigned_id = 0xFF;
+    uci_logical_link_entry* entry = NULL;
+
+    if (!payload || payload_len < 4) {
+        status = UCI_STATUS_INVALID_PARAM;
+    } else {
+        unsigned int identifier = read_u32_le(payload);
+        if (payload_len >= 5) {
+            requested_id = payload[4];
+        }
+        if (payload_len >= 6) {
+            mode = payload[5];
+        }
+        if (payload_len >= 7) {
+            credit = payload[6];
+        }
+
+        int session_idx = find_session_by_token_or_id(identifier);
+        if (session_idx < 0) {
+            status = UCI_STATUS_INVALID_PARAM;
+        } else {
+            session = &uci_sessions[session_idx];
+        }
+    }
+
+    if (status == UCI_STATUS_OK && session) {
+        if (requested_id != 0xFF && session_find_logical_link(session, requested_id)) {
+            status = UCI_STATUS_INVALID_PARAM;
+        }
+
+        if (status == UCI_STATUS_OK) {
+            if (session->logical_link_count >= MAX_LOGICAL_LINKS) {
+                status = UCI_STATUS_MULTICAST_LIST_FULL;
+            } else {
+                entry = session_allocate_logical_link(session, requested_id, &assigned_id);
+                if (!entry) {
+                    status = UCI_STATUS_INVALID_PARAM;
+                } else {
+                    entry->mode = mode;
+                    entry->credit = credit;
+                }
+            }
+        }
+    }
+
+    response_payload[0] = status;
+    if (status == UCI_STATUS_OK && entry) {
+        response_payload[1] = assigned_id;
+        response_payload[2] = entry->credit;
+        enqueue_logical_link_notification(session, SESSION_LOGICAL_LINK_UWBS_CREATE,
+                                          assigned_id, entry->credit);
+    } else {
+        response_payload[1] = (status == UCI_STATUS_OK) ? assigned_id : 0xFF;
+        response_payload[2] = 0;
+        if (status != UCI_STATUS_OK) {
+            unsigned char err = status;
+            enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
+        }
+    }
+
+    return 3;
+}
+
+static int handle_session_logical_link_close(unsigned char *response_payload, size_t max_len,
+                                             const unsigned char *payload, size_t payload_len) {
+    (void)max_len;
+    unsigned char status = UCI_STATUS_OK;
+    struct uci_session *session = NULL;
+    unsigned char link_id = 0xFF;
+
+    if (!payload || payload_len < 5) {
+        status = UCI_STATUS_INVALID_PARAM;
+    } else {
+        unsigned int identifier = read_u32_le(payload);
+        link_id = payload[4];
+        int session_idx = find_session_by_token_or_id(identifier);
+        if (session_idx < 0) {
+            status = UCI_STATUS_INVALID_PARAM;
+        } else {
+            session = &uci_sessions[session_idx];
+        }
+    }
+
+    if (status == UCI_STATUS_OK && session) {
+        uci_logical_link_entry* entry = session_find_logical_link(session, link_id);
+        if (!entry) {
+            status = UCI_STATUS_INVALID_PARAM;
+        } else {
+            // compact array by shifting remaining entries
+            size_t idx = entry - session->logical_links;
+            for (size_t i = idx; i + 1 < session->logical_link_count; i++) {
+                session->logical_links[i] = session->logical_links[i + 1];
+            }
+            if (session->logical_link_count > 0) {
+                session->logical_link_count--;
+            }
+            if (session->logical_link_count < MAX_LOGICAL_LINKS) {
+                memset(&session->logical_links[session->logical_link_count], 0,
+                       sizeof(session->logical_links[session->logical_link_count]));
+            }
+            enqueue_logical_link_notification(session, SESSION_LOGICAL_LINK_UWBS_CLOSE,
+                                              link_id, 0x00);
+        }
+    }
+
+    if (status != UCI_STATUS_OK) {
+        unsigned char err = status;
+        enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
+    }
+
+    response_payload[0] = status;
+    response_payload[1] = link_id;
+    return 2;
+}
+
+static int handle_session_logical_link_get_param(unsigned char *response_payload, size_t max_len,
+                                                 const unsigned char *payload, size_t payload_len) {
+    (void)max_len;
+    unsigned char status = UCI_STATUS_OK;
+    struct uci_session *session = NULL;
+    uci_logical_link_entry* entry = NULL;
+    unsigned char link_id = 0xFF;
+
+    if (!payload || payload_len < 5) {
+        status = UCI_STATUS_INVALID_PARAM;
+    } else {
+        unsigned int identifier = read_u32_le(payload);
+        link_id = payload[4];
+        int session_idx = find_session_by_token_or_id(identifier);
+        if (session_idx < 0) {
+            status = UCI_STATUS_INVALID_PARAM;
+        } else {
+            session = &uci_sessions[session_idx];
+        }
+    }
+
+    if (status == UCI_STATUS_OK && session) {
+        entry = session_find_logical_link(session, link_id);
+        if (!entry) {
+            status = UCI_STATUS_INVALID_PARAM;
+        }
+    }
+
+    if (status != UCI_STATUS_OK) {
+        unsigned char err = status;
+        enqueue_notification(CORE, CORE_GENERIC_ERROR_NTF, &err, 1);
+    }
+
+    response_payload[0] = status;
+    response_payload[1] = link_id;
+    response_payload[2] = (entry && status == UCI_STATUS_OK) ? entry->mode : 0;
+    response_payload[3] = (entry && status == UCI_STATUS_OK) ? entry->credit : 0;
+    return 4;
 }
 
 static int handle_session_set_app_config(unsigned char *response_payload, size_t max_len,
@@ -2388,6 +2579,8 @@ void init_uci_sessions() {
        uci_sessions[i].dtp_size = 0;
        uci_sessions[i].dtp_payload_len = 0;
        memset(uci_sessions[i].dtp_payload, 0, sizeof(uci_sessions[i].dtp_payload));
+        uci_sessions[i].logical_link_count = 0;
+        memset(uci_sessions[i].logical_links, 0, sizeof(uci_sessions[i].logical_links));
         uci_sessions[i].last_data_sequence = 0;
         uci_sessions[i].last_data_length = 0;
         uci_sessions[i].last_data_destination = 0;
@@ -2432,6 +2625,49 @@ int find_session_by_token_or_id(unsigned int identifier) {
         return idx;
     }
     return find_session_by_id(identifier);
+}
+
+static void session_clear_logical_links(struct uci_session* session) {
+    session->logical_link_count = 0;
+    memset(session->logical_links, 0, sizeof(session->logical_links));
+}
+
+static uci_logical_link_entry* session_find_logical_link(struct uci_session* session,
+                                                         unsigned char link_id) {
+    for (unsigned char i = 0; i < session->logical_link_count; i++) {
+        uci_logical_link_entry* entry = &session->logical_links[i];
+        if (entry->active && entry->link_id == link_id) {
+            return entry;
+        }
+    }
+    return NULL;
+}
+
+static uci_logical_link_entry* session_allocate_logical_link(struct uci_session* session,
+                                                             unsigned char requested_id,
+                                                             unsigned char* assigned_id) {
+    if (session->logical_link_count >= MAX_LOGICAL_LINKS) {
+        return NULL;
+    }
+
+    if (requested_id != 0xFF) {
+        *assigned_id = requested_id;
+    } else {
+        unsigned char candidate = 0;
+        while (session_find_logical_link(session, candidate) && candidate < 0xFF) {
+            candidate++;
+        }
+        if (candidate == 0xFF && session_find_logical_link(session, candidate)) {
+            return NULL;
+        }
+        *assigned_id = candidate;
+    }
+
+    uci_logical_link_entry* entry = &session->logical_links[session->logical_link_count++];
+    memset(entry, 0, sizeof(*entry));
+    entry->link_id = *assigned_id;
+    entry->active = 1;
+    return entry;
 }
 
 int get_allocated_session_count() {

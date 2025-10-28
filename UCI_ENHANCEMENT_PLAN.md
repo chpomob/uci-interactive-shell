@@ -1,4 +1,9 @@
-# UCI Enhancement Plan: Implement Missing HUS Commands
+# UCI Enhancement Plan: Implement Missing HUS Commands (Historical)
+
+> **Status Update:** The hybrid controller and controlee commands described in
+> this plan are now implemented in the interactive shell. The steps below are
+> preserved as background material and can be repurposed for future refinements
+> such as richer validation or extended error code support.
 
 ## 1. Problem Statement
 

@@ -2,15 +2,18 @@
 
 ## Priority Level 1: Critical Missing Features (Must Implement)
 
-### 1. Hybrid UWB System (HUS) Commands
-**Status**: ❌ Not Implemented  
+### 1. Logical-Link Session Control
+**Status**: ❌ Not Implemented**  
 **Commands**: 
-- SESSION_SET_HUS_CONTROLLER_CONFIG (Opcode 0x0C)
-- SESSION_SET_HUS_CONTROLEE_CONFIG (Opcode 0x0D)
-**Business Impact**: Essential for Android UWB compatibility and hybrid positioning
-**Technical Risk**: Medium (Complex data structures, session coordination)
-**Estimated Effort**: 3-4 weeks
-**Dependencies**: None
+- SESSION_LOGICAL_LINK_CREATE (Opcode 0x07)
+- SESSION_LOGICAL_LINK_CLOSE (Opcode 0x08)
+- SESSION_LOGICAL_LINK_UWBS_CREATE (Opcode 0x0A)
+- SESSION_LOGICAL_LINK_UWBS_CLOSE (Opcode 0x09)
+- SESSION_LOGICAL_LINK_GET_PARAM (Opcode 0x0B)
+**Business Impact**: Required for advanced Android multi-link scenarios
+**Technical Risk**: Medium (requires state tracking and credit management)
+**Estimated Effort**: 2-3 weeks
+**Dependencies**: Session management infrastructure
 
 ### 2. Error Code Enhancements
 **Status**: ⚠ Partially Implemented  
@@ -24,18 +27,7 @@
 
 ## Priority Level 2: Important Enhancements (Should Implement)
 
-### 3. Extended Session Configuration Commands
-**Status**: ⚠ Partially Implemented  
-**Missing Features**:
-- SESSION_SET_HUS_CONTROLLER_CONFIG (0x0C) - *Critical*
-- SESSION_SET_HUS_CONTROLEE_CONFIG (0x0D) - *Critical*
-- SESSION_DATA_TRANSFER_PHASE_CONFIGURATION (0x0E) - *Partially implemented*
-**Business Impact**: Complete session management capabilities
-**Technical Risk**: Medium
-**Estimated Effort**: 2-3 weeks
-**Dependencies**: Session management infrastructure
-
-### 4. Enhanced Test Command Support
+### 3. Enhanced Test Command Support
 **Status**: ⚠ Limited Implementation  
 **Commands**: 
 - RF Test commands (0x00-0x07)
@@ -47,23 +39,23 @@
 
 ## Priority Level 3: Valuable Enhancements (Nice to Have)
 
-### 5. Android Vendor Command Extensions
-**Status**: ✅ Mostly Implemented  
+### 4. Android Vendor Command Extensions
+**Status**: ✅ Implemented, Further Enhancements Possible  
 **Commands**: 
 - ANDROID_GET_POWER_STATS (0x00) - *Implemented*
 - ANDROID_SET_COUNTRY_CODE (0x01) - *Implemented*  
 - ANDROID_FIRA_RANGE_DIAGNOSTICS (0x02) - *Partially implemented*
 - ANDROID_RADAR_SET_APP_CONFIG (0x11) - *Implemented*
 - ANDROID_RADAR_GET_APP_CONFIG (0x12) - *Implemented*
-**Missing Features**: 
-- Enhanced range diagnostics reporting
-- Additional power management capabilities
+**Enhancement Ideas**: 
+- Deeper range diagnostics reporting
+- Additional power management breakdowns
 **Business Impact**: Enhanced Android compatibility
 **Technical Risk**: Low
 **Estimated Effort**: 1 week
 **Dependencies**: None
 
-### 6. Core Command Extensions
+### 5. Core Command Extensions
 **Status**: ⚠ Partially Implemented  
 **Commands**: 
 - CORE_DEVICE_RESET (0x00) - *Implemented*

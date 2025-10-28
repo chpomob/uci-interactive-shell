@@ -64,35 +64,31 @@ Additional Android-specific commands that enhance compatibility:
 ### Phase 1: Critical Missing Features (High Priority)
 🎯 **Target Completion: 2-3 weeks**
 
-1. **Implement HUS Commands** (Week 1-2)
-   - Add SESSION_SET_HUS_CONTROLLER_CONFIG (Opcode 0x0C)
-   - Add SESSION_SET_HUS_CONTROLEE_CONFIG (Opcode 0x0D)
-   - Implement proper data structures for hybrid session management
-   - Add comprehensive unit tests for both commands
+1. **Implement Logical-Link Session Control**
+   - Add handlers and decoders for SESSION_LOGICAL_LINK_CREATE / CLOSE / GET_PARAM
+   - Track per-link state and credits in the simulator
+   - Emit appropriate notifications for UWBS-triggered create/close events
 
-2. **Enhance Android Vendor Commands** (Week 2-3)
-   - Complete ANDROID_GET_POWER_STATS implementation
-   - Complete ANDROID_SET_COUNTRY_CODE implementation
-   - Complete ANDROID_FIRA_RANGE_DIAGNOSTICS implementation
-   - Add proper error handling and validation
+2. **Extend TEST Command Reporting**
+   - Provide structured decoders for RF_TEST_* responses
+   - Add analyzer coverage for success and failure cases
+   - Document CLI workflows for RF validation
 
 ### Phase 2: Test Coverage Expansion (Medium Priority)
 🎯 **Target Completion: 1-2 weeks**
 
-3. **Add Missing Test Cases**
-   - Create unit tests for SESSION_SET_HUS_CONTROLLER_CONFIG
-   - Create unit tests for SESSION_SET_HUS_CONTROLEE_CONFIG
-   - Enhance existing Android vendor command tests
-   - Add edge case and error condition tests
+3. **Broaden Automated Testing**
+   - Add regression tests for DT-Tag rounds and data-transfer-phase configuration
+   - Cover Android vendor responses in unit tests
+   - Introduce golden-log comparisons for logical-link flows
 
 ### Phase 3: Documentation and Validation (Low Priority)
 🎯 **Target Completion: 1 week**
 
-4. **Complete Documentation**
-   - Update README.md with HUS command documentation
-   - Add usage examples for hybrid positioning scenarios
-   - Document Android vendor command enhancements
-   - Create comprehensive API reference
+4. **Complete Documentation Refresh**
+   - Expand README and command reference with logical-link usage examples
+   - Capture RF test workflows and expected outputs
+   - Update protocol coverage tables
 
 5. **Final Validation**
    - Validate against latest Qorvo UWB SDK specification

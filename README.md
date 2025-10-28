@@ -26,17 +26,41 @@ To run the interactive shell:
 
 Once the shell is running, you can use the following commands:
 
-- `quit` - Exit the shell
-- `send <mt> <gid> <oid> [payload bytes]` - Send a raw UCI command with message type, group ID, opcode ID, and optional payload
-- `get_device_info` - Get device information
-- `device_reset` - Reset the device
-- `get_caps_info` - Get device capabilities information
-- `set_config` - Set device configuration
-- `get_config` - Get device configuration
-- `session_init` - Initialize a ranging session
-- `session_deinit` - Deinitialize a ranging session
-- `session_start` - Start a ranging session
-- `session_stop` - Stop a ranging session
+### General / UI
+- `help` / `history` / `complete <prefix>` – Discover commands and review history
+- `alias <name> <command>` / `unalias <name>` – Manage custom aliases
+- `analyze_packet [flags] <bytes...>` – Run the enhanced packet analyzer on hex input
+- `quit` – Exit the shell
+
+### Core Device Management
+- `get_device_info`, `device_reset`
+- `get_caps_info`, `get_device_state`
+- `set_config <config> <value>`, `get_config <config>`
+- `set_device_active`, `set_device_ready`, `device_on`, `device_off`, `device_suspend`
+
+### Session Configuration & Control
+- `session_init <id> <type>`, `session_deinit <id>`
+- `session_start <id>`, `session_stop <id>`, `get_session_state <id>`
+- `set_app_config <id> <param> <value>`, `get_app_config <id> <param>`
+- `session_update_multicast_list <id> <action> <short> <subsession>`
+- `session_update_dt_tag_rounds <id> [round_index ...]`
+- `session_data_transfer_phase_config <id> <repetition> <control> <size> [payload...]`
+- `session_query_data_size_in_ranging <id>`
+- `session_set_hybrid_controller_config <id> [hex-config]`
+- `session_set_hybrid_controlee_config <id> [hex-config]`
+- `session_send_data <id> <dest> <seq> <payload>`
+
+### Simulation Utilities
+- `simulate_ranging`, `simulate_multi_target_ranging`
+- `simulate_notification`, `simulate_session_status`, `simulate_data_credit`
+- `demo_session_flow`
+
+### Hardware Mode
+- `hw_init <device_path>`, `hw_connect <device_path>`
+- `hw_info`, `hw_device_reset`, `hw_get_device_state`
+- `hw_send <mt> <pbf> <gid> <oid> [payload...]`
+- `hw_send_raw <bytes...>`
+- Hardware-prefixed variants mirror the session/config commands above (e.g. `hw_session_init`, `hw_set_app_config`).
 
 ## Command Examples
 
@@ -48,10 +72,13 @@ Once the shell is running, you can use the following commands:
 - Device power control: `device_on` (alias for set_device_active), `device_off` (alias for set_device_ready)
 
 ### Session Management
-- Initialize a session: `session_init 1 fira_ranging` (session ID 1, type fira_ranging)
-- Start ranging: `session_start 1` 
-- Stop ranging: `session_stop 1`
+- Initialize a session: `session_init 1 fira_ranging`
+- Configure session parameters: `set_app_config 1 channel 5`
+- Update DT-Tag rounds: `session_update_dt_tag_rounds 1 0 1 2`
+- Configure data transfer: `session_data_transfer_phase_config 1 1 0x02 4 AA BB CC DD`
+- Start ranging: `session_start 1`
 - Get session status: `get_session_state 1`
+- Stop ranging: `session_stop 1`
 - Deinitialize session: `session_deinit 1`
 
 ### Configuration Management
@@ -129,6 +156,9 @@ The UCI Interactive Shell can communicate with real UWB hardware through charact
 > set_app_config 1 device_type responder    # Set device as responder
 > set_app_config 1 channel 5       # Set to channel 5
 > set_app_config 1 ranging_usage ranging   # Set ranging usage
+> session_update_multicast_list 1 add 0x1234 0x00000001
+> session_update_dt_tag_rounds 1 0 1
+> session_data_transfer_phase_config 1 1 0x02 0
 > session_start 1                  # Start the session
 > simulate_ranging                 # Simulate ranging measurement
 > get_session_state 1              # Check session state

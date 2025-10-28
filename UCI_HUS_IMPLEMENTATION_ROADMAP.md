@@ -1,4 +1,10 @@
-# UCI HUS Command Implementation Roadmap
+# UCI HUS Command Implementation Roadmap (Historical)
+
+> **Status Update (October 2025):** The hybrid controller (`SESSION_SET_HYBRID_CONTROLLER_CONFIG`)
+> and controlee (`SESSION_SET_HYBRID_CONTROLEE_CONFIG`) commands are now
+> implemented end-to-end, including CLI entry points and enhanced response
+> decoders. The material below is retained for reference should we revisit the
+> original planning assumptions.
 
 ## Phase 1: Immediate Actions (Week 1)
 
@@ -60,8 +66,8 @@
 ## Implementation Checklist
 
 ### Constants to Add:
-- [ ] SESSION_SET_HUS_CONTROLLER_CONFIG = 0x0C
-- [ ] SESSION_SET_HUS_CONTROLEE_CONFIG = 0x0D
+- [x] SESSION_SET_HUS_CONTROLLER_CONFIG = 0x0C
+- [x] SESSION_SET_HUS_CONTROLEE_CONFIG = 0x0D
 - [ ] ERROR_HUS_NOT_ENOUGH_SLOTS = 0x26
 - [ ] ERROR_HUS_CFP_PHASE_TOO_SHORT = 0x27
 - [ ] ERROR_HUS_CAP_PHASE_TOO_SHORT = 0x28
@@ -72,8 +78,8 @@
 - [ ] controlee_phase_list_t
 
 ### Functions to Implement:
-- [ ] handle_session_set_hus_controller_config()
-- [ ] handle_session_set_hus_controlee_config()
+- [x] handle_session_set_hus_controller_config()
+- [x] handle_session_set_hus_controlee_config()
 - [ ] parse_controller_phase_list()
 - [ ] parse_controlee_phase_list()
 - [ ] validate_hus_configuration()

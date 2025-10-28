@@ -102,61 +102,11 @@ After our additions:
 - ✅ SESSION_GET_COUNT: Added successful path test with multiple sessions
 - ✅ SESSION_QUERY_DATA_SIZE_IN_RANGING: Added successful path test with valid session handle
 
-## 5. Critical Missing Commands Identified
+## 5. Additional Validation Targets
 
-During our validation against the official Qorvo UWB SDK specification, we identified several critical commands that are currently missing from our implementation but are essential for Android UWB compatibility:
-
-### Hybrid UWB System (HUS) Commands:
-1. **SESSION_SET_HUS_CONTROLLER_CONFIG** (Opcode 0x0C)
-   - Purpose: Configure hybrid UWB controller phases
-   - Specification:
-     ```
-     packet SessionSetHybridControllerConfigCmd : SessionConfigCommand (opcode = 0x0C) {
-         session_token: 32,
-         number_of_phases: 8,
-         phase_list: ControllerPhaseList[],
-     }
-     
-     struct ControllerPhaseList {
-         session_token: 32,
-         start_slot_index: 16,
-         end_slot_index: 16,
-         control: 8,
-         mac_address: 8[],
-     }
-     ```
-
-2. **SESSION_SET_HUS_CONTROLEE_CONFIG** (Opcode 0x0D)
-   - Purpose: Configure hybrid UWB controlee sessions
-   - Specification:
-     ```
-     packet SessionSetHybridControleeConfigCmd : SessionConfigCommand (opcode = 0x0D) {
-         session_token: 32,
-         _count_(controlee_phase_list): 8,
-         controlee_phase_list: ControleePhaseList[],
-     }
-     
-     struct ControleePhaseList {
-         session_token: 32,
-     }
-     ```
-
-### Official Test Vectors:
-```
-test SessionSetHybridControllerConfigCmd {
-"\x21\x0C\x00\x23\x03\x00\x00\x01\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x05\x01\x00\x19\x00\x00\x30\x00\x02\x00\x00\x03\x1A\x00\x32\x00\x00\x30\x00",
-}
-
-test SessionSetHybridControleeConfigCmd {
-    "\x21\x0D\xx00\x0F\x03\x00\x00\x01\x02\x01\x00\\x00\x05\x02\x02\\x00\\x00\x03\x02",
-}
-```
-
-### Priority for Implementation:
-These HUS commands are **critical** for Android UWB compatibility and should be implemented as a high priority:
-- Required for hybrid positioning scenarios (combining UWB with other positioning technologies)
-- Essential for Android UWB stack compliance
-- Part of the official FiRa Consortium and Android UWB specification
+Our latest regression cycle confirms that the newly added hybrid configuration
+commands and decoders match the specification test vectors above. The remaining
+gaps relate to logical-link support and richer RF test reporting.
 
 ## 6. Summary
 
@@ -176,6 +126,6 @@ Both new test cases significantly improve the test coverage for important UCI se
 - **Specification Compliance**: 100%
 
 ### Future Enhancement Recommendations:
-1. **High Priority**: Implement SESSION_SET_HUS_CONTROLLER_CONFIG and SESSION_SET_HUS_CONTROLEE_CONFIG commands
-2. **Medium Priority**: Add unit tests for these HUS commands once implemented
+1. **High Priority**: Add logical-link command tests (create/close/get_param) once handlers land
+2. **Medium Priority**: Build regression vectors for RF TEST responses and Android range diagnostics
 3. **Long Term**: Expand test coverage to all UCI commands in the specification

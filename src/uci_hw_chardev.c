@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include "../include/uci_hw_chardev.h"
+#include "../include/uci.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +8,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <termios.h>
+#include <poll.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -130,6 +132,78 @@ int uci_hw_chardev_close(uci_hw_chardev_t* hw) {
     return 0;
 }
 
+static int wait_for_fd(int fd, short events, int timeout_ms) {
+    struct pollfd pfd = {
+        .fd = fd,
+        .events = events,
+    };
+
+    int ret;
+    do {
+        ret = poll(&pfd, 1, timeout_ms);
+    } while (ret < 0 && errno == EINTR);
+
+    return ret;
+}
+
+static int read_exact(uci_hw_chardev_t* hw, unsigned char* buffer, size_t length, int timeout_ms) {
+    size_t offset = 0;
+
+    while (offset < length) {
+        int wait_ret = wait_for_fd(hw->fd, POLLIN, timeout_ms);
+        if (wait_ret == 0) {
+            // Timeout
+            return (offset == 0) ? 0 : -1;
+        } else if (wait_ret < 0) {
+            return -1;
+        }
+
+        ssize_t bytes_read = read(hw->fd, buffer + offset, length - offset);
+        if (bytes_read < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;
+            }
+            return -1;
+        }
+
+        if (bytes_read == 0) {
+            // Device closed
+            return -1;
+        }
+
+        offset += (size_t)bytes_read;
+    }
+
+    return (int)offset;
+}
+
+static int write_exact(uci_hw_chardev_t* hw, const unsigned char* data, size_t length, int timeout_ms) {
+    size_t offset = 0;
+
+    while (offset < length) {
+        int wait_ret = wait_for_fd(hw->fd, POLLOUT, timeout_ms);
+        if (wait_ret <= 0) {
+            return (wait_ret == 0 && offset == 0) ? 0 : -1;
+        }
+
+        ssize_t written = write(hw->fd, data + offset, length - offset);
+        if (written < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;
+            }
+            return -1;
+        }
+
+        if (written == 0) {
+            return -1;
+        }
+
+        offset += (size_t)written;
+    }
+
+    return (int)offset;
+}
+
 // Send UCI packet to character device
 int uci_hw_chardev_send(uci_hw_chardev_t* hw, const unsigned char* data, size_t length) {
     if (!hw || !data || length == 0) {
@@ -150,25 +224,20 @@ int uci_hw_chardev_send(uci_hw_chardev_t* hw, const unsigned char* data, size_t 
         printf("\n");
     }
     
-    ssize_t bytes_written = write(hw->fd, data, length);
-    if (bytes_written < 0) {
+    int written = write_exact(hw, data, length, 100);
+    if (written < 0) {
         if (hw->verbose) {
             perror("Failed to write to UCI device");
         }
         return -1;
     }
-    
-    if ((size_t)bytes_written != length) {
-        if (hw->verbose) {
-            fprintf(stderr, "Warning: Only wrote %zd of %zu bytes\n", bytes_written, length);
-        }
-        return (int)bytes_written;
+
+    // Flush output to ensure data is sent when dealing with TTYs
+    if (tcdrain(hw->fd) != 0 && hw->verbose) {
+        perror("tcdrain failed");
     }
-    
-    // Flush output to ensure data is sent
-    tcdrain(hw->fd);
-    
-    return (int)bytes_written;
+
+    return written;
 }
 
 // Receive UCI packet from character device with timeout
@@ -183,54 +252,59 @@ int uci_hw_chardev_receive(uci_hw_chardev_t* hw, unsigned char* buffer, size_t b
         return -1;
     }
     
-    fd_set read_fds;
-    struct timeval timeout;
-    
-    FD_ZERO(&read_fds);
-    FD_SET(hw->fd, &read_fds);
-    
-    // Convert timeout to seconds and microseconds
-    timeout.tv_sec = timeout_ms / 1000;
-    timeout.tv_usec = (timeout_ms % 1000) * 1000;
-    
-    // Wait for data to be available
-    int select_result = select(hw->fd + 1, &read_fds, NULL, NULL, 
-                              timeout_ms >= 0 ? &timeout : NULL);
-    
-    if (select_result < 0) {
+    if (buffer_size < sizeof(struct uci_packet_header)) {
+        errno = EMSGSIZE;
+        return -1;
+    }
+
+    int header_bytes = read_exact(hw, buffer, sizeof(struct uci_packet_header), timeout_ms);
+    if (header_bytes <= 0) {
+        return header_bytes;
+    }
+
+    if ((size_t)header_bytes != sizeof(struct uci_packet_header)) {
         if (hw->verbose) {
-            perror("select failed");
+            printf("Short read while fetching UCI header (%d bytes)\n", header_bytes);
         }
         return -1;
-    } else if (select_result == 0) {
-        // Timeout - no data available
-        if (hw->verbose) {
-            printf("Timeout waiting for UCI data\n");
-        }
-        return 0; // No data available
     }
-    
-    // Data is available, read it
-    ssize_t bytes_read = read(hw->fd, buffer, buffer_size);
-    if (bytes_read < 0) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+
+    const struct uci_packet_header* header = (const struct uci_packet_header*)buffer;
+    unsigned char payload_len = header->payload_len;
+
+    if (sizeof(struct uci_packet_header) + payload_len > buffer_size) {
+        if (hw->verbose) {
+            printf("Payload length %u exceeds buffer capacity %zu\n",
+                   payload_len, buffer_size);
+        }
+        return -1;
+    }
+
+    if (payload_len > 0) {
+        int payload_bytes = read_exact(hw, buffer + sizeof(struct uci_packet_header), payload_len, timeout_ms);
+        if (payload_bytes <= 0) {
+            return -1;
+        }
+
+        if ((unsigned int)payload_bytes != payload_len) {
             if (hw->verbose) {
-                perror("Failed to read from UCI device");
+                printf("Short read while fetching payload (%d/%u bytes)\n",
+                       payload_bytes, payload_len);
             }
             return -1;
         }
-        return 0; // No data available (non-blocking)
     }
-    
-    if (hw->verbose && bytes_read > 0) {
-        printf("Received %zd bytes from UCI device (%s):\n  ", bytes_read, hw->device_path);
-        for (ssize_t i = 0; i < bytes_read; i++) {
+
+    if (hw->verbose) {
+        printf("Received %zu bytes from UCI device (%s):\n  ",
+               sizeof(struct uci_packet_header) + payload_len, hw->device_path);
+        for (size_t i = 0; i < sizeof(struct uci_packet_header) + payload_len; i++) {
             printf("%02X ", buffer[i]);
         }
         printf("\n");
     }
-    
-    return (int)bytes_read;
+
+    return (int)(sizeof(struct uci_packet_header) + payload_len);
 }
 
 // Set verbose mode

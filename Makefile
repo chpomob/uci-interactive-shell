@@ -7,6 +7,7 @@ OBJ=$(SRC:.c=.o)
 
 TARGET=uci-shell
 TEST_TARGET=test_chardev
+MUTUALIZATION_TEST_TARGET=test_mutualization
 UNIT_TEST_TARGET=test_uci_functions
 CONFIG_TEST_TARGET=test_config_manager
 SESSION_MANAGER_TEST_TARGET=test_session_manager
@@ -14,10 +15,16 @@ SECURITY_TEST_TARGET=test_uci_security
 
 .PHONY: all clean install test unit-test config-test session-manager-test security-test coverage
 
-all: $(TARGET) unit-test config-test session-manager-test security-test
+all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
+
+test-mutualization: $(MUTUALIZATION_TEST_TARGET)
+	./$(MUTUALIZATION_TEST_TARGET)
+
+$(MUTUALIZATION_TEST_TARGET): test_mutualization.c $(filter-out src/main.o,$(OBJ))
+	$(CC) $(CFLAGS) -o $(MUTUALIZATION_TEST_TARGET) test_mutualization.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
 
 src/main.o: src/main.c include/uci.h include/uci_functions.h
 src/uci.o: src/uci.c include/uci.h include/uci_functions.h

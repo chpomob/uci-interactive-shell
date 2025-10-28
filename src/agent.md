@@ -1,5 +1,7 @@
 # Agent Guide: `src/`
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Files of Interest
 - `main.c`: Readline-driven CLI loop; handles history, aliases, command routing.
 - `uci.c`: Simulation brain—parses/synthesizes UCI packets, maintains session state, dispatches notifications.

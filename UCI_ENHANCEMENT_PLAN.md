@@ -1,5 +1,7 @@
 # UCI Enhancement Plan: Implement Missing HUS Commands (Historical)
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 > **Status Update:** The hybrid controller and controlee commands described in
 > this plan are now implemented in the interactive shell. The steps below are
 > preserved as background material and can be repurposed for future refinements

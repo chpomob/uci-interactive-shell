@@ -29,8 +29,7 @@ To run the interactive shell:
 Once the shell is running, you can use the following commands:
 
 ### General / UI
-- `help` / `history` / `complete <prefix>` – Discover commands and review history
-- `alias <name> <command>` / `unalias <name>` – Manage custom aliases
+- `help` – Discover commands and their usage
 - `analyze_packet [flags] <bytes...>` – Run the enhanced packet analyzer on hex input
 - `quit` – Exit the shell
 

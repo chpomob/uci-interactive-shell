@@ -1,5 +1,7 @@
 # Interesting UCI Implementation Files in Qorvo SDK
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 This document lists the most interesting and useful UCI-related files from the Qorvo SDK that could provide valuable insights for your UCI implementation.
 
 ## Core UCI Implementation Files

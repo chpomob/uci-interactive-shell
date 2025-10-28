@@ -1,5 +1,7 @@
 # UCI Packet Analysis Coverage Analysis
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Current Implementation Status
 
 ### 1. SESSION_CONFIG Commands (GID = 0x01)

@@ -1,10 +1,12 @@
 # Repository Guidelines
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Project Structure & Module Organization
 Core CLI logic lives in `src/`, covering the main loop, command handlers, packet parsing, and hardware layers; add new symbols beside their peers. Public headers reside in `include/` and must stay guarded and consistent with the C sources. Tests mirror production structure under `tests/`, with harnesses such as `tests/test_session_manager.c`. Use helper scripts like `analyze_real_logs.py`, `final_analysis_report.py`, and the demos in `demo_enhanced_ui/` to support protocol analysis, while longer research belongs in `docs/` or `uci_analysis/`.
 
 ## Build, Test, and Development Commands
-- `make`: compile `uci-shell` and every test binary with Readline linked.
+- `make`: compile `uci-shell` and every test binary.
 - `./uci-shell`: launch the interactive shell after a successful build.
 - `make unit-test` / `make config-test` / `make session-manager-test` / `make security-test`: exercise focused suites; watch for `FAILED` lines.
 - `make coverage`: rebuild with GCOV and review `coverage/src_coverage.txt` and `coverage/tests_coverage.txt`.

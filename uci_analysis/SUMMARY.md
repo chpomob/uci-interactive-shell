@@ -1,5 +1,7 @@
 # UCI Protocol Deep Dive: Android Implementation vs Our Project
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 This document provides a comprehensive analysis of the UCI (Ultra-wideband Communication Interface) protocol based on the Android Open Source Project implementation and how it compares to our current project.

@@ -1,5 +1,7 @@
 # Qorvo UWB SDK Integration Summary
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 The Qorvo UWB SDK has been successfully integrated into the UCI analysis directory. This provides official reference materials for the UCI (Ultra-Wideband Control Interface) protocol implementation.

@@ -1,5 +1,7 @@
 # UCI Header Specification and Implementation
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 This document describes the UCI (Ultra-Wideband Communication Interface) packet header structure as implemented in this codebase, with emphasis on the correct **LSB (Least Significant Bit first)** bit ordering used in the Android UWB specification.

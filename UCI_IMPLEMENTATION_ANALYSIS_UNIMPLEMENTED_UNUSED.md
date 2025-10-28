@@ -1,5 +1,7 @@
 # UCI Implementation Analysis: Unimplemented vs Unused Commands
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 Based on our analysis, we can categorize the current state of UCI command implementation into four categories:

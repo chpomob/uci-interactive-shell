@@ -1,5 +1,7 @@
 # UCI Interactive Shell - UI Enhancement Summary
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Project Status
 
 ✅ **Completed Successfully**

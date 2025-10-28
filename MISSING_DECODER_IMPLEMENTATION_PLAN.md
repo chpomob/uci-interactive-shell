@@ -1,5 +1,7 @@
 # Missing UCI Packet Decoder Implementation Plan
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 Based on our analysis, we've successfully implemented the missing SESSION_CONFIG_RESPONSE decoders for opcodes 0x0B, 0x0C, and 0x0D. We still have 8 remaining "No specific decoder" messages that need to be addressed:

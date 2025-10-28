@@ -1,111 +1,87 @@
 #include <stdio.h>
 #include <string.h>
-
 #include "../include/uci_cli.h"
+#include "../include/uci_ui.h"
 
-static char g_history[CLI_MAX_HISTORY_SIZE][CLI_MAX_LINE_LENGTH];
-static int g_history_count = 0;
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-static char g_aliases[CLI_MAX_ALIASES][2][CLI_MAX_ALIAS_TEXT];
-static int g_alias_count = 0;
+#include "../include/uci_globals.h"
 
-void cli_history_add(const char* command) {
-    if (command == NULL || command[0] == '\0') {
-        return;
+int cli_tokenize(char* line, char** argv, int max_tokens) {
+    if (!line || !argv || max_tokens <= 0) {
+        return 0;
     }
 
-    if (g_history_count > 0) {
-        const char* last_entry = g_history[(g_history_count - 1) % CLI_MAX_HISTORY_SIZE];
-        if (strncmp(last_entry, command, CLI_MAX_LINE_LENGTH) == 0) {
-            return;
+    int argc = 0;
+    char* cursor = line;
+
+    while (*cursor != '\0' && argc < max_tokens) {
+        while (*cursor == ' ' || *cursor == '\t') {
+            cursor++;
         }
-    }
-
-    strncpy(g_history[g_history_count % CLI_MAX_HISTORY_SIZE], command, CLI_MAX_LINE_LENGTH - 1);
-    g_history[g_history_count % CLI_MAX_HISTORY_SIZE][CLI_MAX_LINE_LENGTH - 1] = '\0';
-    g_history_count++;
-}
-
-void cli_history_print(void) {
-    int start = (g_history_count > CLI_MAX_HISTORY_SIZE)
-                    ? (g_history_count - CLI_MAX_HISTORY_SIZE)
-                    : 0;
-
-    for (int i = start; i < g_history_count; i++) {
-        int index = i % CLI_MAX_HISTORY_SIZE;
-        printf("%4d  %s\n", i + 1, g_history[index]);
-    }
-}
-
-cli_alias_result_t cli_alias_add(const char* alias, const char* command) {
-    if (alias == NULL || alias[0] == '\0' || command == NULL || command[0] == '\0') {
-        return CLI_ALIAS_NOT_FOUND;
-    }
-
-    for (int i = 0; i < g_alias_count; i++) {
-        if (strcmp(g_aliases[i][0], alias) == 0) {
-            strncpy(g_aliases[i][1], command, CLI_MAX_ALIAS_TEXT - 1);
-            g_aliases[i][1][CLI_MAX_ALIAS_TEXT - 1] = '\0';
-            return CLI_ALIAS_UPDATED;
+        if (*cursor == '\0') {
+            break;
         }
+
+        argv[argc++] = cursor;
+        while (*cursor != '\0' && *cursor != ' ' && *cursor != '\t') {
+            cursor++;
+        }
+        if (*cursor == '\0') {
+            break;
+        }
+        *cursor++ = '\0';
     }
 
-    if (g_alias_count >= CLI_MAX_ALIASES) {
-        return CLI_ALIAS_FULL;
-    }
-
-    strncpy(g_aliases[g_alias_count][0], alias, CLI_MAX_ALIAS_TEXT - 1);
-    g_aliases[g_alias_count][0][CLI_MAX_ALIAS_TEXT - 1] = '\0';
-    strncpy(g_aliases[g_alias_count][1], command, CLI_MAX_ALIAS_TEXT - 1);
-    g_aliases[g_alias_count][1][CLI_MAX_ALIAS_TEXT - 1] = '\0';
-    g_alias_count++;
-    return CLI_ALIAS_SUCCESS;
+    return argc;
 }
 
-const char* cli_alias_lookup(const char* alias) {
-    if (alias == NULL) {
+const cli_command_t* cli_find_command(const char* name) {
+    if (!name) {
         return NULL;
     }
 
-    for (int i = 0; i < g_alias_count; i++) {
-        if (strcmp(g_aliases[i][0], alias) == 0) {
-            return g_aliases[i][1];
+    for (int i = 0; i < g_cli_commands_count; i++) {
+        const cli_command_t* cmd = &g_cli_commands[i];
+        if (strcmp(name, cmd->name) == 0) {
+            return cmd;
+        }
+        for (size_t alias_idx = 0; alias_idx < ARRAY_SIZE(cmd->aliases); alias_idx++) {
+            const char* alias = cmd->aliases[alias_idx];
+            if (alias == NULL) {
+                break;
+            }
+            if (strcmp(name, alias) == 0) {
+                return cmd;
+            }
         }
     }
+
     return NULL;
 }
 
-void cli_alias_print_all(void) {
-    if (g_alias_count == 0) {
-        printf("No aliases defined.\n");
-        return;
+int cli_dispatch(int argc, char** argv) {
+    if (argc == 0) {
+        return 0;
     }
 
-    printf("Defined aliases:\n");
-    for (int i = 0; i < g_alias_count; i++) {
-        printf("  %s -> %s\n", g_aliases[i][0], g_aliases[i][1]);
+    const cli_command_t* command = cli_find_command(argv[0]);
+    if (!command) {
+        ui_print_command_not_found(argv[0]);
+        return -1;
     }
+
+    if ((command->flags & CLI_CMD_FLAG_REQUIRES_HW_MODE) && !g_hardware_mode) {
+        ui_print_error("Command requires hardware mode. Run hw_init or mode_hw first.");
+        return -1;
+    }
+
+    return command->handler(argc, argv);
 }
 
-cli_alias_result_t cli_alias_remove(const char* alias) {
-    if (alias == NULL) {
-        return CLI_ALIAS_NOT_FOUND;
-    }
-
-    for (int i = 0; i < g_alias_count; i++) {
-        if (strcmp(g_aliases[i][0], alias) == 0) {
-            for (int j = i; j < g_alias_count - 1; j++) {
-                memcpy(g_aliases[j], g_aliases[j + 1], sizeof(g_aliases[j]));
-            }
-            g_alias_count--;
-            return CLI_ALIAS_SUCCESS;
-        }
-    }
-    return CLI_ALIAS_NOT_FOUND;
-}
-
-void cli_alias_print_names(void) {
-    for (int i = 0; i < g_alias_count; i++) {
-        printf("%s ", g_aliases[i][0]);
+void cli_print_help(void) {
+    printf("Available commands:\n");
+    for (int i = 0; i < g_cli_commands_count; i++) {
+        printf("  %s\n", g_cli_commands[i].name);
     }
 }

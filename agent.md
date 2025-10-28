@@ -1,5 +1,7 @@
 # Agent Guide: UCI Interactive Shell
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Project Snapshot
 - **Purpose**: Interactive CLI for exercising the Android-aligned UCI protocol against simulated or real UWB controllers.
 - **Primary language**: C (C11); command-line UX built on GNU Readline.

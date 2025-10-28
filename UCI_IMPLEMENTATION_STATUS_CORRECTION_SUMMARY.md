@@ -1,5 +1,7 @@
 # UCI Implementation Status: Key Findings & Document Updates
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Executive Summary
 
 During a comprehensive analysis of the UCI Interactive Shell codebase, we discovered that many features previously thought to be "missing" or "partially implemented" are actually already fully implemented in the current codebase. This analysis revealed significant discrepancies between existing documentation and the current implementation status.

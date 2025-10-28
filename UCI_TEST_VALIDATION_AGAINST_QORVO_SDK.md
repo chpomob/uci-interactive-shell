@@ -1,5 +1,7 @@
 # UCI Test Validation Against Qorvo SDK Definitions
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 This document validates that our newly added unit tests conform to the official UCI protocol definitions from the Qorvo UWB SDK.
 
 ## 1. SESSION_GET_COUNT Command Validation

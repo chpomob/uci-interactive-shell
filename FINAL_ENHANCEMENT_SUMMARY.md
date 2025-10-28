@@ -1,5 +1,7 @@
 # UCI Implementation Enhancement Project - Final Summary
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Project Overview
 
 This project successfully enhanced the UCI (Ultra-Wideband Control Interface) implementation to achieve state-of-the-art quality standards through comprehensive improvements in:

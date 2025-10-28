@@ -4,10 +4,9 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <sys/select.h>
+#include <sys/time.h>
 
-// Readline includes for tab completion
-#include <readline/readline.h>
-#include <readline/history.h>
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -29,46 +28,17 @@
 #include "../include/uci_cmd_session.h"
 #include "../include/uci_cmd_session_config.h"
 #include "../include/uci_cmd_analysis.h"
+#include "../include/uci_globals.h"
 
 #define MAX_PAYLOAD_LENGTH 255
 #define CLI_MAX_TOKENS 64
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-enum {
-    CLI_CMD_FLAG_NONE = 0,
-    CLI_CMD_FLAG_REQUIRES_HW_MODE = 1u << 0
-};
 
-typedef enum {
-    CLI_GROUP_GENERAL = 0,
-    CLI_GROUP_HARDWARE,
-    CLI_GROUP_DEVICE,
-    CLI_GROUP_SESSION,
-    CLI_GROUP_SESSION_CONFIG,
-    CLI_GROUP_ANALYSIS,
-    CLI_GROUP_SIMULATION,
-} cli_command_group_t;
 
-typedef int (*cli_command_handler_t)(int argc, char** argv);
 
-typedef struct {
-    const char* name;
-    const char* aliases[4];
-    cli_command_group_t group;
-    unsigned int flags;
-    const char* description;
-    cli_command_handler_t handler;
-} cli_command_t;
 
-// Global variables for hardware mode
-int g_hardware_mode = 0;
-uci_hw_chardev_t g_uwb_chardev;
-
-// Forward declarations for command handlers
-static int cmd_complete(int argc, char** argv);
-static int cmd_alias(int argc, char** argv);
-static int cmd_unalias(int argc, char** argv);
 static int cmd_hw_init(int argc, char** argv);
 static int cmd_hw_send(int argc, char** argv);
 static int cmd_mode_sim(int argc, char** argv);
@@ -113,12 +83,8 @@ static int cmd_demo_session_flow(int argc, char** argv);
 static int cmd_analyze_packet(int argc, char** argv);
 static int cmd_help(int argc, char** argv);
 
-static const cli_command_t g_cli_commands[] = {
+const cli_command_t g_cli_commands[] = {
     { "help", { NULL }, CLI_GROUP_GENERAL, CLI_CMD_FLAG_NONE, "Show this help message", cmd_help },
-    { "complete", { NULL }, CLI_GROUP_GENERAL, CLI_CMD_FLAG_NONE, "Display completion suggestions", cmd_complete },
-    { "alias", { NULL }, CLI_GROUP_GENERAL, CLI_CMD_FLAG_NONE, "Create or list command aliases", cmd_alias },
-    { "unalias", { NULL }, CLI_GROUP_GENERAL, CLI_CMD_FLAG_NONE, "Remove a command alias", cmd_unalias },
-
     { "mode_sim", { "sim_mode", NULL }, CLI_GROUP_HARDWARE, CLI_CMD_FLAG_NONE, "Switch to simulation mode", cmd_mode_sim },
     { "mode_hw", { "hw_mode", NULL }, CLI_GROUP_HARDWARE, CLI_CMD_FLAG_NONE, "Switch to hardware mode", cmd_mode_hw },
     { "mode_info", { "current_mode", NULL }, CLI_GROUP_HARDWARE, CLI_CMD_FLAG_NONE, "Display current mode", cmd_mode_info },
@@ -167,355 +133,20 @@ static const cli_command_t g_cli_commands[] = {
     { "simulate_multi_target_ranging", { NULL }, CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate multi-target ranging notification", cmd_simulate_multi_target_ranging },
     { "demo_session_flow", { NULL }, CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Demonstrate session flow", cmd_demo_session_flow },
 };
+const int g_cli_commands_count = ARRAY_SIZE(g_cli_commands);
 
-static void cli_expand_alias(char* line, size_t capacity) {
-    if (!line || capacity == 0) {
-        return;
-    }
 
-    for (int depth = 0; depth < 4; depth++) {
-        const char* cursor = line;
-        while (*cursor == ' ' || *cursor == '\t') {
-            cursor++;
-        }
-        if (*cursor == '\0') {
-            return;
-        }
 
-        size_t command_len = strcspn(cursor, " \t");
-        if (command_len == 0 || command_len >= CLI_MAX_LINE_LENGTH) {
-            return;
-        }
 
-        char command[CLI_MAX_LINE_LENGTH];
-        memcpy(command, cursor, command_len);
-        command[command_len] = '\0';
 
-        const char* expansion = cli_alias_lookup(command);
-        if (!expansion) {
-            return;
-        }
+#include "../include/uci_main_commands.h"
 
-        const char* remainder = cursor + command_len;
-        char expanded[CLI_MAX_LINE_LENGTH];
-        int written = snprintf(expanded, sizeof(expanded), "%s%s", expansion, remainder);
-        if (written < 0 || (size_t)written >= sizeof(expanded)) {
-            printf("Error: Expanded alias is too long.\n");
-            return;
-        }
-
-        strncpy(line, expanded, capacity - 1);
-        line[capacity - 1] = '\0';
-    }
-}
-
-static int cli_tokenize(char* line, char** argv, int max_tokens) {
-    if (!line || !argv || max_tokens <= 0) {
-        return 0;
-    }
-
-    int argc = 0;
-    char* cursor = line;
-
-    while (*cursor != '\0' && argc < max_tokens) {
-        while (*cursor == ' ' || *cursor == '\t') {
-            cursor++;
-        }
-        if (*cursor == '\0') {
-            break;
-        }
-
-        argv[argc++] = cursor;
-        while (*cursor != '\0' && *cursor != ' ' && *cursor != '\t') {
-            cursor++;
-        }
-        if (*cursor == '\0') {
-            break;
-        }
-        *cursor++ = '\0';
-    }
-
-    return argc;
-}
-
-static int cli_join_arguments(int argc, char** argv, char* buffer, size_t buffer_size) {
-    if (!buffer || buffer_size == 0) {
-        return -1;
-    }
-
-    buffer[0] = '\0';
-    size_t used = 0;
-
-    for (int i = 0; i < argc; i++) {
-        const char* arg = argv[i];
-        if (!arg) {
-            continue;
-        }
-
-        if (i > 0) {
-            if (used + 1 >= buffer_size) {
-                return -1;
-            }
-            buffer[used++] = ' ';
-        }
-
-        size_t len = strlen(arg);
-        if (used + len >= buffer_size) {
-            size_t available = buffer_size - used - 1;
-            memcpy(buffer + used, arg, available);
-            used += available;
-            buffer[used] = '\0';
-            return -1;
-        }
-
-        memcpy(buffer + used, arg, len);
-        used += len;
-        buffer[used] = '\0';
-    }
-
-    return 0;
-}
-
-static const cli_command_t* cli_find_command(const char* name) {
-    if (!name) {
-        return NULL;
-    }
-
-    for (size_t i = 0; i < ARRAY_SIZE(g_cli_commands); i++) {
-        const cli_command_t* cmd = &g_cli_commands[i];
-        if (strcmp(name, cmd->name) == 0) {
-            return cmd;
-        }
-        for (size_t alias_idx = 0; alias_idx < ARRAY_SIZE(cmd->aliases); alias_idx++) {
-            const char* alias = cmd->aliases[alias_idx];
-            if (alias == NULL) {
-                break;
-            }
-            if (strcmp(name, alias) == 0) {
-                return cmd;
-            }
-        }
-    }
-
-    return NULL;
-}
-
-static void cli_format_command_name(const cli_command_t* cmd, char* buffer, size_t buffer_size) {
-    buffer[0] = '\0';
-    if (!cmd || buffer_size == 0) {
-        return;
-    }
-
-    strncat(buffer, cmd->name, buffer_size - 1);
-
-    bool first_alias = true;
-    for (size_t i = 0; i < ARRAY_SIZE(cmd->aliases); i++) {
-        const char* alias = cmd->aliases[i];
-        if (!alias) {
-            break;
-        }
-        if (first_alias) {
-            strncat(buffer, " (", buffer_size - strlen(buffer) - 1);
-            first_alias = false;
-        } else {
-            strncat(buffer, ", ", buffer_size - strlen(buffer) - 1);
-        }
-        strncat(buffer, alias, buffer_size - strlen(buffer) - 1);
-    }
-
-    if (!first_alias) {
-        strncat(buffer, ")", buffer_size - strlen(buffer) - 1);
-    }
-}
-
-static const char* cli_group_title(cli_command_group_t group) {
-    switch (group) {
-        case CLI_GROUP_GENERAL:
-            return "General Commands";
-        case CLI_GROUP_HARDWARE:
-            return "Mode & Hardware Commands";
-        case CLI_GROUP_DEVICE:
-            return "Device Management Commands";
-        case CLI_GROUP_SESSION:
-            return "Session Commands";
-        case CLI_GROUP_SESSION_CONFIG:
-            return "Advanced Session Configuration";
-        case CLI_GROUP_ANALYSIS:
-            return "Analysis Commands";
-        case CLI_GROUP_SIMULATION:
-            return "Simulation Utilities";
-        default:
-            return "Commands";
-    }
-}
-
-static void cli_print_command_help_line(const cli_command_t* cmd) {
-    char name_buffer[128];
-    cli_format_command_name(cmd, name_buffer, sizeof(name_buffer));
-
-    if (ui_color_enabled) {
-        printf("  %s%s%s%s - %s%s%s\n",
-               ANSI_BOLD, ANSI_COLOR_BRIGHT_GREEN, name_buffer, ANSI_RESET,
-               ANSI_COLOR_WHITE, cmd->description, ANSI_RESET);
-    } else {
-        printf("  %s - %s\n", name_buffer, cmd->description);
-    }
-}
-
-static void cli_print_group_header(const char* title) {
-    if (ui_color_enabled) {
-        printf("%s%s%s:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, title, ANSI_RESET);
-    } else {
-        printf("%s:\n", title);
-    }
-}
-
-static void cli_print_help(void) {
-    ui_print_header("UCI Interactive Shell - Enhanced UI");
-
-    static const cli_command_group_t group_order[] = {
-        CLI_GROUP_GENERAL,
-        CLI_GROUP_HARDWARE,
-        CLI_GROUP_DEVICE,
-        CLI_GROUP_SESSION,
-        CLI_GROUP_SESSION_CONFIG,
-        CLI_GROUP_ANALYSIS,
-        CLI_GROUP_SIMULATION
-    };
-
-    for (size_t g = 0; g < ARRAY_SIZE(group_order); g++) {
-        cli_command_group_t group = group_order[g];
-        bool printed_group = false;
-        for (size_t i = 0; i < ARRAY_SIZE(g_cli_commands); i++) {
-            const cli_command_t* cmd = &g_cli_commands[i];
-            if (cmd->group != group) {
-                continue;
-            }
-            if (!printed_group) {
-                cli_print_group_header(cli_group_title(group));
-                printed_group = true;
-            }
-            cli_print_command_help_line(cmd);
-        }
-        if (printed_group) {
-            printf("\n");
-        }
-    }
-
-    if (ui_color_enabled) {
-        printf("%s%sKey Resources:%s\n", ANSI_COLOR_BRIGHT_BLUE, ANSI_BOLD, ANSI_RESET);
-        printf("  - %sREADME.md%s – Project overview and usage\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_RESET);
-        printf("  - %sFINAL_SUMMARY.md%s – Feature matrix and technical details\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_RESET);
-        printf("  - %suci_analysis/%s – Detailed UCI protocol analysis\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_RESET);
-    } else {
-        printf("Key Resources:\n");
-        printf("  - README.md – Project overview and usage\n");
-        printf("  - FINAL_SUMMARY.md – Feature matrix and technical details\n");
-        printf("  - uci_analysis/ – Detailed UCI protocol analysis\n");
-    }
-}
-
-static int cli_dispatch(int argc, char** argv) {
-    if (argc == 0) {
-        return 0;
-    }
-
-    const cli_command_t* command = cli_find_command(argv[0]);
-    if (!command) {
-        ui_print_command_not_found(argv[0]);
-        return -1;
-    }
-
-    if ((command->flags & CLI_CMD_FLAG_REQUIRES_HW_MODE) && !g_hardware_mode) {
-        ui_print_error("Command requires hardware mode. Run hw_init or mode_hw first.");
-        return -1;
-    }
-
-    return command->handler(argc, argv);
-}
-
-static int cmd_complete(int argc, char** argv) {
-    char buffer[CLI_MAX_LINE_LENGTH];
-    const char* input = "";
-
-    if (argc > 1) {
-        if (cli_join_arguments(argc - 1, &argv[1], buffer, sizeof(buffer)) == 0) {
-            input = buffer;
-        } else {
-            input = buffer;
-        }
-    }
-
-    cli_print_completion_suggestions(input);
-    return 0;
-}
-
-static int cmd_alias(int argc, char** argv) {
-    if (argc == 1) {
-        cli_alias_print_all();
-        return 0;
-    }
-
-    const char* alias_name = argv[1];
-    if (!alias_name) {
-        printf("Usage: alias <name> [command]\n");
-        return -1;
-    }
-
-    if (argc == 2) {
-        const char* real_cmd = cli_alias_lookup(alias_name);
-        if (real_cmd) {
-            printf("%s -> %s\n", alias_name, real_cmd);
-        } else {
-            printf("Alias '%s' not found\n", alias_name);
-        }
-        return 0;
-    }
-
-    char alias_value[CLI_MAX_ALIAS_TEXT];
-    if (cli_join_arguments(argc - 2, &argv[2], alias_value, sizeof(alias_value)) != 0) {
-        printf("Alias definition too long.\n");
-        return -1;
-    }
-
-    cli_alias_result_t result = cli_alias_add(alias_name, alias_value);
-    if (result == CLI_ALIAS_FULL) {
-        ui_print_error("Maximum number of aliases reached");
-        return -1;
-    } else if (result == CLI_ALIAS_UPDATED) {
-        printf("Alias '%s' updated to '%s'\n", alias_name, alias_value);
-    } else if (result == CLI_ALIAS_SUCCESS) {
-        printf("Alias '%s' added for '%s'\n", alias_name, alias_value);
-    } else {
-        printf("Failed to add alias '%s'\n", alias_name);
-        return -1;
-    }
-
-    return 0;
-}
-
-static int cmd_unalias(int argc, char** argv) {
-    if (argc < 2) {
-        printf("Usage: unalias <alias_name>\n");
-        return -1;
-    }
-
-    cli_alias_result_t result = cli_alias_remove(argv[1]);
-    if (result == CLI_ALIAS_SUCCESS) {
-        printf("Alias '%s' removed.\n", argv[1]);
-        return 0;
-    }
-
-    printf("Alias '%s' not found.\n", argv[1]);
-    return -1;
-}
-
-static int cmd_hw_init(int argc, char** argv) {
+int cmd_hw_init(int argc, char** argv) {
     char* device_path = (argc > 1) ? argv[1] : NULL;
     return handle_hw_init_command(device_path);
 }
 
-static int cmd_hw_send(int argc, char** argv) {
+int cmd_hw_send(int argc, char** argv) {
     char** payload_tokens = (argc > 5) ? &argv[5] : NULL;
     int payload_count = (argc > 5) ? (argc - 5) : 0;
 
@@ -528,133 +159,133 @@ static int cmd_hw_send(int argc, char** argv) {
         payload_count);
 }
 
-static int cmd_mode_sim(int argc, char** argv) {
+int cmd_mode_sim(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_mode_sim_command();
     return 0;
 }
 
-static int cmd_mode_hw(int argc, char** argv) {
+int cmd_mode_hw(int argc, char** argv) {
     char* device_path = (argc > 1) ? argv[1] : NULL;
     return handle_mode_hw_command(device_path);
 }
 
-static int cmd_mode_info(int argc, char** argv) {
+int cmd_mode_info(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_mode_info_command();
     return 0;
 }
 
-static int cmd_get_device_info(int argc, char** argv) {
+int cmd_get_device_info(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_get_device_info_command();
     return 0;
 }
 
-static int cmd_device_reset(int argc, char** argv) {
+int cmd_device_reset(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_device_reset_command();
     return 0;
 }
 
-static int cmd_set_power(int argc, char** argv) {
+int cmd_set_power(int argc, char** argv) {
     char* power_state = (argc > 1) ? argv[1] : NULL;
     return handle_set_power_command(power_state);
 }
 
-static int cmd_device_on(int argc, char** argv) {
+int cmd_device_on(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_device_on_command();
     return 0;
 }
 
-static int cmd_device_off(int argc, char** argv) {
+int cmd_device_off(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_device_off_command();
     return 0;
 }
 
-static int cmd_get_caps_info(int argc, char** argv) {
+int cmd_get_caps_info(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_get_caps_info_command();
     return 0;
 }
 
-static int cmd_get_config(int argc, char** argv) {
+int cmd_get_config(int argc, char** argv) {
     char* config_name = (argc > 1) ? argv[1] : NULL;
     return handle_get_config_command(config_name);
 }
 
-static int cmd_get_device_state(int argc, char** argv) {
+int cmd_get_device_state(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_get_device_state_command();
     return 0;
 }
 
-static int cmd_set_device_active(int argc, char** argv) {
+int cmd_set_device_active(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_set_device_active_command();
     return 0;
 }
 
-static int cmd_set_device_ready(int argc, char** argv) {
+int cmd_set_device_ready(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_set_device_ready_command();
     return 0;
 }
 
-static int cmd_set_config(int argc, char** argv) {
+int cmd_set_config(int argc, char** argv) {
     char* config_name = (argc > 1) ? argv[1] : NULL;
     char* value_str = (argc > 2) ? argv[2] : NULL;
     return handle_set_config_command(config_name, value_str);
 }
 
-static int cmd_device_suspend(int argc, char** argv) {
+int cmd_device_suspend(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_device_suspend_command();
     return 0;
 }
 
-static int cmd_query_timestamp(int argc, char** argv) {
+int cmd_query_timestamp(int argc, char** argv) {
     (void)argc;
     (void)argv;
     handle_query_timestamp_command();
     return 0;
 }
 
-static int cmd_session_init(int argc, char** argv) {
+int cmd_session_init(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* session_type_str = (argc > 2) ? argv[2] : NULL;
     return handle_session_init_command(session_id_str, session_type_str);
 }
 
-static int cmd_session_deinit(int argc, char** argv) {
+int cmd_session_deinit(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     return handle_session_deinit_command(session_id_str);
 }
 
-static int cmd_session_start(int argc, char** argv) {
+int cmd_session_start(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     return handle_session_start_command(session_id_str);
 }
 
-static int cmd_session_stop(int argc, char** argv) {
+int cmd_session_stop(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     return handle_session_stop_command(session_id_str);
 }
 
-static int cmd_session_send_data(int argc, char** argv) {
+int cmd_session_send_data(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* destination_str = (argc > 2) ? argv[2] : NULL;
     char* sequence_str = (argc > 3) ? argv[3] : NULL;
@@ -662,7 +293,7 @@ static int cmd_session_send_data(int argc, char** argv) {
     return handle_session_send_data_command(session_id_str, destination_str, sequence_str, payload_str);
 }
 
-static int cmd_session_logical_link_create(int argc, char** argv) {
+int cmd_session_logical_link_create(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* link_id_str = (argc > 2) ? argv[2] : NULL;
     char* mode_str = (argc > 3) ? argv[3] : NULL;
@@ -670,38 +301,38 @@ static int cmd_session_logical_link_create(int argc, char** argv) {
     return handle_session_logical_link_create_command(session_id_str, link_id_str, mode_str, credit_str);
 }
 
-static int cmd_session_logical_link_close(int argc, char** argv) {
+int cmd_session_logical_link_close(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* link_id_str = (argc > 2) ? argv[2] : NULL;
     return handle_session_logical_link_close_command(session_id_str, link_id_str);
 }
 
-static int cmd_session_logical_link_get_param(int argc, char** argv) {
+int cmd_session_logical_link_get_param(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* link_id_str = (argc > 2) ? argv[2] : NULL;
     return handle_session_logical_link_get_param_command(session_id_str, link_id_str);
 }
 
-static int cmd_get_session_state(int argc, char** argv) {
+int cmd_get_session_state(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     return handle_get_session_state_command(session_id_str);
 }
 
-static int cmd_set_app_config(int argc, char** argv) {
+int cmd_set_app_config(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* config_name = (argc > 2) ? argv[2] : NULL;
     char* value_str = (argc > 3) ? argv[3] : NULL;
     return handle_set_app_config_command(session_id_str, config_name, value_str);
 }
 
-static int cmd_get_app_config(int argc, char** argv) {
+int cmd_get_app_config(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char** config_names = (argc > 2) ? &argv[2] : NULL;
     int config_count = (argc > 2) ? (argc - 2) : 0;
     return handle_get_app_config_command(session_id_str, config_names, config_count);
 }
 
-static int cmd_session_update_multicast_list(int argc, char** argv) {
+int cmd_session_update_multicast_list(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* action_str = (argc > 2) ? argv[2] : NULL;
     char* short_address_str = (argc > 3) ? argv[3] : NULL;
@@ -709,14 +340,14 @@ static int cmd_session_update_multicast_list(int argc, char** argv) {
     return handle_update_multicast_list_command(session_id_str, action_str, short_address_str, subsession_id_str);
 }
 
-static int cmd_session_update_dt_tag_rounds(int argc, char** argv) {
+int cmd_session_update_dt_tag_rounds(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char** round_values = (argc > 2) ? &argv[2] : NULL;
     int round_count = (argc > 2) ? (argc - 2) : 0;
     return handle_session_update_dt_tag_rounds_command(session_id_str, round_values, round_count);
 }
 
-static int cmd_session_data_transfer_phase_config(int argc, char** argv) {
+int cmd_session_data_transfer_phase_config(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* repetition_str = (argc > 2) ? argv[2] : NULL;
     char* control_str = (argc > 3) ? argv[3] : NULL;
@@ -731,7 +362,7 @@ static int cmd_session_data_transfer_phase_config(int argc, char** argv) {
                                                              payload_count);
 }
 
-static int cmd_session_set_hybrid_controller_config(int argc, char** argv) {
+int cmd_session_set_hybrid_controller_config(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* config_data_str = (argc > 2) ? argv[2] : NULL;
     int config_len = config_data_str ? (int)strlen(config_data_str) : 0;
@@ -740,7 +371,7 @@ static int cmd_session_set_hybrid_controller_config(int argc, char** argv) {
                                                                config_len);
 }
 
-static int cmd_session_set_hybrid_controlee_config(int argc, char** argv) {
+int cmd_session_set_hybrid_controlee_config(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* config_data_str = (argc > 2) ? argv[2] : NULL;
     int config_len = config_data_str ? (int)strlen(config_data_str) : 0;
@@ -749,12 +380,12 @@ static int cmd_session_set_hybrid_controlee_config(int argc, char** argv) {
                                                               config_len);
 }
 
-static int cmd_session_query_data_size_in_ranging(int argc, char** argv) {
+int cmd_session_query_data_size_in_ranging(int argc, char** argv) {
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     return handle_session_query_data_size_in_ranging_command(session_id_str);
 }
 
-static int cmd_simulate_notification(int argc, char** argv) {
+int cmd_simulate_notification(int argc, char** argv) {
     if (argc < 3) {
         printf("Usage: simulate_notification <type> <value>\n");
         printf("  Example: simulate_notification device_status active\n");
@@ -789,7 +420,7 @@ static int cmd_simulate_notification(int argc, char** argv) {
     return -1;
 }
 
-static int cmd_simulate_session_status(int argc, char** argv) {
+int cmd_simulate_session_status(int argc, char** argv) {
     if (argc < 4) {
         printf("Usage: simulate_session_status <session_id> <state> <reason>\n");
         printf("  Example: simulate_session_status 1 active mgmt_cmd\n");
@@ -1043,57 +674,83 @@ static int cmd_help(int argc, char** argv) {
     return 0;
 }
 
-int main(void) {
-    char line[CLI_MAX_LINE_LENGTH];
+void process_command(char *line) {
+    if (line[0] == '\0') {
+        return;
+    }
 
+    if (strcmp(line, "quit") == 0) {
+        exit(0);
+    }
+
+    char* argv_tokens[CLI_MAX_TOKENS];
+    int argc = cli_tokenize(line, argv_tokens, CLI_MAX_TOKENS);
+    if (argc == 0) {
+        return;
+    }
+
+    cli_dispatch(argc, argv_tokens);
+}
+
+int main(void) {
     if (uci_config_init() != 0) {
         printf("Warning: Failed to initialize configuration manager\n");
     }
 
     uci_cmd_hardware_init(&g_hardware_mode, &g_uwb_chardev);
     ui_print_welcome_message();
-    cli_initialize_readline();
+
+    fd_set read_fds;
+    int max_fd;
+
+    static char line_buffer[CLI_MAX_LINE_LENGTH];
+    static int line_buffer_len = 0;
 
     while (1) {
-        char* input_line = readline("> ");
-        if (input_line == NULL) {
-            printf("\n");
+        FD_ZERO(&read_fds);
+        FD_SET(STDIN_FILENO, &read_fds);
+        max_fd = STDIN_FILENO;
+
+        if (g_hardware_mode && g_uwb_chardev.fd >= 0) {
+            FD_SET(g_uwb_chardev.fd, &read_fds);
+            if (g_uwb_chardev.fd > max_fd) {
+                max_fd = g_uwb_chardev.fd;
+            }
+        }
+        
+        printf("> ");
+        fflush(stdout);
+
+        int activity = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+
+        if (activity < 0) {
+            perror("select error");
             break;
         }
 
-        input_line[strcspn(input_line, "\r\n")] = '\0';
-
-        if (strlen(input_line) > 0) {
-            cli_history_add(input_line);
-            add_history(input_line);
+        if (FD_ISSET(STDIN_FILENO, &read_fds)) {
+            int nread = read(STDIN_FILENO, &line_buffer[line_buffer_len], sizeof(line_buffer) - line_buffer_len -1);
+            if (nread > 0) {
+                line_buffer_len += nread;
+                if (line_buffer[line_buffer_len - 1] == '\n') {
+                    line_buffer[line_buffer_len - 1] = '\0';
+                    process_command(line_buffer);
+                    line_buffer_len = 0;
+                }
+            } else {
+                // EOF
+                printf("\n");
+                break;
+            }
         }
 
-        strncpy(line, input_line, sizeof(line) - 1);
-        line[sizeof(line) - 1] = '\0';
-        free(input_line);
-
-        if (line[0] == '\0') {
-            continue;
+        if (g_hardware_mode && g_uwb_chardev.fd >= 0 && FD_ISSET(g_uwb_chardev.fd, &read_fds)) {
+            unsigned char buffer[1024];
+            int len = uci_hw_chardev_receive(&g_uwb_chardev, buffer, sizeof(buffer), 0);
+            if (len > 0) {
+                parse_uci_packet(buffer, len);
+            }
         }
-
-        if (strcmp(line, "quit") == 0) {
-            break;
-        }
-
-        if (strcmp(line, "history") == 0) {
-            cli_history_print();
-            continue;
-        }
-
-        cli_expand_alias(line, sizeof(line));
-
-        char* argv_tokens[CLI_MAX_TOKENS];
-        int argc = cli_tokenize(line, argv_tokens, CLI_MAX_TOKENS);
-        if (argc == 0) {
-            continue;
-        }
-
-        cli_dispatch(argc, argv_tokens);
     }
 
     return 0;

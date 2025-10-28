@@ -1,5 +1,7 @@
 # UCI Log Analysis Summary
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Project Status
 - Successfully analyzed real UCI logs from `/logs/uwb_range_ntf.log`
 - Found actual UWB ranging data with distance measurements

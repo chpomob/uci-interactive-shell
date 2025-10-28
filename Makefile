@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Iinclude -Wall -Wextra -std=c11 -Wno-unused-label -g  # Added debug flag
-LIBS=-lreadline
+LIBS=
 
 SRC=$(wildcard src/*.c)
 OBJ=$(SRC:.c=.o)

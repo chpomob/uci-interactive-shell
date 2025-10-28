@@ -1,5 +1,7 @@
 # UCI Implementation - State-of-the-Art Security Enhancement Final Report
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## 🎯 Project Summary
 
 This project successfully enhanced the UCI (Ultra-Wideband Control Interface) implementation to achieve state-of-the-art security standards with exceptional results:

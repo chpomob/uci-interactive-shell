@@ -1,5 +1,7 @@
 # UCI Protocol Analysis: Qorvo SDK vs Our Implementation
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 This document summarizes our findings from analyzing the Qorvo SDK implementation of the UCI protocol and comparing it with our current project implementation. The Qorvo SDK implementation closely follows the Android UWB specification which provides a comprehensive reference for UCI protocol compliance.

@@ -1,5 +1,7 @@
 # UCI Implementation Improvement Opportunities Analysis
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Executive Summary
 
 After analyzing both your current UCI implementation and the Qorvo SDK reference implementation, I've identified several key areas where your implementation can be enhanced to align more closely with industry standards and best practices. The analysis reveals that your implementation is already quite comprehensive but can benefit from additional features, better organization, and enhanced protocol compliance.

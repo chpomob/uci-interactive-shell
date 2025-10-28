@@ -1,5 +1,7 @@
 # UCI HUS Command Implementation Roadmap (Historical)
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 > **Status Update (October 2025):** The hybrid controller (`SESSION_SET_HYBRID_CONTROLLER_CONFIG`)
 > and controlee (`SESSION_SET_HYBRID_CONTROLEE_CONFIG`) commands are now
 > implemented end-to-end, including CLI entry points and enhanced response

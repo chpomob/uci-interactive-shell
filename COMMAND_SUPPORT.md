@@ -1,5 +1,7 @@
 # UCI Command Support Overview
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 This CLI now simulates a subset of the Android UCI command surface to unblock
 host tooling. The following control flows are explicitly handled:
 

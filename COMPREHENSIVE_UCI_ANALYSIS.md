@@ -1,5 +1,7 @@
 # Comprehensive UCI Log and Packet Analysis
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Summary of UCI Data Sources Found
 
 ### 1. Real Log Files

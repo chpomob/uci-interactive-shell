@@ -1,5 +1,7 @@
 # UCI Command Implementation Gap Analysis (UPDATED)
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## ⚠️ NOTICE: This document is OUTDATED ⚠️
 
 This document contains outdated information about missing UCI commands in the current implementation. A comprehensive analysis has revealed that the "missing" Hybrid UWB System commands were ALREADY IMPLEMENTED in the current codebase.

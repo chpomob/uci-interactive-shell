@@ -1,5 +1,7 @@
 # UCI Interactive Shell - Enhanced Human-Readable Packet Analysis
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Summary
 
 This enhancement adds comprehensive human-readable translations for all UCI packet types, bringing the packet analysis capabilities significantly closer to professional-grade UCI analysis tools based on Qorvo QM35 SDK patterns.

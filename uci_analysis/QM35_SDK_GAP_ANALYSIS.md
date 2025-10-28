@@ -1,5 +1,7 @@
 # QM35 SDK vs. `uci-shell` Gap Analysis (UPDATED)
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## ⚠️ NOTICE: This document is OUTDATED ⚠️
 
 This document contains outdated information about the current state of the uci-shell implementation. A comprehensive analysis has revealed that most of the "missing" features mentioned below are ALREADY IMPLEMENTED in the current codebase.

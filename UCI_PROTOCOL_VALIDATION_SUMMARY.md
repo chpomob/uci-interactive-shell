@@ -1,5 +1,7 @@
 # UCI Protocol Test Validation Summary
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Executive Summary
 
 This document summarizes the validation of our UCI (Ultra-Wideband Control Interface) protocol implementation against the official Qorvo UWB SDK definitions. Our unit tests have been validated to ensure full compliance with the UCI specification.

@@ -1,5 +1,7 @@
 # Agent Guide: `uci_analysis/`
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Purpose
 Reference material pulled from Android's UWB stack plus local notes that document protocol expectations for the UCI shell.
 

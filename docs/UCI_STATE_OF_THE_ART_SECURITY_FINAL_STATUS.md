@@ -1,5 +1,7 @@
 # UCI Implementation - State-of-the-Art Security Enhancement Final Status Report
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## 🎯 Project Completion Status
 
 **🎉 PROJECT SUCCESSFULLY COMPLETED WITH EXCEPTIONAL RESULTS**

@@ -1,5 +1,7 @@
 # UCI Interactive Shell - Enhanced Packet Analysis Improvements
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 This document summarizes the enhancements made to the UCI Interactive Shell's packet analysis capabilities, bringing it closer to the advanced patterns found in the Qorvo QM35 SDK.

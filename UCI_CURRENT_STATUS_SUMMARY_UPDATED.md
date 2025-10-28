@@ -1,5 +1,7 @@
 # UCI Implementation Enhancement: Current Status (Updated Analysis)
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## 🎯 **Updated Analysis: Current Implementation Status**
 
 Based on a comprehensive review of the actual codebase, we've discovered that most of the "missing" features mentioned in the original gap analysis documents are ALREADY IMPLEMENTED in the current codebase.

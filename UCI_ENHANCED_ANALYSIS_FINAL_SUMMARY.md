@@ -1,5 +1,7 @@
 # UCI Interactive Shell - Enhanced Packet Analysis Implementation
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Project Status: ✅ COMPLETED SUCCESSFULLY
 
 ### Executive Summary

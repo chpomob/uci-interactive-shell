@@ -1,5 +1,7 @@
 # UCI analyze_packet Command Enhancement Proposal
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 This document proposes enhancements to the existing `analyze_packet` command based on QM SDK patterns and insights to improve the analysis capabilities of the UCI Interactive Shell.
 

@@ -1,5 +1,7 @@
 # UCI Test Coverage Enhancement Report
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 We have successfully enhanced the UCI test coverage by adding comprehensive test cases that improve error handling, edge case coverage, and boundary condition testing. The test suite has grown from 32 to 34 test cases (+6.25% increase) while maintaining 100% pass rate.

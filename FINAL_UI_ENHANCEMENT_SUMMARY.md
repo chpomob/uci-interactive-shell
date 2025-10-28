@@ -1,5 +1,7 @@
 # UCI Interactive Shell - UI Enhancement Project Complete ✅
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Project Summary
 
 We have successfully implemented comprehensive UI enhancements for the UCI Interactive Shell, transforming the plain text interface into a modern, colorized, and highly usable command-line interface.

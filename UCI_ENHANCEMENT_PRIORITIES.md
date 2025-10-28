@@ -1,5 +1,7 @@
 # UCI Support Enhancement Priorities
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Priority Level 1: Critical Missing Features (Must Implement)
 
 ### 1. Logical-Link Session Control

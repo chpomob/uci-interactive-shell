@@ -1,5 +1,7 @@
 # UCI Implementation Enhancement - Phase 1 Complete
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## 🎉 **Phase 1 Successfully Completed!**
 
 We have successfully completed Phase 1 of our UCI implementation enhancement, achieving all our primary objectives:

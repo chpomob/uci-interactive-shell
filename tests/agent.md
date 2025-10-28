@@ -1,5 +1,7 @@
 # Agent Guide: `tests/`
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Test Harness Overview
 - `test_runner.h`: Minimal macros for suite/case logging and assertions; failures jump to `test_case_end` labels.
 - `test_uci_functions.c`: End-to-end simulation coverage for core/session/vendor commands.

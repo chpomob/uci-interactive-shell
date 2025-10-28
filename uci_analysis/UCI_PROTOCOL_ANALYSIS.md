@@ -1,5 +1,7 @@
 # UCI Protocol Analysis
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 The UCI (Ultra-wideband Communication Interface) protocol is defined by the FiRa Consortium and used in Ultra-Wideband (UWB) communication systems. This analysis compares the implementation found in the Android UWB repository with our current project.

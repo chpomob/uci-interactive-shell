@@ -1,5 +1,7 @@
 # UCI Implementation Enhancement Plan
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 This document provides a detailed plan for enhancing the UCI implementation based on analysis of the Qorvo SDK and identification of improvement opportunities.
 

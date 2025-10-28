@@ -1,5 +1,7 @@
 # UCI Implementation Enhancement - Phase 2 Implementation Plan
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 Based on our Phase 1 success, we now have 8 remaining "No specific decoder" messages that need to be addressed in Phase 2. These represent critical missing functionality for Android UWB compatibility and device testing capabilities.

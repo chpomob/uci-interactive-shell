@@ -1,5 +1,7 @@
 # UCI Security Implementation Guide
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Overview
 
 This document describes the security enhancements implemented in the UCI (Ultra-Wideband Control Interface) implementation. The security measures focus on preventing common vulnerabilities such as buffer overflows, memory corruption, and unauthorized access.

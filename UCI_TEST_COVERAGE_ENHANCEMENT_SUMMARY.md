@@ -1,5 +1,7 @@
 # UCI Test Coverage Enhancement Summary
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 ## Accomplishments
 
 We have successfully enhanced the UCI test coverage and eliminated several critical "No specific decoder" messages:

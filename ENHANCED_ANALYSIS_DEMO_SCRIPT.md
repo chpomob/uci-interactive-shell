@@ -1,5 +1,7 @@
 #!/bin/bash
 
+**Hardware-first focus:** This project centers on robust UCI control of real hardware; the simulator only supports protocol validation and debugging.
+
 # Enhanced UCI Packet Analysis Demo Script
 # This script demonstrates the enhanced analysis capabilities of the analyze_packet command
 

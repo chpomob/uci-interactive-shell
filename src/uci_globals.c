@@ -1,20 +1,11 @@
 #include "../include/uci_globals.h"
-#include "../include/uci_cmd_core.h"
-#include "../include/uci_cmd_session.h"
-#include "../include/uci_cmd_session_config.h"
-#include "../include/uci_cmd_hardware.h"
-#include "../include/uci_cmd_simulation.h"
-#include "../include/uci_cmd_analysis.h"
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-
-// Forward declarations for command handlers from main.c
-static int cmd_help(int argc, char** argv);
+// Forward declarations for command handlers
+static int cmd_hw_init(int argc, char** argv);
+static int cmd_hw_send(int argc, char** argv);
 static int cmd_mode_sim(int argc, char** argv);
 static int cmd_mode_hw(int argc, char** argv);
 static int cmd_mode_info(int argc, char** argv);
-static int cmd_hw_init(int argc, char** argv);
-static int cmd_hw_send(int argc, char** argv);
 static int cmd_get_device_info(int argc, char** argv);
 static int cmd_device_reset(int argc, char** argv);
 static int cmd_set_power(int argc, char** argv);
@@ -45,14 +36,16 @@ static int cmd_session_data_transfer_phase_config(int argc, char** argv);
 static int cmd_session_set_hybrid_controller_config(int argc, char** argv);
 static int cmd_session_set_hybrid_controlee_config(int argc, char** argv);
 static int cmd_session_query_data_size_in_ranging(int argc, char** argv);
-static int cmd_analyze_packet(int argc, char** argv);
 static int cmd_simulate_notification(int argc, char** argv);
 static int cmd_simulate_session_status(int argc, char** argv);
 static int cmd_simulate_data_credit(int argc, char** argv);
 static int cmd_simulate_ranging(int argc, char** argv);
 static int cmd_simulate_multi_target_ranging(int argc, char** argv);
 static int cmd_demo_session_flow(int argc, char** argv);
+static int cmd_analyze_packet(int argc, char** argv);
+static int cmd_help(int argc, char** argv);
 
+// Command table definition
 const cli_command_t g_cli_commands[] = {
     { "help", { NULL }, CLI_GROUP_GENERAL, CLI_CMD_FLAG_NONE, "Show this help message", cmd_help },
     { "mode_sim", { "sim_mode", NULL }, CLI_GROUP_HARDWARE, CLI_CMD_FLAG_NONE, "Switch to simulation mode", cmd_mode_sim },
@@ -103,6 +96,9 @@ const cli_command_t g_cli_commands[] = {
     { "simulate_multi_target_ranging", { NULL }, CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate multi-target ranging notification", cmd_simulate_multi_target_ranging },
     { "demo_session_flow", { NULL }, CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Demonstrate session flow", cmd_demo_session_flow },
 };
-const int g_cli_commands_count = ARRAY_SIZE(g_cli_commands);
+
+const int g_cli_commands_count = sizeof(g_cli_commands) / sizeof(cli_command_t);
+
+// Global variables definitions
 int g_hardware_mode = 0;
 uci_hw_chardev_t g_uwb_chardev;

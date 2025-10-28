@@ -29,6 +29,7 @@
 #include "../include/uci_cmd_session_config.h"
 #include "../include/uci_cmd_analysis.h"
 #include "../include/uci_globals.h"
+#include "../include/uci_command_framework.h"
 
 #define MAX_PAYLOAD_LENGTH 255
 #define CLI_MAX_TOKENS 64
@@ -132,8 +133,7 @@ const cli_command_t g_cli_commands[] = {
     { "simulate_ranging", { NULL }, CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate single-target ranging notification", cmd_simulate_ranging },
     { "simulate_multi_target_ranging", { NULL }, CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate multi-target ranging notification", cmd_simulate_multi_target_ranging },
     { "demo_session_flow", { NULL }, CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Demonstrate session flow", cmd_demo_session_flow },
-};
-const int g_cli_commands_count = ARRAY_SIZE(g_cli_commands);
+
 
 
 

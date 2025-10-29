@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS=-Iinclude -Wall -Wextra -std=c11 -Wno-unused-label -g  # Added debug flag
-LIBS=
+CFLAGS=-Iinclude -Wall -Wextra -std=c11 -Wno-unused-label -g -DHAVE_READLINE  # Added readline support
+LIBS=-lreadline
 
 SRC=$(wildcard src/*.c)
 OBJ=$(SRC:.c=.o)
@@ -27,6 +27,9 @@ test-mutualization: $(MUTUALIZATION_TEST_TARGET)
 
 $(MUTUALIZATION_TEST_TARGET): test_mutualization.c $(filter-out src/main.o src/uci_globals.o,$(OBJ)) tests/uci_globals_test.o
 	$(CC) $(CFLAGS) -o $(MUTUALIZATION_TEST_TARGET) test_mutualization.c $(filter-out src/main.o src/uci_globals.o,$(OBJ)) tests/uci_globals_test.o $(LIBS)
+
+src/%.o: src/%.c
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 src/main.o: src/main.c include/uci.h include/uci_functions.h
 src/uci.o: src/uci.c include/uci.h include/uci_functions.h

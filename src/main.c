@@ -12,6 +12,11 @@
 #define _GNU_SOURCE
 #endif
 
+#ifdef HAVE_READLINE
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
+
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
 #include "../include/uci_cli.h"
@@ -655,7 +660,23 @@ int main(int argc, char** argv) {
 
     uci_cmd_hardware_init(&g_hardware_mode, &g_uwb_chardev);
     ui_print_welcome_message();
+    
+    // Initialize readline completion
+    cli_initialize_readline();
 
+#ifdef HAVE_READLINE
+    // Use readline for input
+    char* line;
+    while ((line = readline("> ")) != NULL) {
+        if (strlen(line) > 0) {
+            add_history(line);
+            process_command(line);
+        }
+        free(line);
+    }
+    printf("\n");
+#else
+    // Fallback to simple line reading
     fd_set read_fds;
     int max_fd;
 
@@ -708,6 +729,7 @@ int main(int argc, char** argv) {
             }
         }
     }
+#endif
 
     return 0;
 }

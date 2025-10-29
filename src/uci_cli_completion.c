@@ -43,7 +43,21 @@ void cli_print_completion_suggestions(const char* input) {
 
 #ifdef HAVE_READLINE
 // Generator function for readline completion
-char* cli_completion_generator(const char* text, int state) {
+char** cli_completion_generator(const char* text, int start, int end) {
+    (void)start;
+    (void)end;
+    
+    char** matches = NULL;
+    
+    if (text) {
+        matches = rl_completion_matches(text, cli_command_generator);
+    }
+    
+    return matches;
+}
+
+// Command generator function for readline
+char* cli_command_generator(const char* text, int state) {
     static int list_index, len;
     const char* name;
 
@@ -54,7 +68,7 @@ char* cli_completion_generator(const char* text, int state) {
     if (state == 0) {
         // Initialize for new completion attempt
         list_index = 0;
-        len = strlen(text);
+        len = (int)strlen(text);
     }
 
     // Look for commands that match
@@ -62,15 +76,23 @@ char* cli_completion_generator(const char* text, int state) {
         name = g_cli_commands[list_index].name;
         list_index++;
 
-        if (strncmp(name, text, len) == 0) {
-            return strdup(name);
+        if (strncmp(name, text, (size_t)len) == 0) {
+            char* result = malloc(strlen(name) + 1);
+            if (result) {
+                strcpy(result, name);
+            }
+            return result;
         }
 
         // Check aliases
-        const char** aliases = g_cli_commands[list_index - 1].aliases;
-        for (int i = 0; aliases[i] != NULL; i++) {
-            if (strncmp(aliases[i], text, len) == 0) {
-                return strdup(aliases[i]);
+        const char* const* aliases = g_cli_commands[list_index - 1].aliases;
+        for (int i = 0; aliases && aliases[i] != NULL; i++) {
+            if (strncmp(aliases[i], text, (size_t)len) == 0) {
+                char* result = malloc(strlen(aliases[i]) + 1);
+                if (result) {
+                    strcpy(result, aliases[i]);
+                }
+                return result;
             }
         }
     }

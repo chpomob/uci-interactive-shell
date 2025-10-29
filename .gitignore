@@ -9,6 +9,7 @@ test_session_manager
 test_mutualization
 test_uci_security
 test_command_generation
+test_command_handlers
 test_chardev
 *.gcda
 *.gcno

@@ -296,4 +296,14 @@ unsigned char* create_set_config_packet(
     size_t* packet_len
 );
 
+/**
+ * Create a get config packet
+ */
+unsigned char* create_get_config_packet(
+    uint8_t num_configs,
+    const unsigned char* config_ids,
+    size_t config_ids_len,
+    size_t* packet_len
+);
+
 #endif // UCI_PACKET_UTILS_H

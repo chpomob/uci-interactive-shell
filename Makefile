@@ -13,10 +13,11 @@ CONFIG_TEST_TARGET=test_config_manager
 SESSION_MANAGER_TEST_TARGET=test_session_manager
 SECURITY_TEST_TARGET=test_uci_security
 COMMAND_GENERATION_TEST_TARGET=test_command_generation
+COMMAND_HANDLER_TEST_TARGET=test_command_handlers
 
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test coverage
+.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test coverage
 
-all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test
+all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
@@ -77,6 +78,12 @@ command-generation-test: $(COMMAND_GENERATION_TEST_TARGET)
 
 $(COMMAND_GENERATION_TEST_TARGET): tests/test_command_generation.c tests/test_helpers.c $(filter-out src/main.o,$(OBJ)) tests/stubs.o
 	$(CC) $(CFLAGS) -o $(COMMAND_GENERATION_TEST_TARGET) tests/test_command_generation.c tests/test_helpers.c $(filter-out src/main.o,$(OBJ)) tests/stubs.o $(LIBS)
+
+command-handler-test: $(COMMAND_HANDLER_TEST_TARGET)
+	./$(COMMAND_HANDLER_TEST_TARGET)
+
+$(COMMAND_HANDLER_TEST_TARGET): tests/test_command_handlers.c $(filter-out src/main.o,$(OBJ)) tests/stubs.o
+	$(CC) $(CFLAGS) -o $(COMMAND_HANDLER_TEST_TARGET) tests/test_command_handlers.c $(filter-out src/main.o,$(OBJ)) tests/stubs.o $(LIBS)
 
 tests/test_uci_functions.o: tests/test_uci_functions.c tests/test_runner.h include/uci.h include/uci_functions.h
 tests/test_config_manager.o: tests/test_config_manager.c tests/test_runner.h include/uci.h include/uci_config_manager.h

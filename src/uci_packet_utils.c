@@ -128,11 +128,43 @@ unsigned char* create_set_config_packet(
     size_t* packet_len) {
 
     unsigned char payload[256];
+
+    if (configs_len > 0 && !configs) {
+        return NULL;
+    }
+
+    if (configs_len + 1 > sizeof(payload)) {
+        return NULL;
+    }
+
     payload[0] = num_configs;
     memcpy(payload + 1, configs, configs_len);
     
     return create_uci_packet(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, 
                             payload, configs_len + 1, packet_len);
+}
+
+unsigned char* create_get_config_packet(
+    uint8_t num_configs,
+    const unsigned char* config_ids,
+    size_t config_ids_len,
+    size_t* packet_len) {
+
+    unsigned char payload[256];
+
+    if (config_ids_len > 0 && !config_ids) {
+        return NULL;
+    }
+
+    if (config_ids_len + 1 > sizeof(payload)) {
+        return NULL;
+    }
+
+    payload[0] = num_configs;
+    memcpy(payload + 1, config_ids, config_ids_len);
+
+    return create_uci_packet(COMMAND, COMPLETE, CORE, CORE_GET_CONFIG,
+                             payload, config_ids_len + 1, packet_len);
 }
 
 size_t uci_build_data_message_snd_payload(unsigned char *buffer,

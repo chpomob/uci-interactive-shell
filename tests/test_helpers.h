@@ -61,4 +61,14 @@ typedef struct {
 // Decodes a SET_CONFIG command payload for testing
 int test_decode_set_config_cmd(const unsigned char* payload, int payload_len, decoded_set_config_cmd_t* decoded_cmd);
 
+// Structure to hold the decoded GET_CONFIG command
+typedef struct {
+    uint8_t num_configs;
+    uint8_t config_ids_len;
+    uint8_t config_ids[255];
+} decoded_get_config_cmd_t;
+
+// Decodes a GET_CONFIG command payload for testing
+int test_decode_get_config_cmd(const unsigned char* payload, int payload_len, decoded_get_config_cmd_t* decoded_cmd);
+
 #endif // TEST_HELPERS_H

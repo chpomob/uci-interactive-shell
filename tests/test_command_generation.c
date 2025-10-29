@@ -265,6 +265,51 @@ int main() {
         test_case_end_get_caps_info:;
     }
 
+    TEST_CASE(create_get_config_packet);
+    {
+        const uint8_t num_configs = 2;
+        const unsigned char config_ids[] = {DEVICE_STATE, LOW_POWER_MODE};
+
+        size_t packet_len = 0;
+        unsigned char* packet = create_get_config_packet(num_configs, config_ids, sizeof(config_ids), &packet_len);
+
+        if (packet == NULL) {
+            TEST_FAIL("Packet is null");
+            goto test_case_end_get_config;
+        }
+        if (packet_len != sizeof(struct uci_packet_header) + 1 + sizeof(config_ids)) {
+            TEST_FAIL("Unexpected packet length");
+            goto test_case_end_get_config;
+        }
+
+        const unsigned char* payload = packet + sizeof(struct uci_packet_header);
+        const int payload_len = packet_len - sizeof(struct uci_packet_header);
+
+        decoded_get_config_cmd_t decoded_cmd;
+        int result = test_decode_get_config_cmd(payload, payload_len, &decoded_cmd);
+
+        if (result != 0) {
+            TEST_FAIL("Failed to decode get config command");
+            goto test_case_end_get_config;
+        }
+        if (decoded_cmd.num_configs != num_configs) {
+            TEST_FAIL("Decoded num_configs does not match");
+            goto test_case_end_get_config;
+        }
+        if (decoded_cmd.config_ids_len != sizeof(config_ids)) {
+            TEST_FAIL("Decoded config_ids length does not match");
+            goto test_case_end_get_config;
+        }
+        if (memcmp(decoded_cmd.config_ids, config_ids, sizeof(config_ids)) != 0) {
+            TEST_FAIL("Decoded config IDs do not match");
+            goto test_case_end_get_config;
+        }
+
+        free(packet);
+        TEST_PASS();
+        test_case_end_get_config:;
+    }
+
     TEST_CASE(create_set_config_packet);
     {
         const uint8_t num_configs = 1;

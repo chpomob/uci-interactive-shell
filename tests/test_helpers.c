@@ -84,3 +84,26 @@ int test_decode_set_config_cmd(const unsigned char* payload, int payload_len, de
 
     return 0; // Success
 }
+
+// Decodes a GET_CONFIG command payload for testing
+int test_decode_get_config_cmd(const unsigned char* payload, int payload_len, decoded_get_config_cmd_t* decoded_cmd) {
+    if (payload_len < 1) {
+        return -1; // Error: payload too short
+    }
+
+    decoded_cmd->num_configs = payload[0];
+    int ids_available = payload_len - 1;
+
+    if (ids_available < decoded_cmd->num_configs) {
+        return -1; // Error: payload too short for advertised config IDs
+    }
+
+    if (ids_available > 255) {
+        return -1; // Error: exceeds buffer capacity
+    }
+
+    decoded_cmd->config_ids_len = (uint8_t)ids_available;
+    memcpy(decoded_cmd->config_ids, payload + 1, ids_available);
+
+    return 0; // Success
+}

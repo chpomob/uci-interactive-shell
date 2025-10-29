@@ -20,6 +20,22 @@
 #include "../include/uci_types.h"
 #include <errno.h>
 
+static uci_command_capture_hook_t g_command_capture_hook = NULL;
+static uci_data_message_hook_t g_data_message_hook = NULL;
+static uci_notification_callback_t g_notification_callback = NULL;
+
+void uci_set_command_capture_hook(uci_command_capture_hook_t hook) {
+    g_command_capture_hook = hook;
+}
+
+void uci_set_data_message_hook(uci_data_message_hook_t hook) {
+    g_data_message_hook = hook;
+}
+
+void uci_set_notification_callback(uci_notification_callback_t callback) {
+    g_notification_callback = callback;
+}
+
 static double q8_8_to_double(int16_t raw) {
     return (double)raw / 256.0;
 }
@@ -809,6 +825,12 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
         return;
     }
 
+    if (g_command_capture_hook) {
+        if (g_command_capture_hook(mt, pbf, gid, oid, payload, payload_len) == 0) {
+            return;
+        }
+    }
+
     if (g_hardware_mode) {
         printf("[HARDWARE MODE] ");
 
@@ -959,6 +981,12 @@ static void sim_handle_data_message_send(const unsigned char *payload, size_t pa
     if (!payload || payload_len < UCI_DATA_MESSAGE_SND_HEADER) {
         printf("Error: DATA_MESSAGE_SND payload too short.\n");
         return;
+    }
+
+    if (g_data_message_hook) {
+        if (g_data_message_hook(payload, payload_len) == 0) {
+            return;
+        }
     }
 
     uint32_t payload_identifier = read_u32_le(payload);
@@ -3248,6 +3276,11 @@ void parse_uci_packet(uci_uint8* packet, size_t packet_len) {
         printf("  Warning: Header payload length %zu exceeds available data %zu. Clamping.\n",
                payload_len, available_payload);
         payload_len = available_payload;
+    }
+
+    if (header_fields.message_type == NOTIFICATION && g_notification_callback) {
+        const unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
+        g_notification_callback(header, &header_fields, payload_ptr, payload_len);
     }
 
     printf("Received UCI packet:\n");

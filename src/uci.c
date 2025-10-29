@@ -17,6 +17,7 @@
 #include "../include/uci_packet_utils.h"
 #include "../include/uci_globals.h"
 #include "../include/uci_standardized_error_handling.h"
+#include "../include/uci_types.h"
 #include <errno.h>
 
 static double q8_8_to_double(int16_t raw) {
@@ -789,8 +790,8 @@ static void send_sim_status(uint8_t gid, uint8_t oid, uint8_t status) {
     }
 }
 
-void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid,
-                      unsigned char *payload, int payload_len) {
+void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
+                      uci_uint8 *payload, int payload_len) {
     static int initialized = 0;
     if (!initialized) {
         init_uci_sessions();
@@ -2680,6 +2681,7 @@ void init_uci_sessions() {
         memset(uci_sessions[i].last_data_preview, 0,
                sizeof(uci_sessions[i].last_data_preview));
     }
+    uci_report_error(__func__, "initialized session storage", UCI_SUCCESS);
 }
 
 // Helper function to find an available session slot
@@ -2693,7 +2695,7 @@ int find_free_session_slot() {
 }
 
 // Helper function to find a session by ID
-int find_session_by_id(unsigned int session_id) {
+int find_session_by_id(uci_uint32 session_id) {
     for (int i = 0; i < MAX_SESSIONS; i++) {
         if (uci_sessions[i].is_allocated && uci_sessions[i].session_id == session_id) {
             return i;
@@ -2702,7 +2704,7 @@ int find_session_by_id(unsigned int session_id) {
     return -1; // Session not found
 }
 
-int find_session_by_handle(unsigned int session_handle) {
+int find_session_by_handle(uci_uint32 session_handle) {
     for (int i = 0; i < MAX_SESSIONS; i++) {
         if (uci_sessions[i].is_allocated && uci_sessions[i].session_handle == session_handle) {
             return i;
@@ -2862,7 +2864,7 @@ static unsigned char session_remove_multicast_entry(struct uci_session* session,
 }
 
 // Helper function to store configuration value in session
-void store_session_config(int session_idx, unsigned char cfg_id, unsigned char* value, unsigned char len) {
+void store_session_config(int session_idx, uci_uint8 cfg_id, uci_uint8* value, uci_uint8 len) {
     if (session_idx < 0 || session_idx >= MAX_SESSIONS) {
         printf("Error: Invalid session index %d in store_session_config\n", session_idx);
         return;
@@ -2905,7 +2907,7 @@ void store_session_config(int session_idx, unsigned char cfg_id, unsigned char* 
 }
 
 // Helper function to get configuration value from session
-int get_session_config(int session_idx, unsigned char cfg_id, unsigned char* value, unsigned char* len) {
+int get_session_config(int session_idx, uci_uint8 cfg_id, uci_uint8* value, uci_uint8* len) {
     if (session_idx < 0 || session_idx >= MAX_SESSIONS) {
         printf("Error: Invalid session index %d in get_session_config\n", session_idx);
         return 0;
@@ -3212,7 +3214,7 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
     }
 }
 
-void parse_uci_packet(unsigned char* packet, size_t packet_len) {
+void parse_uci_packet(uci_uint8* packet, size_t packet_len) {
     if (!packet) {
         UCI_LOG_ERROR("NULL packet pointer", UCI_ERROR_INVALID_PARAM);
         return;

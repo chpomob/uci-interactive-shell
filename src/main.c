@@ -31,6 +31,7 @@
 #include "../include/uci_globals.h"
 #include "../include/uci_command_framework.h"
 #include "../include/uci_standardized_error_handling.h"
+#include "../include/uci_types.h"
 
 #define MAX_PAYLOAD_LENGTH 255
 #define CLI_MAX_TOKENS 64

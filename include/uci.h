@@ -3,6 +3,7 @@
 
 #include "uci_pdl.h"
 #include "uci_utils.h"  // Include utilities for secure operations
+#include "uci_types.h"  // Include standardized type definitions
 #include <stddef.h>
 
 // UCI Packet Header - aligned with Android UWB specification
@@ -12,10 +13,10 @@
 // Byte 2: Reserved
 // Byte 3: Payload Length
 struct uci_packet_header {
-    unsigned char first_byte;   // GID | (PBF << 4) | (MT << 5)
-    unsigned char second_byte;  // Opcode in bits[5:0], reserved bits[7:6]
-    unsigned char reserved2;    // Reserved
-    unsigned char payload_len;  // Payload length
+    uci_uint8 first_byte;   // GID | (PBF << 4) | (MT << 5)
+    uci_uint8 second_byte;  // Opcode in bits[5:0], reserved bits[7:6]
+    uci_uint8 reserved2;    // Reserved
+    uci_uint8 payload_len;  // Payload length
 };
 
 #define UCI_MAX_CONTROL_PAYLOAD_SIZE 255
@@ -41,75 +42,75 @@ enum uci_data_packet_format {
 #define MAX_LOGICAL_LINKS 8
 
 typedef struct {
-    unsigned short short_address;
-    unsigned int subsession_id;
-    unsigned char key_len;
-    unsigned char key[32];
+    uci_uint16 short_address;
+    uci_uint32 subsession_id;
+    uci_uint8 key_len;
+    uci_uint8 key[32];
 } uci_multicast_entry;
 
 typedef struct {
-    unsigned char cfg_id;
-    unsigned char length;
-    unsigned char value[MAX_SESSION_CONFIG_VALUE_SIZE];
-    unsigned char in_use;
+    uci_uint8 cfg_id;
+    uci_uint8 length;
+    uci_uint8 value[MAX_SESSION_CONFIG_VALUE_SIZE];
+    uci_uint8 in_use;
 } uci_session_config_entry;
 
 typedef struct {
-    unsigned char link_id;
-    unsigned char mode;
-    unsigned char credit;
-    unsigned char active;
+    uci_uint8 link_id;
+    uci_uint8 mode;
+    uci_uint8 credit;
+    uci_uint8 active;
 } uci_logical_link_entry;
 
 struct uci_session {
-    unsigned int session_id;
+    uci_uint32 session_id;
     SessionType session_type;
-    unsigned char session_state;  // Using unsigned char to avoid direct dependency
-    unsigned char is_allocated;  // 1 if session slot is in use, 0 otherwise
-    unsigned int session_handle;  // Simulated UWBS-generated session handle
-    unsigned short ranging_count; // Tracks completed ranging rounds
+    uci_uint8 session_state;  // Using uci_uint8 to avoid direct dependency
+    uci_uint8 is_allocated;  // 1 if session slot is in use, 0 otherwise
+    uci_uint32 session_handle;  // Simulated UWBS-generated session handle
+    uci_uint16 ranging_count; // Tracks completed ranging rounds
     uci_session_config_entry configs[MAX_SESSION_CONFIGS];
     int num_configs;            // Number of stored configurations
     uci_multicast_entry multicast_entries[MAX_MULTICAST_CONTROLEES];
-    unsigned char multicast_count;
-    unsigned char dt_tag_round_indexes[MAX_DT_TAG_ROUNDS];
-    unsigned char dt_tag_round_count;
-    unsigned char dtp_repetition;
-    unsigned char dtp_control;
-    unsigned char dtp_size;
-    unsigned char dtp_payload[64];
-    unsigned char dtp_payload_len;
+    uci_uint8 multicast_count;
+    uci_uint8 dt_tag_round_indexes[MAX_DT_TAG_ROUNDS];
+    uci_uint8 dt_tag_round_count;
+    uci_uint8 dtp_repetition;
+    uci_uint8 dtp_control;
+    uci_uint8 dtp_size;
+    uci_uint8 dtp_payload[64];
+    uci_uint8 dtp_payload_len;
     uci_logical_link_entry logical_links[MAX_LOGICAL_LINKS];
-    unsigned char logical_link_count;
+    uci_uint8 logical_link_count;
     uint16_t last_data_sequence;
     uint16_t last_data_length;
     uint64_t last_data_destination;
-    unsigned char last_data_preview[64];
-    unsigned char last_data_preview_len;
+    uci_uint8 last_data_preview[64];
+    uci_uint8 last_data_preview_len;
 };
 
 // Global session storage
 extern struct uci_session uci_sessions[MAX_SESSIONS];
 
 // Helper functions to properly set up and decode the header
-static inline unsigned char uci_pack_first_byte(unsigned char message_type,
-                                                unsigned char packet_boundary,
-                                                unsigned char group_id) {
-    return (unsigned char)((group_id & 0x0F) |
-                           ((packet_boundary & 0x01) << 4) |
-                           ((message_type & 0x07) << 5));
+static inline uci_uint8 uci_pack_first_byte(uci_uint8 message_type,
+                                            uci_uint8 packet_boundary,
+                                            uci_uint8 group_id) {
+    return (uci_uint8)((group_id & 0x0F) |
+                       ((packet_boundary & 0x01) << 4) |
+                       ((message_type & 0x07) << 5));
 }
 
-static inline unsigned char uci_pack_second_byte(unsigned char opcode_id) {
-    return (unsigned char)(opcode_id & 0x3F);  // opcode occupies lower 6 bits
+static inline uci_uint8 uci_pack_second_byte(uci_uint8 opcode_id) {
+    return (uci_uint8)(opcode_id & 0x3F);  // opcode occupies lower 6 bits
 }
 
 static inline uci_error_t set_header_values_safe(struct uci_packet_header *header,
-                                                 unsigned char message_type,
-                                                 unsigned char packet_boundary,
-                                                 unsigned char group_id,
-                                                 unsigned char opcode_id,
-                                                 unsigned char payload_length) {
+                                                 uci_uint8 message_type,
+                                                 uci_uint8 packet_boundary,
+                                                 uci_uint8 group_id,
+                                                 uci_uint8 opcode_id,
+                                                 uci_uint8 payload_length) {
     if (!header) {
         return UCI_ERROR_INVALID_PARAM;
     }
@@ -123,33 +124,33 @@ static inline uci_error_t set_header_values_safe(struct uci_packet_header *heade
 }
 
 // Helper functions to extract header values
-static inline unsigned char get_gid(const struct uci_packet_header *header) {
+static inline uci_uint8 get_gid(const struct uci_packet_header *header) {
     return header->first_byte & 0x0F;
 }
 
-static inline unsigned char get_pbf(const struct uci_packet_header *header) {
+static inline uci_uint8 get_pbf(const struct uci_packet_header *header) {
     return (header->first_byte >> 4) & 0x01;
 }
 
-static inline unsigned char get_mt(const struct uci_packet_header *header) {
+static inline uci_uint8 get_mt(const struct uci_packet_header *header) {
     return (header->first_byte >> 5) & 0x07;
 }
 
-static inline unsigned char get_opcode(const struct uci_packet_header *header) {
+static inline uci_uint8 get_opcode(const struct uci_packet_header *header) {
     return header->second_byte & 0x3F;
 }
 
-static inline unsigned char get_reserved_opcode_bits(const struct uci_packet_header *header) {
+static inline uci_uint8 get_reserved_opcode_bits(const struct uci_packet_header *header) {
     return (header->second_byte >> 6) & 0x03;
 }
 
 typedef struct {
-    unsigned char message_type;
-    unsigned char packet_boundary;
-    unsigned char group_id;
-    unsigned char opcode_id;
-    unsigned char reserved_opcode_bits;
-    unsigned char payload_length;
+    uci_uint8 message_type;
+    uci_uint8 packet_boundary;
+    uci_uint8 group_id;
+    uci_uint8 opcode_id;
+    uci_uint8 reserved_opcode_bits;
+    uci_uint8 payload_length;
 } uci_header_fields_t;
 
 static inline uci_error_t uci_extract_header_fields_safe(const struct uci_packet_header *header,

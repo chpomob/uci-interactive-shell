@@ -8,20 +8,20 @@
 // Session management helper function declarations
 void init_uci_sessions();
 int find_free_session_slot();
-int find_session_by_id(unsigned int session_id);
-int find_session_by_handle(unsigned int session_handle);
-int find_session_by_token_or_id(unsigned int identifier);
+int find_session_by_id(uci_uint32 session_id);
+int find_session_by_handle(uci_uint32 session_handle);
+int find_session_by_token_or_id(uci_uint32 identifier);
 int get_allocated_session_count();
-void store_session_config(int session_idx, unsigned char cfg_id, unsigned char* value, unsigned char len);
-int get_session_config(int session_idx, unsigned char cfg_id, unsigned char* value, unsigned char* len);
+void store_session_config(int session_idx, uci_uint8 cfg_id, uci_uint8* value, uci_uint8 len);
+int get_session_config(int session_idx, uci_uint8 cfg_id, uci_uint8* value, uci_uint8* len);
 void increment_session_ranging_count(int session_idx);
 
 // Notification handler function declarations
-void handle_session_info_ntf(unsigned char* payload, int payload_len);
+void handle_session_info_ntf(uci_uint8* payload, int payload_len);
 void uci_process_pending_notifications();
 
-size_t uci_build_core_capabilities_payload(unsigned char* buffer, size_t max_len);
-void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid, unsigned char* payload, int payload_len);
-void parse_uci_packet(unsigned char* packet, size_t packet_len);
+size_t uci_build_core_capabilities_payload(uci_uint8* buffer, size_t max_len);
+void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid, uci_uint8* payload, int payload_len);
+void parse_uci_packet(uci_uint8* packet, size_t packet_len);
 
 #endif // UCI_FUNCTIONS_H

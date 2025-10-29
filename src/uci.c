@@ -16,6 +16,7 @@
 #include "../include/uci_packet_analyzer.h"
 #include "../include/uci_packet_utils.h"
 #include "../include/uci_globals.h"
+#include "../include/uci_standardized_error_handling.h"
 #include <errno.h>
 
 static double q8_8_to_double(int16_t raw) {
@@ -800,21 +801,52 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     extern int g_hardware_mode;
     extern uci_hw_chardev_t g_uwb_chardev;
 
+    // Validate input parameters
+    if (payload_len < 0 || payload_len > UCI_MAX_CONTROL_PAYLOAD_SIZE) {
+        printf("Error: Invalid payload length: %d\n", payload_len);
+        UCI_LOG_ERROR("Invalid payload length", UCI_ERROR_INVALID_PARAM);
+        return;
+    }
+
     if (g_hardware_mode) {
         printf("[HARDWARE MODE] ");
 
         int total_packet_size = sizeof(struct uci_packet_header) + payload_len;
-        unsigned char *packet = malloc(total_packet_size);
+        
+        // Check for potential integer overflow
+        if (payload_len > UCI_MAX_CONTROL_PAYLOAD_SIZE || 
+            total_packet_size < (int)sizeof(struct uci_packet_header)) {
+            printf("Error: Payload size would cause integer overflow.\n");
+            UCI_LOG_ERROR("Integer overflow in packet size calculation", UCI_ERROR_INVALID_PARAM);
+            return;
+        }
+
+        unsigned char *packet = safe_malloc(total_packet_size);
         if (!packet) {
             printf("Error: Failed to allocate memory for UCI packet.\n");
+            UCI_LOG_ERROR("Memory allocation failure", UCI_ERROR_OUT_OF_MEMORY);
             return;
         }
 
         struct uci_packet_header *header = (struct uci_packet_header *)packet;
-        set_header_values_safe(header, mt, pbf, gid, oid, payload_len);
+        uci_error_t result = set_header_values_safe(header, mt, pbf, gid, oid, payload_len);
+        if (result != UCI_SUCCESS) {
+            printf("Error: Failed to set header values.\n");
+            UCI_LOG_ERROR("Header validation failed", result);
+            free(packet);
+            return;
+        }
 
         if (payload && payload_len > 0) {
-            memcpy(packet + sizeof(struct uci_packet_header), payload, payload_len);
+            result = safe_memcpy(packet + sizeof(struct uci_packet_header), 
+                                total_packet_size - sizeof(struct uci_packet_header),
+                                payload, payload_len);
+            if (result != UCI_SUCCESS) {
+                printf("Error: Failed to copy payload data.\n");
+                UCI_LOG_ERROR("Payload copy failed", result);
+                free(packet);
+                return;
+            }
         }
 
         // Print what we're sending
@@ -840,6 +872,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
             printf("  -> Failed to send to hardware device %s: %s\n", 
                    g_uwb_chardev.device_path[0] ? g_uwb_chardev.device_path : "/dev/ttyUSB0",
                    strerror(errno));
+            UCI_LOG_ERROR("Hardware send failed", UCI_ERROR_INVALID_PARAM);
         }
 
         free(packet);
@@ -848,7 +881,12 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
 
     // In simulation mode, continue with existing behavior
     struct uci_packet_header header;
-    set_header_values_safe(&header, mt, pbf, gid, oid, payload_len);
+    uci_error_t result = set_header_values_safe(&header, mt, pbf, gid, oid, payload_len);
+    if (result != UCI_SUCCESS) {
+        printf("Error: Failed to set header values in simulation mode.\n");
+        UCI_LOG_ERROR("Header validation failed in simulation", result);
+        return;
+    }
 
     ui_print_sending_uci_packet("simulator");
     unsigned char *header_bytes = (unsigned char *)&header;
@@ -866,6 +904,7 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
 
     if (!sim_command_allowed(gid, oid)) {
         send_sim_status(gid, oid, UCI_STATUS_REJECTED);
+        UCI_LOG_ERROR("Command not allowed", UCI_ERROR_INVALID_PARAM);
         return;
     }
 
@@ -873,6 +912,9 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
     if (!handler) {
         uint8_t status = sim_gid_is_known(gid) ? UCI_STATUS_UNKNOWN_OID : UCI_STATUS_UNKNOWN_GID;
         send_sim_status(gid, oid, status);
+        char error_msg[100];
+        snprintf(error_msg, sizeof(error_msg), "Handler not found for GID: 0x%02X, OID: 0x%02X", gid, oid);
+        UCI_LOG_ERROR(error_msg, UCI_ERROR_UNSUPPORTED_OPERATION);
         return;
     }
 
@@ -885,16 +927,23 @@ void send_uci_command(unsigned char mt, unsigned char pbf, unsigned char gid, un
                                          payload_size);
     if (generated_len < 0) {
         send_sim_status(gid, oid, UCI_STATUS_FAILED);
+        UCI_LOG_ERROR("Handler function failed", UCI_ERROR_INVALID_PARAM);
         return;
     }
 
     if ((size_t)generated_len > MAX_RESPONSE_PAYLOAD_LEN) {
         send_sim_status(gid, oid, UCI_STATUS_INVALID_MSG_SIZE);
+        UCI_LOG_ERROR("Response payload too large", UCI_ERROR_BUFFER_OVERFLOW);
         return;
     }
 
-    set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid,
+    result = set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid,
                            (unsigned char)generated_len);
+    if (result != UCI_SUCCESS) {
+        printf("Error: Failed to set response header values.\n");
+        UCI_LOG_ERROR("Response header validation failed", result);
+        return;
+    }
 
     size_t total_len = sizeof(struct uci_packet_header) + response_header->payload_len;
     if (sim_queue_enqueue(response_packet, total_len) == 0) {
@@ -969,10 +1018,24 @@ void uci_send_data_message(uint32_t identifier,
                            const unsigned char *app_data,
                            size_t app_data_len)
 {
+    // Validate input parameters
+    if (app_data_len > UCI_MAX_DATA_PACKET_PAYLOAD_SIZE - UCI_DATA_MESSAGE_SND_HEADER) {
+        UCI_LOG_ERROR("Application data length too large", UCI_ERROR_INVALID_PARAM);
+        return;
+    }
+    
     size_t payload_capacity = UCI_DATA_MESSAGE_SND_HEADER + app_data_len;
+    
+    // Check for potential integer overflow
+    if (app_data_len > SIZE_MAX - UCI_DATA_MESSAGE_SND_HEADER || payload_capacity < UCI_DATA_MESSAGE_SND_HEADER) {
+        UCI_LOG_ERROR("Integer overflow in payload capacity calculation", UCI_ERROR_INVALID_PARAM);
+        return;
+    }
+
     unsigned char *payload = safe_malloc(payload_capacity);
     if (!payload) {
         printf("Error: Failed to allocate DATA_MESSAGE_SND payload buffer.\n");
+        UCI_LOG_ERROR("Memory allocation failure for payload", UCI_ERROR_OUT_OF_MEMORY);
         return;
     }
 
@@ -988,6 +1051,7 @@ void uci_send_data_message(uint32_t identifier,
                                            app_data, app_data_len);
     if (payload_len == 0) {
         printf("Error: Failed to compose DATA_MESSAGE_SND payload.\n");
+        UCI_LOG_ERROR("Failed to build data message payload", UCI_ERROR_INVALID_PARAM);
         free(payload);
         return;
     }
@@ -3149,14 +3213,32 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
 }
 
 void parse_uci_packet(unsigned char* packet, size_t packet_len) {
+    if (!packet) {
+        UCI_LOG_ERROR("NULL packet pointer", UCI_ERROR_INVALID_PARAM);
+        return;
+    }
+    
     if (packet_len < sizeof(struct uci_packet_header)) {
         printf("Error: UCI packet too short to contain a header.\n");
+        UCI_LOG_ERROR("Packet too short", UCI_ERROR_INVALID_PARAM);
+        return;
+    }
+
+    // Validate packet length against maximum allowed size to prevent potential attacks
+    if (packet_len > UCI_MAX_DATA_PACKET_PAYLOAD_SIZE + sizeof(struct uci_packet_header)) {
+        printf("Error: UCI packet too large.\n");
+        UCI_LOG_ERROR("Packet too large", UCI_ERROR_INVALID_PARAM);
         return;
     }
 
     struct uci_packet_header* header = (struct uci_packet_header*)packet;
     uci_header_fields_t header_fields;
-    uci_extract_header_fields_safe(header, &header_fields);
+    uci_error_t result = uci_extract_header_fields_safe(header, &header_fields);
+    if (result != UCI_SUCCESS) {
+        printf("Error: Failed to extract header fields from UCI packet.\n");
+        UCI_LOG_ERROR("Header field extraction failed", result);
+        return;
+    }
 
     size_t available_payload = packet_len - sizeof(struct uci_packet_header);
     size_t payload_len = header_fields.payload_length;

@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
 #include "../include/uci_hw_interface.h"
 #include "../include/uci_hw_chardev.h"
 #include "../include/uci_ui.h"
+#include "../include/uci_standardized_error_handling.h"
 
 #define MAX_PAYLOAD_LENGTH 255
 
@@ -21,11 +23,13 @@ void uci_cmd_hardware_init(int* hw_mode, uci_hw_chardev_t* chardev) {
 int handle_hw_init_command(char* device_path) {
     if (!device_path) {
         printf("Usage: hw_init <device_path>\n");
+        UCI_LOG_ERROR("device_path is NULL", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
 
     if (!g_hw_mode_ptr || !g_chardev_ptr) {
         printf("Error: Hardware command module not initialized\n");
+        UCI_LOG_ERROR("Hardware command module not initialized", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
 
@@ -40,13 +44,16 @@ int handle_hw_init_command(char* device_path) {
                 ui_print_success("Character device interface initialized successfully");
             } else {
                 printf("Warning: Failed to open character device interface\n");
+                UCI_LOG_ERROR("Failed to open character device interface", UCI_ERROR_INVALID_PARAM);
             }
         } else {
             printf("Warning: Failed to initialize character device interface\n");
+            UCI_LOG_ERROR("Failed to initialize character device interface", UCI_ERROR_INVALID_PARAM);
         }
         return 0;
     } else {
         printf("Failed to initialize hardware mode\n");
+        UCI_LOG_ERROR("Failed to initialize hardware mode", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
 }
@@ -59,11 +66,13 @@ int handle_hw_send_command(char* mt_str,
                            int payload_count) {
     if (!g_hw_mode_ptr || !*g_hw_mode_ptr) {
         printf("Hardware mode not enabled\n");
+        UCI_LOG_ERROR("Hardware mode not enabled", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
 
     if (!uci_hw_interface_is_connected()) {
         printf("Hardware not connected. Use 'hw_connect <device_path>' first.\n");
+        UCI_LOG_ERROR("Hardware not connected", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
 
@@ -74,6 +83,7 @@ int handle_hw_send_command(char* mt_str,
         printf("  PBF: 00=COMPLETE, 01=START, 02=CONT, 03=END\n");
         printf("  GID: 00=CORE, 01=SESSION_CONFIG, 02=SESSION_CONTROL\n");
         printf("  OID: Command opcode (depends on GID)\n");
+        UCI_LOG_ERROR("Missing required parameters", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
 
@@ -87,7 +97,16 @@ int handle_hw_send_command(char* mt_str,
 
     if (payload_tokens != NULL) {
         for (int i = 0; i < payload_count && i < MAX_PAYLOAD_LENGTH; i++) {
-            payload[payload_len++] = (unsigned char)strtol(payload_tokens[i], NULL, 16);
+            if (errno) {
+                errno = 0; // Reset errno
+            }
+            long val = strtol(payload_tokens[i], NULL, 16);
+            if (val < 0 || val > 255) {
+                printf("Invalid hex value: %s\n", payload_tokens[i]);
+                UCI_LOG_ERROR("Invalid hex value in payload", UCI_ERROR_INVALID_PARAM);
+                return -1;
+            }
+            payload[payload_len++] = (unsigned char)val;
         }
     }
 
@@ -112,10 +131,12 @@ int handle_hw_send_command(char* mt_str,
             printf("No response received from hardware (timeout)\n");
         } else {
             printf("Error receiving response from hardware\n");
+            UCI_LOG_ERROR("Error receiving response from hardware", UCI_ERROR_INVALID_PARAM);
         }
         return 0;
     } else {
         printf("Failed to send command to hardware\n");
+        UCI_LOG_ERROR("Failed to send command to hardware", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
 }
@@ -128,8 +149,24 @@ int handle_mode_hw_command(char* device_path) {
     if (!device_path) {
         printf("Usage: mode_hw <device_path>\n");
         printf("  Example: mode_hw /dev/ttyUSB0\n");
+        UCI_LOG_ERROR("device_path is NULL", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
+    
+    // Basic validation of device path to prevent potential security issues
+    if (strlen(device_path) >= 256) {
+        printf("Device path too long\n");
+        UCI_LOG_ERROR("Device path too long", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+    
+    // Basic check to prevent directory traversal attacks
+    if (strstr(device_path, "../") || strstr(device_path, "..\\")) {
+        printf("Invalid device path: directory traversal detected\n");
+        UCI_LOG_ERROR("Directory traversal detected in device path", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+    
     uci_enable_hardware_mode(device_path);
     return 0;
 }

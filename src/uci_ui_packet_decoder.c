@@ -9,6 +9,113 @@
 #include "../include/uci_packet_analyzer.h"
 #include "../include/uci_config_manager.h"
 
+typedef struct {
+    unsigned char value;
+    const char* label;
+    const char* description;
+} uci_lookup_entry_t;
+
+static const uci_lookup_entry_t k_device_state_table[] = {
+    { DEVICE_STATE_READY, "READY", "Device initialized and ready for commands" },
+    { DEVICE_STATE_ACTIVE, "ACTIVE", "Device actively processing UCI requests" },
+    { DEVICE_STATE_ERROR, "ERROR", "Device reported an unrecoverable error" },
+};
+
+static const uci_lookup_entry_t k_session_state_table[] = {
+    { SESSION_STATE_INIT, "INIT", "Session has been initialized" },
+    { SESSION_STATE_DEINIT, "DEINIT", "Session has been de-initialized" },
+    { SESSION_STATE_ACTIVE, "ACTIVE", "Session is actively ranging" },
+    { SESSION_STATE_IDLE, "IDLE", "Session is idle and ready" },
+};
+
+static const uci_lookup_entry_t k_session_reason_table[] = {
+    { STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS, "STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS", "State change triggered by management command" },
+    { MAX_RANGING_ROUND_RETRY_COUNT_REACHED, "MAX_RANGING_ROUND_RETRY_COUNT_REACHED", "Retries exhausted while attempting ranging" },
+    { MAX_NUMBER_OF_MEASUREMENTS_REACHED, "MAX_NUMBER_OF_MEASUREMENTS_REACHED", "Configured measurement target reached" },
+    { SESSION_SUSPENDED_DUE_TO_INBAND_SIGNAL, "SESSION_SUSPENDED_DUE_TO_INBAND_SIGNAL", "Session suspended due to in-band signal" },
+    { SESSION_RESUMED_DUE_TO_INBAND_SIGNAL, "SESSION_RESUMED_DUE_TO_INBAND_SIGNAL", "Session resumed after in-band signal" },
+    { SESSION_STOPPED_DUE_TO_INBAND_SIGNAL, "SESSION_STOPPED_DUE_TO_INBAND_SIGNAL", "Session stopped due to in-band signal" },
+};
+
+static const uci_lookup_entry_t k_data_transfer_status_table[] = {
+    { UCI_DATA_TRANSFER_STATUS_REPETITION_OK, "REPETITION_OK", "Frame already delivered during an earlier repetition" },
+    { UCI_DATA_TRANSFER_STATUS_OK, "OK", "Data transfer completed successfully" },
+    { UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER, "ERROR_DATA_TRANSFER", "Unspecified transmission problem" },
+    { UCI_DATA_TRANSFER_STATUS_ERROR_NO_CREDIT_AVAILABLE, "ERROR_NO_CREDIT_AVAILABLE", "Peer reported no credits available" },
+    { UCI_DATA_TRANSFER_STATUS_ERROR_REJECTED, "ERROR_REJECTED", "Peer rejected the data frame" },
+    { UCI_DATA_TRANSFER_STATUS_SESSION_TYPE_NOT_SUPPORTED, "SESSION_TYPE_NOT_SUPPORTED", "Session configuration does not support data transfer" },
+    { UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER_IS_ONGOING, "ERROR_DATA_TRANSFER_IS_ONGOING", "Another transfer is still in progress" },
+    { UCI_DATA_TRANSFER_STATUS_INVALID_FORMAT, "INVALID_FORMAT", "Frame format violated data transfer rules" },
+};
+
+static const uci_lookup_entry_t k_uci_status_table[] = {
+    { UCI_STATUS_OK, "OK", "Operation completed successfully" },
+    { UCI_STATUS_REJECTED, "REJECTED", "Request rejected by device" },
+    { UCI_STATUS_FAILED, "FAILED", "Generic failure occurred" },
+    { UCI_STATUS_SYNTAX_ERROR, "SYNTAX_ERROR", "Malformed request encountered" },
+    { UCI_STATUS_INVALID_PARAM, "INVALID_PARAM", "One or more parameters invalid" },
+    { UCI_STATUS_INVALID_RANGE, "INVALID_RANGE", "Parameter out of allowed range" },
+    { UCI_STATUS_INVALID_MSG_SIZE, "INVALID_MSG_SIZE", "Message size not supported" },
+    { UCI_STATUS_UNKNOWN_GID, "UNKNOWN_GID", "Unsupported group identifier" },
+    { UCI_STATUS_UNKNOWN_OID, "UNKNOWN_OID", "Unsupported opcode identifier" },
+    { UCI_STATUS_READ_ONLY, "READ_ONLY", "Attempt to set a read-only value" },
+    { UCI_STATUS_COMMAND_RETRY, "COMMAND_RETRY", "Command should be retried" },
+    { UCI_STATUS_UNKNOWN, "UNKNOWN", "Unknown status reported" },
+    { UCI_STATUS_NOT_APPLICABLE, "NOT_APPLICABLE", "Status not applicable" },
+    { UCI_STATUS_SESSION_NOT_EXIST, "SESSION_NOT_EXIST", "Referenced session does not exist" },
+    { UCI_STATUS_SESSION_DUPLICATE, "SESSION_DUPLICATE", "Session already exists" },
+    { UCI_STATUS_SESSION_ACTIVE, "SESSION_ACTIVE", "Session already active" },
+    { UCI_STATUS_MAX_SESSIONS_EXCEEDED, "MAX_SESSIONS_EXCEEDED", "No more sessions can be created" },
+    { UCI_STATUS_SESSION_NOT_CONFIGURED, "SESSION_NOT_CONFIGURED", "Session lacks configuration" },
+    { UCI_STATUS_ACTIVE_SESSIONS_ONGOING, "ACTIVE_SESSIONS_ONGOING", "Conflicting active session detected" },
+    { UCI_STATUS_MULTICAST_LIST_FULL, "MULTICAST_LIST_FULL", "Multicast list reached capacity" },
+    { UCI_STATUS_ADDRESS_NOT_FOUND, "ADDRESS_NOT_FOUND", "Target address not found" },
+    { UCI_STATUS_ADDRESS_ALREADY_PRESENT, "ADDRESS_ALREADY_PRESENT", "Address already present" },
+    { UCI_STATUS_ERROR_UWB_INITIATION_TIME_TOO_OLD, "UWB_INITIATION_TIME_TOO_OLD", "Initiation time too old" },
+    { UCI_STATUS_OK_NEGATIVE_DISTANCE_REPORT, "OK_NEGATIVE_DISTANCE_REPORT", "Negative distance reported" },
+    { UCI_STATUS_RANGING_TX_FAILED, "RANGING_TX_FAILED", "Transmission failed during ranging" },
+    { UCI_STATUS_RANGING_RX_TIMEOUT, "RANGING_RX_TIMEOUT", "Timed out waiting for ranging frame" },
+    { UCI_STATUS_RANGING_RX_PHY_DEC_FAILED, "RANGING_RX_PHY_DEC_FAILED", "PHY decode failure" },
+    { UCI_STATUS_RANGING_RX_PHY_TOA_FAILED, "RANGING_RX_PHY_TOA_FAILED", "PHY ToA extraction failure" },
+    { UCI_STATUS_RANGING_RX_PHY_STS_FAILED, "RANGING_RX_PHY_STS_FAILED", "PHY STS validation failure" },
+    { UCI_STATUS_RANGING_RX_MAC_DEC_FAILED, "RANGING_RX_MAC_DEC_FAILED", "MAC decode failure" },
+    { UCI_STATUS_RANGING_RX_MAC_IE_DEC_FAILED, "RANGING_RX_MAC_IE_DEC_FAILED", "MAC IE decode failure" },
+    { UCI_STATUS_RANGING_RX_MAC_IE_MISSING, "RANGING_RX_MAC_IE_MISSING", "Expected MAC IE missing" },
+    { UCI_STATUS_ERROR_ROUND_INDEX_NOT_ACTIVATED, "ROUND_INDEX_NOT_ACTIVATED", "Requested round index not active" },
+    { UCI_STATUS_ERROR_NUMBER_OF_ACTIVE_RANGING_ROUNDS_EXCEEDED, "ACTIVE_RANGING_ROUNDS_EXCEEDED", "Too many active ranging rounds" },
+    { UCI_STATUS_ERROR_DL_TDOA_DEVICE_ADDRESS_NOT_MATCHING_IN_REPLY_TIME_LIST, "DEVICE_ADDRESS_MISMATCH_REPLY_TIME_LIST", "Device address mismatch in reply-time list" },
+};
+
+static const uci_lookup_entry_t* find_lookup_entry(const uci_lookup_entry_t* table,
+                                                   size_t count,
+                                                   unsigned char value) {
+    for (size_t i = 0; i < count; i++) {
+        if (table[i].value == value) {
+            return &table[i];
+        }
+    }
+    return NULL;
+}
+
+static void print_additional_payload_bytes(const unsigned char* payload,
+                                           int payload_len,
+                                           int start_index) {
+    if (payload_len <= start_index) {
+        return;
+    }
+
+    if (ui_color_enabled) {
+        printf("    %s%sAdditional Payload Bytes:%s ", ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, ANSI_RESET);
+    } else {
+        printf("    Additional Payload Bytes: ");
+    }
+
+    for (int i = start_index; i < payload_len; i++) {
+        printf("%02X ", payload[i]);
+    }
+    printf("\n");
+}
+
 // Function declaration for enhanced error analysis from packet_analyzer.c
 void enhanced_error_analysis(unsigned char status_code);
 
@@ -883,23 +990,110 @@ void ui_decode_core_device_suspend_cmd_rsp(unsigned char* payload, int payload_l
 }
 
 void ui_decode_core_device_status_ntf(unsigned char* payload, int payload_len) {
-    (void)payload;
-    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_DEVICE_STATUS_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  CORE_DEVICE_STATUS_NTF:\n");
     }
+
+    if (payload_len < 1) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 1)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 1)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char device_state = payload[0];
+    const uci_lookup_entry_t* entry = find_lookup_entry(
+        k_device_state_table,
+        sizeof(k_device_state_table) / sizeof(k_device_state_table[0]),
+        device_state);
+
+    const char* state_color = ANSI_COLOR_YELLOW;
+    if (device_state == DEVICE_STATE_READY || device_state == DEVICE_STATE_ACTIVE) {
+        state_color = ANSI_COLOR_BRIGHT_GREEN;
+    } else if (device_state == DEVICE_STATE_ERROR) {
+        state_color = ANSI_COLOR_RED;
+    }
+
+    if (ui_color_enabled) {
+        printf("    %s%sDevice State:%s 0x%02X ", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, device_state);
+        if (entry) {
+            printf("%s(%s)%s", state_color, entry->label, ANSI_RESET);
+            if (entry->description && entry->description[0] != '\0') {
+                printf(" - %s", entry->description);
+            }
+        } else {
+            printf("%s(UNKNOWN)%s", ANSI_COLOR_YELLOW, ANSI_RESET);
+        }
+        printf("\n");
+    } else {
+        if (entry) {
+            printf("    Device State: 0x%02X (%s)\n", device_state, entry->label);
+            if (entry->description && entry->description[0] != '\0') {
+                printf("    Description: %s\n", entry->description);
+            }
+        } else {
+            printf("    Device State: 0x%02X (UNKNOWN)\n", device_state);
+        }
+    }
+
+    print_additional_payload_bytes(payload, payload_len, 1);
 }
 
 void ui_decode_core_generic_error_ntf(unsigned char* payload, int payload_len) {
-    (void)payload;
-    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sCORE_GENERIC_ERROR_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  CORE_GENERIC_ERROR_NTF:\n");
     }
+
+    if (payload_len < 1) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 1)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 1)\n", payload_len);
+        }
+        return;
+    }
+
+    unsigned char status = payload[0];
+    const uci_lookup_entry_t* entry = find_lookup_entry(
+        k_uci_status_table,
+        sizeof(k_uci_status_table) / sizeof(k_uci_status_table[0]),
+        status);
+
+    const char* status_color = (status == UCI_STATUS_OK) ? ANSI_COLOR_BRIGHT_GREEN : ANSI_COLOR_RED;
+
+    if (ui_color_enabled) {
+        printf("    %s%sStatus Code:%s 0x%02X ", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        if (entry) {
+            printf("%s(%s)%s", status_color, entry->label, ANSI_RESET);
+            if (entry->description && entry->description[0] != '\0') {
+                printf(" - %s", entry->description);
+            }
+        } else {
+            printf("%s(UNKNOWN)%s", ANSI_COLOR_YELLOW, ANSI_RESET);
+        }
+        printf("\n");
+    } else {
+        if (entry) {
+            printf("    Status Code: 0x%02X (%s)\n", status, entry->label);
+            if (entry->description && entry->description[0] != '\0') {
+                printf("    Description: %s\n", entry->description);
+            }
+        } else {
+            printf("    Status Code: 0x%02X (UNKNOWN)\n", status);
+        }
+    }
+
+    enhanced_error_analysis(status);
+
+    print_additional_payload_bytes(payload, payload_len, 1);
 }
 
 void ui_decode_session_init_cmd(unsigned char* payload, int payload_len) {
@@ -2276,33 +2470,201 @@ void ui_decode_session_get_ranging_count_rsp(unsigned char* payload, int payload
 }
 
 void ui_decode_session_status_ntf(unsigned char* payload, int payload_len) {
-    (void)payload;
-    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_STATUS_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  SESSION_STATUS_NTF:\n");
     }
+
+    if (payload_len < 6) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 6)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 6)\n", payload_len);
+        }
+        return;
+    }
+
+    uint32_t session_token = ui_read_u32_le(payload);
+    unsigned char session_state = payload[4];
+    unsigned char reason_code = payload[5];
+
+    const uci_lookup_entry_t* state_entry = find_lookup_entry(
+        k_session_state_table,
+        sizeof(k_session_state_table) / sizeof(k_session_state_table[0]),
+        session_state);
+
+    const uci_lookup_entry_t* reason_entry = find_lookup_entry(
+        k_session_reason_table,
+        sizeof(k_session_reason_table) / sizeof(k_session_reason_table[0]),
+        reason_code);
+
+    const char* state_color = ANSI_COLOR_YELLOW;
+    switch (session_state) {
+        case SESSION_STATE_INIT:
+            state_color = ANSI_COLOR_BRIGHT_BLUE;
+            break;
+        case SESSION_STATE_DEINIT:
+            state_color = ANSI_COLOR_YELLOW;
+            break;
+        case SESSION_STATE_ACTIVE:
+            state_color = ANSI_COLOR_BRIGHT_GREEN;
+            break;
+        case SESSION_STATE_IDLE:
+            state_color = ANSI_COLOR_BRIGHT_CYAN;
+            break;
+        default:
+            state_color = ANSI_COLOR_RED;
+            break;
+    }
+
+    if (ui_color_enabled) {
+        printf("    %s%sSession Token:%s 0x%08X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_token);
+        printf("    %s%sSession State:%s 0x%02X ", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, session_state);
+        if (state_entry) {
+            printf("%s(%s)%s", state_color, state_entry->label, ANSI_RESET);
+            if (state_entry->description && state_entry->description[0] != '\0') {
+                printf(" - %s", state_entry->description);
+            }
+        } else {
+            printf("%s(UNKNOWN)%s", ANSI_COLOR_YELLOW, ANSI_RESET);
+        }
+        printf("\n");
+
+        printf("    %s%sReason:%s 0x%02X ", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, reason_code);
+        if (reason_entry) {
+            printf("%s(%s)%s", ANSI_COLOR_BRIGHT_CYAN, reason_entry->label, ANSI_RESET);
+            if (reason_entry->description && reason_entry->description[0] != '\0') {
+                printf(" - %s", reason_entry->description);
+            }
+        } else {
+            printf("%s(UNKNOWN)%s", ANSI_COLOR_YELLOW, ANSI_RESET);
+        }
+        printf("\n");
+    } else {
+        printf("    Session Token: 0x%08X\n", session_token);
+        if (state_entry) {
+            printf("    Session State: 0x%02X (%s)\n", session_state, state_entry->label);
+            if (state_entry->description && state_entry->description[0] != '\0') {
+                printf("    State Description: %s\n", state_entry->description);
+            }
+        } else {
+            printf("    Session State: 0x%02X (UNKNOWN)\n", session_state);
+        }
+
+        if (reason_entry) {
+            printf("    Reason: 0x%02X (%s)\n", reason_code, reason_entry->label);
+            if (reason_entry->description && reason_entry->description[0] != '\0') {
+                printf("    Reason Description: %s\n", reason_entry->description);
+            }
+        } else {
+            printf("    Reason: 0x%02X (UNKNOWN)\n", reason_code);
+        }
+    }
+
+    print_additional_payload_bytes(payload, payload_len, 6);
 }
 
 void ui_decode_session_data_credit_ntf(unsigned char* payload, int payload_len) {
-    (void)payload;
-    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_DATA_CREDIT_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  SESSION_DATA_CREDIT_NTF:\n");
     }
+
+    if (payload_len < 5) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 5)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 5)\n", payload_len);
+        }
+        return;
+    }
+
+    uint32_t session_token = ui_read_u32_le(payload);
+    unsigned char credit_flag = payload[4];
+    const char* availability_text = (credit_flag != 0) ? "Credits Available" : "No Credits Available";
+
+    if (ui_color_enabled) {
+        printf("    %s%sSession Token:%s 0x%08X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_token);
+        printf("    %s%sCredit Availability:%s 0x%02X ", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, credit_flag);
+        if (credit_flag != 0) {
+            printf("%s(%s)%s", ANSI_COLOR_BRIGHT_GREEN, availability_text, ANSI_RESET);
+        } else {
+            printf("%s(%s)%s", ANSI_COLOR_RED, availability_text, ANSI_RESET);
+        }
+        printf("\n");
+    } else {
+        printf("    Session Token: 0x%08X\n", session_token);
+        printf("    Credit Availability: 0x%02X (%s)\n", credit_flag, availability_text);
+    }
+
+    print_additional_payload_bytes(payload, payload_len, 5);
 }
 
 void ui_decode_session_data_transfer_status_ntf(unsigned char* payload, int payload_len) {
-    (void)payload;
-    (void)payload_len;
     if (ui_color_enabled) {
         printf("  %s%sSESSION_DATA_TRANSFER_STATUS_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
         printf("  SESSION_DATA_TRANSFER_STATUS_NTF:\n");
     }
+
+    if (payload_len < 8) {
+        if (ui_color_enabled) {
+            printf("    %s%sError: Payload too short (%d bytes, need at least 8)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
+        } else {
+            printf("    Error: Payload too short (%d bytes, need at least 8)\n", payload_len);
+        }
+        return;
+    }
+
+    uint32_t session_token = ui_read_u32_le(payload);
+    uint16_t sequence_number = ui_read_u16_le(&payload[4]);
+    unsigned char status = payload[6];
+    unsigned char tx_count = payload[7];
+
+    const uci_lookup_entry_t* status_entry = find_lookup_entry(
+        k_data_transfer_status_table,
+        sizeof(k_data_transfer_status_table) / sizeof(k_data_transfer_status_table[0]),
+        status);
+
+    const char* status_color = (status == UCI_DATA_TRANSFER_STATUS_REPETITION_OK ||
+                                status == UCI_DATA_TRANSFER_STATUS_OK)
+                                   ? ANSI_COLOR_BRIGHT_GREEN
+                                   : ANSI_COLOR_RED;
+
+    if (ui_color_enabled) {
+        printf("    %s%sSession Token:%s 0x%08X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, session_token);
+        printf("    %s%sUCI Sequence Number:%s %u\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, sequence_number);
+        printf("    %s%sTransfer Status:%s 0x%02X ", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
+        if (status_entry) {
+            printf("%s(%s)%s", status_color, status_entry->label, ANSI_RESET);
+            if (status_entry->description && status_entry->description[0] != '\0') {
+                printf(" - %s", status_entry->description);
+            }
+        } else {
+            printf("%s(UNKNOWN)%s", ANSI_COLOR_YELLOW, ANSI_RESET);
+        }
+        printf("\n");
+        printf("    %s%sTX Attempt Count:%s %u\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, tx_count);
+    } else {
+        printf("    Session Token: 0x%08X\n", session_token);
+        printf("    UCI Sequence Number: %u\n", sequence_number);
+        if (status_entry) {
+            printf("    Transfer Status: 0x%02X (%s)\n", status, status_entry->label);
+            if (status_entry->description && status_entry->description[0] != '\0') {
+                printf("    Status Description: %s\n", status_entry->description);
+            }
+        } else {
+            printf("    Transfer Status: 0x%02X (UNKNOWN)\n", status);
+        }
+        printf("    TX Attempt Count: %u\n", tx_count);
+    }
+
+    print_additional_payload_bytes(payload, payload_len, 8);
 }
 
 void ui_decode_session_logical_link_uwbs_create_ntf(unsigned char* payload, int payload_len) {

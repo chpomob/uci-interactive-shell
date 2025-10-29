@@ -115,7 +115,8 @@ static inline uci_security_error_t uci_sec_strcpy(char* dest, size_t dest_size, 
         return UCI_SEC_ERROR_BUFFER_OVERFLOW;
     }
     
-    strcpy(dest, src);
+    strncpy(dest, src, dest_size - 1);
+    dest[dest_size - 1] = '\0';  // Ensure null termination
     return UCI_SEC_SUCCESS;
 }
 

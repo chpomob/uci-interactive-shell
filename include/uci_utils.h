@@ -67,7 +67,8 @@ static inline int safe_strcpy(char* dest, size_t dest_size, const char* src) {
         return -1;
     }
     
-    strcpy(dest, src);
+    strncpy(dest, src, dest_size - 1);
+    dest[dest_size - 1] = '\0';  // Ensure null termination
     return 0;  // Success
 }
 

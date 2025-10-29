@@ -23,8 +23,8 @@ $(TARGET): $(OBJ)
 test-mutualization: $(MUTUALIZATION_TEST_TARGET)
 	./$(MUTUALIZATION_TEST_TARGET)
 
-$(MUTUALIZATION_TEST_TARGET): test_mutualization.c $(filter-out src/main.o,$(OBJ))
-	$(CC) $(CFLAGS) -o $(MUTUALIZATION_TEST_TARGET) test_mutualization.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
+$(MUTUALIZATION_TEST_TARGET): test_mutualization.c $(filter-out src/main.o src/uci_globals.o,$(OBJ)) tests/uci_globals_test.o
+	$(CC) $(CFLAGS) -o $(MUTUALIZATION_TEST_TARGET) test_mutualization.c $(filter-out src/main.o src/uci_globals.o,$(OBJ)) tests/uci_globals_test.o $(LIBS)
 
 src/main.o: src/main.c include/uci.h include/uci_functions.h
 src/uci.o: src/uci.c include/uci.h include/uci_functions.h
@@ -50,20 +50,20 @@ $(TEST_TARGET): src/uci_hw_chardev.o
 unit-test: $(UNIT_TEST_TARGET)
 	./$(UNIT_TEST_TARGET)
 
-$(UNIT_TEST_TARGET): tests/test_uci_functions.o $(filter-out src/main.o,$(OBJ))
-	$(CC) $(CFLAGS) -o $(UNIT_TEST_TARGET) tests/test_uci_functions.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
+$(UNIT_TEST_TARGET): tests/test_uci_functions.o $(filter-out src/main.o,$(OBJ)) tests/stubs.o
+	$(CC) $(CFLAGS) -o $(UNIT_TEST_TARGET) tests/test_uci_functions.c $(filter-out src/main.o,$(OBJ)) tests/stubs.o $(LIBS)
 
 config-test: $(CONFIG_TEST_TARGET)
 	./$(CONFIG_TEST_TARGET)
 
-$(CONFIG_TEST_TARGET): tests/test_config_manager.o $(filter-out src/main.o,$(OBJ))
-	$(CC) $(CFLAGS) -o $(CONFIG_TEST_TARGET) tests/test_config_manager.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
+$(CONFIG_TEST_TARGET): tests/test_config_manager.o $(filter-out src/main.o,$(OBJ)) tests/stubs.o
+	$(CC) $(CFLAGS) -o $(CONFIG_TEST_TARGET) tests/test_config_manager.c $(filter-out src/main.o,$(OBJ)) tests/stubs.o $(LIBS)
 
 session-manager-test: $(SESSION_MANAGER_TEST_TARGET)
 	./$(SESSION_MANAGER_TEST_TARGET)
 
-$(SESSION_MANAGER_TEST_TARGET): tests/test_session_manager.o $(filter-out src/main.o,$(OBJ))
-	$(CC) $(CFLAGS) -o $(SESSION_MANAGER_TEST_TARGET) tests/test_session_manager.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
+$(SESSION_MANAGER_TEST_TARGET): tests/test_session_manager.o $(filter-out src/main.o,$(OBJ)) tests/stubs.o
+	$(CC) $(CFLAGS) -o $(SESSION_MANAGER_TEST_TARGET) tests/test_session_manager.c $(filter-out src/main.o,$(OBJ)) tests/stubs.o $(LIBS)
 
 security-test: $(SECURITY_TEST_TARGET)
 	./$(SECURITY_TEST_TARGET)
@@ -75,6 +75,8 @@ tests/test_uci_functions.o: tests/test_uci_functions.c tests/test_runner.h inclu
 tests/test_config_manager.o: tests/test_config_manager.c tests/test_runner.h include/uci.h include/uci_config_manager.h
 tests/test_session_manager.o: tests/test_session_manager.c tests/test_runner.h include/uci.h include/uci_functions.h
 tests/test_uci_security.o: tests/test_uci_security.c include/uci_security.h
+tests/stubs.o: tests/stubs.c include/uci.h include/uci_cli.h
+tests/uci_globals_test.o: tests/uci_globals_test.c include/uci_globals.h
 
 coverage: clean
 	$(MAKE) CFLAGS="$(CFLAGS) --coverage" LIBS="$(LIBS) --coverage" unit-test config-test session-manager-test security-test

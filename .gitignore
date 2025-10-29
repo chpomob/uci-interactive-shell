@@ -6,6 +6,9 @@ uci-shell
 test_config_manager
 test_hw_interface
 test_session_manager
+test_mutualization
+test_uci_security
+test_chardev
 *.gcda
 *.gcno
 *.gcov

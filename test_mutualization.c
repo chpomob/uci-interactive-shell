@@ -13,7 +13,7 @@ int main() {
     // Test 1: Create a session init structure
     printf("Test 1: Creating and encoding/decoding SESSION_INIT packet\n");
     uci_session_init_payload_t session_init;
-    uci_error_t result = uci_create_session_init_struct(&session_init, 0x12345678, FIRA_RANGING_SESSION);
+    uci_error_t result = uci_create_session_init_struct(&session_init, 1, FIRA_RANGING_SESSION);
     if (result != UCI_SUCCESS) {
         printf("  Error creating session init struct: %d\n", result);
         return 1;
@@ -69,7 +69,7 @@ int main() {
     // Test 2: Create a session deinit structure
     printf("Test 2: Creating and encoding/decoding SESSION_DEINIT packet\n");
     uci_session_deinit_payload_t session_deinit;
-    result = uci_create_session_deinit_struct(&session_deinit, 0x87654321);
+    result = uci_create_session_deinit_struct(&session_deinit, 2);
     if (result != UCI_SUCCESS) {
         printf("  Error creating session deinit struct: %d\n", result);
         return 1;
@@ -113,7 +113,7 @@ int main() {
     // Test 3: Test the send function with structure
     printf("Test 3: Testing send function with mutualized structure\n");
     uci_session_control_payload_t session_start;
-    result = uci_create_session_control_struct(&session_start, 0x11223344);
+    result = uci_create_session_control_struct(&session_start, 3);
     if (result != UCI_SUCCESS) {
         printf("  Error creating session start struct: %d\n", result);
         return 1;

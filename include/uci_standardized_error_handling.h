@@ -41,7 +41,8 @@ static inline uci_error_t uci_safe_strcpy(char* dest, size_t dest_size, const ch
         return UCI_ERROR_BUFFER_OVERFLOW;
     }
     
-    strcpy(dest, src);
+    strncpy(dest, src, dest_size - 1);
+    dest[dest_size - 1] = '\0';  // Ensure null termination
     return UCI_SUCCESS;
 }
 

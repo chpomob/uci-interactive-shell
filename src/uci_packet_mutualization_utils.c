@@ -1,6 +1,7 @@
 #include "../include/uci_packet_structures.h"
 #include "../include/uci_packet_utils.h"
 #include "../include/uci.h"
+#include "../include/uci_functions.h"  // Include for send_uci_command
 #include <stdlib.h>
 #include <string.h>
 
@@ -289,12 +290,12 @@ void uci_send_command_with_struct(uint8_t mt, uint8_t pbf, uint8_t gid, uint8_t 
         return;
     }
 
-    // Send using the existing function
-    // Extract payload from the constructed packet
+    // Extract payload from the constructed packet for sending
     unsigned char* payload = packet + sizeof(struct uci_packet_header);
-    size_t payload_len = packet_len - sizeof(struct uci_packet_header);
+    int payload_len = (int)(packet_len - sizeof(struct uci_packet_header));
     
-    send_uci_command(mt, pbf, gid, oid, payload, (int)payload_len);
+    // Send using the existing function
+    send_uci_command(mt, pbf, gid, oid, payload, payload_len);
 
     // Clean up
     free(packet);

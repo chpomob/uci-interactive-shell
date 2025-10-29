@@ -2,6 +2,7 @@
 #define UCI_PACKET_MUTUALIZATION_UTILS_H
 
 #include "uci_packet_structures.h"
+#include "uci_functions.h"  // Include for send_uci_command declaration
 
 // Helper function to create and send a UCI packet using mutualized structures
 extern unsigned char* uci_create_packet_from_struct(uint8_t mt, uint8_t pbf, uint8_t gid, uint8_t oid, 

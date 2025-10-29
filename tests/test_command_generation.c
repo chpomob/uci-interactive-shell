@@ -193,5 +193,118 @@ int main() {
         test_case_end_get_state:;
     }
 
+    TEST_CASE(create_device_reset_packet);
+    {
+        const uint8_t reset_config = UWBS_RESET;
+
+        size_t packet_len = 0;
+        unsigned char* packet = create_device_reset_packet(reset_config, &packet_len);
+
+        if (packet == NULL) {
+            TEST_FAIL("Packet is null");
+            goto test_case_end_device_reset;
+        }
+        if (packet_len != sizeof(struct uci_packet_header) + 1) {
+            TEST_FAIL("Unexpected packet length");
+            goto test_case_end_device_reset;
+        }
+
+        const unsigned char* payload = packet + sizeof(struct uci_packet_header);
+        const int payload_len = packet_len - sizeof(struct uci_packet_header);
+
+        decoded_device_reset_cmd_t decoded_cmd;
+        int result = test_decode_device_reset_cmd(payload, payload_len, &decoded_cmd);
+
+        if (result != 0) {
+            TEST_FAIL("Failed to decode device reset command");
+            goto test_case_end_device_reset;
+        }
+        if (decoded_cmd.reset_config != reset_config) {
+            TEST_FAIL("Decoded reset config does not match");
+            goto test_case_end_device_reset;
+        }
+
+        free(packet);
+        TEST_PASS();
+        test_case_end_device_reset:;
+    }
+
+    TEST_CASE(create_get_caps_info_packet);
+    {
+        size_t packet_len = 0;
+        unsigned char* packet = create_get_caps_info_packet(&packet_len);
+
+        if (packet == NULL) {
+            TEST_FAIL("Packet is null");
+            goto test_case_end_get_caps_info;
+        }
+        if (packet_len != sizeof(struct uci_packet_header)) {
+            TEST_FAIL("Unexpected packet length");
+            goto test_case_end_get_caps_info;
+        }
+
+        struct uci_packet_header* header = (struct uci_packet_header*)packet;
+        uci_header_fields_t header_fields;
+        uci_extract_header_fields_safe(header, &header_fields);
+
+        if (header_fields.message_type != COMMAND) {
+            TEST_FAIL("Decoded message type does not match");
+            goto test_case_end_get_caps_info;
+        }
+        if (header_fields.group_id != CORE) {
+            TEST_FAIL("Decoded group ID does not match");
+            goto test_case_end_get_caps_info;
+        }
+        if (header_fields.opcode_id != CORE_GET_CAPS_INFO) {
+            TEST_FAIL("Decoded opcode ID does not match");
+            goto test_case_end_get_caps_info;
+        }
+
+        free(packet);
+        TEST_PASS();
+        test_case_end_get_caps_info:;
+    }
+
+    TEST_CASE(create_set_config_packet);
+    {
+        const uint8_t num_configs = 1;
+        const unsigned char configs[] = {DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE};
+
+        size_t packet_len = 0;
+        unsigned char* packet = create_set_config_packet(num_configs, configs, sizeof(configs), &packet_len);
+
+        if (packet == NULL) {
+            TEST_FAIL("Packet is null");
+            goto test_case_end_set_config;
+        }
+        if (packet_len != sizeof(struct uci_packet_header) + 1 + sizeof(configs)) {
+            TEST_FAIL("Unexpected packet length");
+            goto test_case_end_set_config;
+        }
+
+        const unsigned char* payload = packet + sizeof(struct uci_packet_header);
+        const int payload_len = packet_len - sizeof(struct uci_packet_header);
+
+        decoded_set_config_cmd_t decoded_cmd;
+        int result = test_decode_set_config_cmd(payload, payload_len, &decoded_cmd);
+
+        if (result != 0) {
+            TEST_FAIL("Failed to decode set config command");
+            goto test_case_end_set_config;
+        }
+        if (decoded_cmd.num_configs != num_configs) {
+            TEST_FAIL("Decoded num_configs does not match");
+            goto test_case_end_set_config;
+        }
+        if (memcmp(decoded_cmd.configs, configs, sizeof(configs)) != 0) {
+            TEST_FAIL("Decoded configs do not match");
+            goto test_case_end_set_config;
+        }
+
+        free(packet);
+        TEST_PASS();
+        test_case_end_set_config:;
+    }
+
     TEST_SUITE_END();
 }

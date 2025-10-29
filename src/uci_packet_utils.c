@@ -98,6 +98,43 @@ unsigned char* create_get_session_state_packet(
                             payload, sizeof(payload), packet_len);
 }
 
+unsigned char* create_get_device_info_packet(
+    size_t* packet_len) {
+    
+    return create_uci_packet(COMMAND, COMPLETE, CORE, CORE_DEVICE_INFO, 
+                            NULL, 0, packet_len);
+}
+
+unsigned char* create_device_reset_packet(
+    uint8_t reset_config,
+    size_t* packet_len) {
+    
+    unsigned char payload[] = {reset_config};
+    return create_uci_packet(COMMAND, COMPLETE, CORE, CORE_DEVICE_RESET, 
+                            payload, sizeof(payload), packet_len);
+}
+
+unsigned char* create_get_caps_info_packet(
+    size_t* packet_len) {
+    
+    return create_uci_packet(COMMAND, COMPLETE, CORE, CORE_GET_CAPS_INFO, 
+                            NULL, 0, packet_len);
+}
+
+unsigned char* create_set_config_packet(
+    uint8_t num_configs,
+    const unsigned char* configs,
+    size_t configs_len,
+    size_t* packet_len) {
+
+    unsigned char payload[256];
+    payload[0] = num_configs;
+    memcpy(payload + 1, configs, configs_len);
+    
+    return create_uci_packet(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, 
+                            payload, configs_len + 1, packet_len);
+}
+
 size_t uci_build_data_message_snd_payload(unsigned char *buffer,
                                           size_t capacity,
                                           uint32_t session_identifier,

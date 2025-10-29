@@ -5,6 +5,7 @@
 #include "../include/uci_functions.h"
 #include "../include/uci_hw_interface.h"
 #include "../include/uci_pdl.h"
+#include "../include/uci_packet_utils.h"
 
 // Helper function to send UCI command in unified mode (hardware or simulation)
 static int send_unified_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid,
@@ -43,8 +44,15 @@ void handle_get_device_info_command(void) {
 }
 
 void handle_device_reset_command(void) {
-    unsigned char payload[] = {UWBS_RESET};
-    send_unified_command(COMMAND, 0, CORE, CORE_DEVICE_RESET, payload, sizeof(payload));
+    size_t packet_len;
+    unsigned char* packet = create_device_reset_packet(UWBS_RESET, &packet_len);
+    if (packet) {
+        struct uci_packet_header* header = (struct uci_packet_header*)packet;
+        uci_header_fields_t header_fields;
+        uci_extract_header_fields_safe(header, &header_fields);
+        send_unified_command(header_fields.message_type, header_fields.packet_boundary, header_fields.group_id, header_fields.opcode_id, packet + sizeof(struct uci_packet_header), header_fields.payload_length);
+        free(packet);
+    }
 
     // In simulation mode, also send status notification
     if (!uci_is_hardware_mode_enabled()) {
@@ -54,7 +62,15 @@ void handle_device_reset_command(void) {
 }
 
 void handle_get_caps_info_command(void) {
-    send_unified_command(COMMAND, 0, CORE, CORE_GET_CAPS_INFO, NULL, 0);
+    size_t packet_len;
+    unsigned char* packet = create_get_caps_info_packet(&packet_len);
+    if (packet) {
+        struct uci_packet_header* header = (struct uci_packet_header*)packet;
+        uci_header_fields_t header_fields;
+        uci_extract_header_fields_safe(header, &header_fields);
+        send_unified_command(header_fields.message_type, header_fields.packet_boundary, header_fields.group_id, header_fields.opcode_id, packet + sizeof(struct uci_packet_header), header_fields.payload_length);
+        free(packet);
+    }
 }
 
 int handle_set_power_command(char* power_state) {
@@ -174,8 +190,16 @@ int handle_set_config_command(char* config_name, char* value_str) {
         return -1;
     }
 
-    unsigned char payload[] = {0x01, cfg_id, 0x01, value};
-    send_unified_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
+    unsigned char configs[] = {cfg_id, 0x01, value};
+    size_t packet_len;
+    unsigned char* packet = create_set_config_packet(1, configs, sizeof(configs), &packet_len);
+    if (packet) {
+        struct uci_packet_header* header = (struct uci_packet_header*)packet;
+        uci_header_fields_t header_fields;
+        uci_extract_header_fields_safe(header, &header_fields);
+        send_unified_command(header_fields.message_type, header_fields.packet_boundary, header_fields.group_id, header_fields.opcode_id, packet + sizeof(struct uci_packet_header), header_fields.payload_length);
+        free(packet);
+    }
     return 0;
 }
 

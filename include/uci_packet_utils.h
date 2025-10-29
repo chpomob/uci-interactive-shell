@@ -264,4 +264,36 @@ unsigned char* create_get_session_state_packet(
     size_t* packet_len
 );
 
+/**
+ * Create a get device info packet
+ */
+unsigned char* create_get_device_info_packet(
+    size_t* packet_len
+);
+
+/**
+ * Create a device reset packet
+ */
+unsigned char* create_device_reset_packet(
+    uint8_t reset_config,
+    size_t* packet_len
+);
+
+/**
+ * Create a get caps info packet
+ */
+unsigned char* create_get_caps_info_packet(
+    size_t* packet_len
+);
+
+/**
+ * Create a set config packet
+ */
+unsigned char* create_set_config_packet(
+    uint8_t num_configs,
+    const unsigned char* configs,
+    size_t configs_len,
+    size_t* packet_len
+);
+
 #endif // UCI_PACKET_UTILS_H

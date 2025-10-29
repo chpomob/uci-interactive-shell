@@ -44,4 +44,21 @@ typedef struct {
 // Decodes a GET_SESSION_STATE command payload for testing
 int test_decode_get_session_state_cmd(const unsigned char* payload, int payload_len, decoded_get_session_state_cmd_t* decoded_cmd);
 
+// Structure to hold the decoded DEVICE_RESET command
+typedef struct {
+    uint8_t reset_config;
+} decoded_device_reset_cmd_t;
+
+// Decodes a DEVICE_RESET command payload for testing
+int test_decode_device_reset_cmd(const unsigned char* payload, int payload_len, decoded_device_reset_cmd_t* decoded_cmd);
+
+// Structure to hold the decoded SET_CONFIG command
+typedef struct {
+    uint8_t num_configs;
+    uint8_t configs[255];
+} decoded_set_config_cmd_t;
+
+// Decodes a SET_CONFIG command payload for testing
+int test_decode_set_config_cmd(const unsigned char* payload, int payload_len, decoded_set_config_cmd_t* decoded_cmd);
+
 #endif // TEST_HELPERS_H

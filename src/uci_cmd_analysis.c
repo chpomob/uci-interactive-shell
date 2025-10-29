@@ -17,6 +17,7 @@
 #include "../include/uci_packet_analyzer.h"
 #include "../include/uci_ui_packet_decoder.h"
 #include "../include/uci_packet_utils.h"
+#include "../include/uci_pdl.h"
 
 // Forward declarations
 static void print_analysis_help(void);
@@ -517,7 +518,22 @@ static void enhanced_packet_analysis(unsigned char* packet, size_t packet_len, i
             struct uci_packet_header* header = (struct uci_packet_header*)packet;
             uci_header_fields_t header_fields;
             uci_extract_header_fields_safe(header, &header_fields);
-            
+
+            const size_t header_size = sizeof(struct uci_packet_header);
+            const unsigned char* payload_ptr = NULL;
+            size_t payload_len = 0;
+            size_t available_payload = 0;
+            size_t declared_payload_len = header_fields.payload_length;
+
+            if (packet_len > header_size) {
+                available_payload = packet_len - header_size;
+                payload_ptr = packet + header_size;
+                payload_len = declared_payload_len;
+                if (payload_len > available_payload) {
+                    payload_len = available_payload;
+                }
+            }
+
             // Analyze based on message type
             if (ui_color_enabled) {
                 printf("  %s%s%sMessage Type Analysis:%s\n", 
@@ -582,6 +598,30 @@ static void enhanced_packet_analysis(unsigned char* packet, size_t packet_len, i
                         printf("    Response Analysis:\n");
                         printf("      This is a UCI response packet that would be received from a UWB device\n");
                         printf("      Indicates the result of a previously sent command\n");
+                    }
+
+                    if (payload_len == 0 || payload_ptr == NULL) {
+                        if (ui_color_enabled) {
+                            printf("      %s%sNo response payload available to decode%s\n",
+                                   ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, ANSI_RESET);
+                        } else {
+                            printf("      No response payload available to decode\n");
+                        }
+                    } else {
+                        if (ui_color_enabled) {
+                            printf("      %s%sResponse Field Details:%s\n",
+                                   ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
+                        } else {
+                            printf("      Response Field Details:\n");
+                        }
+
+                        ui_print_status_lookup_line("Status", payload_ptr[0]);
+
+                        if (header_fields.group_id == SESSION_CONFIG &&
+                            header_fields.opcode_id == SESSION_GET_STATE &&
+                            payload_len >= 2) {
+                            ui_print_session_state_lookup_line("Session State", payload_ptr[1]);
+                        }
                     }
                     break;
                     

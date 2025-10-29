@@ -66,6 +66,11 @@ void ui_decode_android_set_country_code_rsp(unsigned char* payload, int payload_
 void ui_decode_android_radar_set_app_config_rsp(unsigned char* payload, int payload_len);
 void ui_decode_android_radar_get_app_config_rsp(unsigned char* payload, int payload_len);
 
+// Shared lookup helpers exposed for enhanced analysis overlays
+void ui_print_status_lookup_line(const char* label, unsigned char status_code);
+void ui_print_session_state_lookup_line(const char* label, unsigned char session_state);
+void ui_print_session_reason_lookup_line(const char* label, unsigned char reason_code);
+
 // Utility functions for reading values in little-endian format
 static inline uint16_t ui_read_u16_le(const unsigned char* buffer) {
     return (uint16_t)buffer[0] | ((uint16_t)buffer[1] << 8);

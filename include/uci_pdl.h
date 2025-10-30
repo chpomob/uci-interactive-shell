@@ -320,10 +320,4 @@ typedef enum {
     SESSION_STOPPED_DUE_TO_INBAND_SIGNAL = 0x05,
 } ReasonCode;
 
-// Session state constants
-#define SESSION_STATE_INIT      0x00
-#define SESSION_STATE_DEINIT    0x01
-#define SESSION_STATE_ACTIVE    0x02
-#define SESSION_STATE_IDLE      0x03
-
 #endif // UCI_PDL_H

@@ -72,6 +72,17 @@ void report_error(int error_code, const char* fmt, ...);
  * @param out_session_id Optional pointer to store parsed session ID
  * @return true if validation passes, false if validation fails
  */
-bool validate_session_id(const char* session_id_str, unsigned int* out_session_id);
-
+/**
+ * @brief Safely parse a hex string into a byte array
+ * 
+ * Converts a hexadecimal string representation into a byte array with
+ * comprehensive validation and buffer overflow protection.
+ * 
+ * @param hex_str Input hexadecimal string (without 0x prefix)
+ * @param bytes Output byte array buffer
+ * @param max_len Maximum number of bytes that can be stored
+ * @param out_len Output parameter for actual number of bytes parsed
+ * @return true if parsing successful, false on error
+ */
+bool parse_hex_string_safe(const char* hex_str, unsigned char* bytes, size_t max_len, size_t* out_len);
 #endif // UCI_COMMAND_UTILS_H

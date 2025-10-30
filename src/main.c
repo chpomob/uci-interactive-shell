@@ -27,7 +27,7 @@
 #include "../include/uci_hw_chardev.h"
 #include "../include/uci_ui.h"
 #include "../include/uci_ui_main_patch.h"
-#include "../include/uci_ui_packet_decoder.h"
+#include "../include/uci_packet_utils.h"
 #include "../include/uci_cmd_hardware.h"
 #include "../include/uci_cmd_core.h"
 #include "../include/uci_cmd_session.h"
@@ -363,11 +363,13 @@ int cmd_simulate_notification(int argc, char** argv) {
             return -1;
         }
 
-        unsigned char notification_packet[sizeof(struct uci_packet_header) + 1];
-        struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
-        set_header_values_safe(ntf_header, NOTIFICATION, COMPLETE, CORE, CORE_DEVICE_STATUS_NTF, 1);
-        notification_packet[sizeof(struct uci_packet_header)] = device_state;
-        parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + 1);
+        size_t packet_len;
+        unsigned char* notification_packet = create_uci_packet(NOTIFICATION, COMPLETE, CORE, CORE_DEVICE_STATUS_NTF,
+                                                             &device_state, 1, &packet_len);
+        if (notification_packet) {
+            parse_uci_packet(notification_packet, packet_len);
+            free(notification_packet);
+        }
         return 0;
     }
 
@@ -405,16 +407,18 @@ int cmd_simulate_session_status(int argc, char** argv) {
         return -1;
     }
 
-    unsigned char notification_packet[sizeof(struct uci_packet_header) + 6];
-    struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
-    set_header_values_safe(ntf_header, NOTIFICATION, COMPLETE, SESSION_CONFIG, SESSION_STATUS_NTF, 6);
-    notification_packet[sizeof(struct uci_packet_header)] = (unsigned char)(session_id & 0xFF);
-    notification_packet[sizeof(struct uci_packet_header) + 1] = (unsigned char)((session_id >> 8) & 0xFF);
-    notification_packet[sizeof(struct uci_packet_header) + 2] = (unsigned char)((session_id >> 16) & 0xFF);
-    notification_packet[sizeof(struct uci_packet_header) + 3] = (unsigned char)((session_id >> 24) & 0xFF);
-    notification_packet[sizeof(struct uci_packet_header) + 4] = session_state;
-    notification_packet[sizeof(struct uci_packet_header) + 5] = reason_code;
-    parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + 6);
+    unsigned char notification_payload[6];
+    write_u32_le(notification_payload, session_id);
+    notification_payload[4] = session_state;
+    notification_payload[5] = reason_code;
+
+    size_t packet_len;
+    unsigned char* notification_packet = create_uci_packet(NOTIFICATION, COMPLETE, SESSION_CONFIG, SESSION_STATUS_NTF,
+                                                         notification_payload, sizeof(notification_payload), &packet_len);
+    if (notification_packet) {
+        parse_uci_packet(notification_packet, packet_len);
+        free(notification_packet);
+    }
     return 0;
 }
 
@@ -422,15 +426,15 @@ int cmd_simulate_data_credit(int argc, char** argv) {
     (void)argc;
     (void)argv;
 
-    unsigned char notification_packet[sizeof(struct uci_packet_header) + 5];
-    struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
-    set_header_values_safe(ntf_header, NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_DATA_CREDIT_NTF, 5);
-    notification_packet[sizeof(struct uci_packet_header)] = 0x01;
-    notification_packet[sizeof(struct uci_packet_header) + 1] = 0x02;
-    notification_packet[sizeof(struct uci_packet_header) + 2] = 0x03;
-    notification_packet[sizeof(struct uci_packet_header) + 3] = 0x04;
-    notification_packet[sizeof(struct uci_packet_header) + 4] = 0x01;
-    parse_uci_packet(notification_packet, sizeof(struct uci_packet_header) + 5);
+    unsigned char notification_payload[5] = {0x01, 0x02, 0x03, 0x04, 0x01};
+
+    size_t packet_len;
+    unsigned char* notification_packet = create_uci_packet(NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_DATA_CREDIT_NTF,
+                                                         notification_payload, sizeof(notification_payload), &packet_len);
+    if (notification_packet) {
+        parse_uci_packet(notification_packet, packet_len);
+        free(notification_packet);
+    }
     return 0;
 }
 
@@ -445,43 +449,38 @@ int cmd_demo_session_flow(int argc, char** argv) {
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_INIT, init_payload, sizeof(init_payload));
 
     printf("\n2. Session initialization complete - received status notification:\n");
-    unsigned char ntf_packet1[sizeof(struct uci_packet_header) + 6];
-    struct uci_packet_header* ntf_header1 = (struct uci_packet_header*)ntf_packet1;
-    set_header_values_safe(ntf_header1, NOTIFICATION, COMPLETE, SESSION_CONFIG, SESSION_STATUS_NTF, 6);
-    ntf_packet1[sizeof(struct uci_packet_header)] = 0x01;
-    ntf_packet1[sizeof(struct uci_packet_header) + 1] = 0x02;
-    ntf_packet1[sizeof(struct uci_packet_header) + 2] = 0x03;
-    ntf_packet1[sizeof(struct uci_packet_header) + 3] = 0x04;
-    ntf_packet1[sizeof(struct uci_packet_header) + 4] = SESSION_STATE_INIT;
-    ntf_packet1[sizeof(struct uci_packet_header) + 5] = STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS;
-    parse_uci_packet(ntf_packet1, sizeof(struct uci_packet_header) + 6);
+    unsigned char ntf_payload1[6] = {0x01, 0x02, 0x03, 0x04, SESSION_STATE_INIT, STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS};
+    size_t packet_len1;
+    unsigned char* ntf_packet1 = create_uci_packet(NOTIFICATION, COMPLETE, SESSION_CONFIG, SESSION_STATUS_NTF,
+                                                   ntf_payload1, sizeof(ntf_payload1), &packet_len1);
+    if (ntf_packet1) {
+        parse_uci_packet(ntf_packet1, packet_len1);
+        free(ntf_packet1);
+    }
 
     printf("\n3. Starting session...\n");
     unsigned char start_payload[] = {0x01, 0x02, 0x03, 0x04};
     send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_START, start_payload, sizeof(start_payload));
 
     printf("\n4. Session started - received status notification:\n");
-    unsigned char ntf_packet2[sizeof(struct uci_packet_header) + 6];
-    struct uci_packet_header* ntf_header2 = (struct uci_packet_header*)ntf_packet2;
-    set_header_values_safe(ntf_header2, NOTIFICATION, COMPLETE, SESSION_CONFIG, SESSION_STATUS_NTF, 6);
-    ntf_packet2[sizeof(struct uci_packet_header)] = 0x01;
-    ntf_packet2[sizeof(struct uci_packet_header) + 1] = 0x02;
-    ntf_packet2[sizeof(struct uci_packet_header) + 2] = 0x03;
-    ntf_packet2[sizeof(struct uci_packet_header) + 3] = 0x04;
-    ntf_packet2[sizeof(struct uci_packet_header) + 4] = SESSION_STATE_ACTIVE;
-    ntf_packet2[sizeof(struct uci_packet_header) + 5] = STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS;
-    parse_uci_packet(ntf_packet2, sizeof(struct uci_packet_header) + 6);
+    unsigned char ntf_payload2[6] = {0x01, 0x02, 0x03, 0x04, SESSION_STATE_ACTIVE, STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS};
+    size_t packet_len2;
+    unsigned char* ntf_packet2 = create_uci_packet(NOTIFICATION, COMPLETE, SESSION_CONFIG, SESSION_STATUS_NTF,
+                                                   ntf_payload2, sizeof(ntf_payload2), &packet_len2);
+    if (ntf_packet2) {
+        parse_uci_packet(ntf_packet2, packet_len2);
+        free(ntf_packet2);
+    }
 
     printf("\n5. Data credit available - received notification:\n");
-    unsigned char ntf_packet3[sizeof(struct uci_packet_header) + 5];
-    struct uci_packet_header* ntf_header3 = (struct uci_packet_header*)ntf_packet3;
-    set_header_values_safe(ntf_header3, NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_DATA_CREDIT_NTF, 5);
-    ntf_packet3[sizeof(struct uci_packet_header)] = 0x01;
-    ntf_packet3[sizeof(struct uci_packet_header) + 1] = 0x02;
-    ntf_packet3[sizeof(struct uci_packet_header) + 2] = 0x03;
-    ntf_packet3[sizeof(struct uci_packet_header) + 3] = 0x04;
-    ntf_packet3[sizeof(struct uci_packet_header) + 4] = 0x01;
-    parse_uci_packet(ntf_packet3, sizeof(struct uci_packet_header) + 5);
+    unsigned char ntf_payload3[5] = {0x01, 0x02, 0x03, 0x04, 0x01};
+    size_t packet_len3;
+    unsigned char* ntf_packet3 = create_uci_packet(NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_DATA_CREDIT_NTF,
+                                                   ntf_payload3, sizeof(ntf_payload3), &packet_len3);
+    if (ntf_packet3) {
+        parse_uci_packet(ntf_packet3, packet_len3);
+        free(ntf_packet3);
+    }
 
     printf("\n=== Session Flow Demonstration Complete ===\n");
     return 0;
@@ -526,33 +525,20 @@ int cmd_simulate_ranging(int argc, char** argv) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
 
-    unsigned char notification_packet[sizeof(struct uci_packet_header) + sizeof(ranging_ntf_payload)];
-    struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
-    set_header_values_safe(ntf_header, NOTIFICATION, COMPLETE, RANGING_DATA, RANGE_DATA_NTF_OPCODE, sizeof(ranging_ntf_payload));
-    memcpy(notification_packet + sizeof(struct uci_packet_header), ranging_ntf_payload, sizeof(ranging_ntf_payload));
+    size_t packet_len;
+    unsigned char* notification_packet = create_uci_packet(NOTIFICATION, COMPLETE, RANGING_DATA, RANGE_DATA_NTF_OPCODE,
+                                                         ranging_ntf_payload, sizeof(ranging_ntf_payload), &packet_len);
+    if (notification_packet) {
+        if (ui_color_enabled) {
+            printf("%s%s→ Sending simulated ranging notification packet%s\n",
+                   ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+        } else {
+            printf("→ Sending simulated ranging notification packet\n");
+        }
 
-    if (ui_color_enabled) {
-        printf("%s%s→ Sending simulated ranging notification packet%s\n",
-               ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
-    } else {
-        printf("→ Sending simulated ranging notification packet\n");
+        parse_uci_packet(notification_packet, packet_len);
+        free(notification_packet);
     }
-
-    if (ui_color_enabled) {
-        printf("%s%sReceived UCI packet:%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_RESET);
-        printf("  %sMT:%s 0x%01X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, NOTIFICATION);
-        printf("  %sPBF:%s 0x%01X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, COMPLETE);
-        printf("  %sGID:%s 0x%01X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, RANGING_DATA);
-        printf("  %sOpcode:%s 0x%02X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_RESET, RANGE_DATA_NTF_OPCODE);
-    } else {
-        printf("Received UCI packet:\n");
-        printf("  MT: 0x%01X\n", NOTIFICATION);
-        printf("  PBF: 0x%01X\n", COMPLETE);
-        printf("  GID: 0x%01X\n", RANGING_DATA);
-        printf("  Opcode: 0x%02X\n", RANGE_DATA_NTF_OPCODE);
-    }
-
-    parse_uci_packet(notification_packet, sizeof(notification_packet));
     return 0;
 }
 
@@ -603,11 +589,13 @@ int cmd_simulate_multi_target_ranging(int argc, char** argv) {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
 
-    unsigned char notification_packet[sizeof(struct uci_packet_header) + sizeof(multi_ranging_ntf_payload)];
-    struct uci_packet_header* ntf_header = (struct uci_packet_header*)notification_packet;
-    set_header_values_safe(ntf_header, NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_INFO_NTF, sizeof(multi_ranging_ntf_payload));
-    memcpy(notification_packet + sizeof(struct uci_packet_header), multi_ranging_ntf_payload, sizeof(multi_ranging_ntf_payload));
-    parse_uci_packet(notification_packet, sizeof(notification_packet));
+    size_t packet_len;
+    unsigned char* notification_packet = create_uci_packet(NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_INFO_NTF,
+                                                         multi_ranging_ntf_payload, sizeof(multi_ranging_ntf_payload), &packet_len);
+    if (notification_packet) {
+        parse_uci_packet(notification_packet, packet_len);
+        free(notification_packet);
+    }
 
     printf("=== Multi-Target Ranging Simulation Complete ===\n");
     return 0;

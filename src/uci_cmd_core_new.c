@@ -42,6 +42,13 @@ static int send_unified_command(unsigned char mt, unsigned char pbf, unsigned ch
 // Handler for get_device_info command using framework
 int handle_get_device_info_command_new(const char* cmd_name, int argc, char** argv, 
                                        const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     send_unified_command(COMMAND, 0, CORE, CORE_DEVICE_INFO, NULL, 0);
     return 0;
 }
@@ -49,6 +56,13 @@ int handle_get_device_info_command_new(const char* cmd_name, int argc, char** ar
 // Handler for device_reset command using framework
 int handle_device_reset_command_new(const char* cmd_name, int argc, char** argv, 
                                     const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     unsigned char payload[] = {UWBS_RESET};
     send_unified_command(COMMAND, 0, CORE, CORE_DEVICE_RESET, payload, sizeof(payload));
 
@@ -63,6 +77,13 @@ int handle_device_reset_command_new(const char* cmd_name, int argc, char** argv,
 // Handler for set_power command using framework
 int handle_set_power_command_new(const char* cmd_name, int argc, char** argv, 
                                  const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     if (argc < 2) {
         printf("Usage: %s <state> (active, ready, sleep)\n", cmd_name);
         return -1;
@@ -94,18 +115,39 @@ int handle_set_power_command_new(const char* cmd_name, int argc, char** argv,
 // Handler for device_on command using framework
 int handle_device_on_command_new(const char* cmd_name, int argc, char** argv, 
                                  const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     return handle_set_power_command_new(cmd_name, 2, (char*[]){"set_power", "active"}, params, param_count);
 }
 
 // Handler for device_off command using framework
 int handle_device_off_command_new(const char* cmd_name, int argc, char** argv, 
                                   const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     return handle_set_power_command_new(cmd_name, 2, (char*[]){"set_power", "ready"}, params, param_count);
 }
 
 // Handler for get_config command using framework
 int handle_get_config_command_new(const char* cmd_name, int argc, char** argv, 
                                   const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     if (argc < 2) {
         printf("Usage: %s <config_name>\n", cmd_name);
         printf("  Examples:\n");
@@ -133,6 +175,13 @@ int handle_get_config_command_new(const char* cmd_name, int argc, char** argv,
 // Handler for get_device_state command using framework
 int handle_get_device_state_command_new(const char* cmd_name, int argc, char** argv, 
                                         const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     unsigned char payload[] = {0x01, DEVICE_STATE}; // num_tlvs(1), cfg_id
     send_unified_command(COMMAND, 0, CORE, CORE_GET_CONFIG, payload, sizeof(payload));
     return 0;
@@ -141,6 +190,13 @@ int handle_get_device_state_command_new(const char* cmd_name, int argc, char** a
 // Handler for set_device_active command using framework
 int handle_set_device_active_command_new(const char* cmd_name, int argc, char** argv, 
                                          const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE};
     send_unified_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
     return 0;
@@ -149,6 +205,13 @@ int handle_set_device_active_command_new(const char* cmd_name, int argc, char** 
 // Handler for set_device_ready command using framework
 int handle_set_device_ready_command_new(const char* cmd_name, int argc, char** argv, 
                                         const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_READY};
     send_unified_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
     return 0;
@@ -157,6 +220,13 @@ int handle_set_device_ready_command_new(const char* cmd_name, int argc, char** a
 // Handler for set_config command using framework
 int handle_set_config_command_new(const char* cmd_name, int argc, char** argv, 
                                   const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     if (argc < 3) {
         printf("Usage: %s <config_name> <value>\n", cmd_name);
         printf("  Examples:\n");
@@ -208,6 +278,13 @@ int handle_set_config_command_new(const char* cmd_name, int argc, char** argv,
 // Handler for device_suspend command using framework
 int handle_device_suspend_command_new(const char* cmd_name, int argc, char** argv, 
                                       const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     unsigned char payload[] = {0x00};  // Wakeup source
     send_unified_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, payload, sizeof(payload));
     return 0;
@@ -216,6 +293,13 @@ int handle_device_suspend_command_new(const char* cmd_name, int argc, char** arg
 // Handler for query_timestamp command using framework
 int handle_query_timestamp_command_new(const char* cmd_name, int argc, char** argv, 
                                        const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
     send_unified_command(COMMAND, 0, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
     return 0;
 }

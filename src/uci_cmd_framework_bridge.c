@@ -8,12 +8,13 @@ extern const uci_command_def_t g_uci_command_defs[];
 extern const int g_uci_command_defs_count;
 
 // Global lookup table to connect legacy command handlers to new framework commands
-static struct {
-    const char* cmd_name;
-    const uci_command_def_t* def;
-} command_lookup_table[] = {
-    // This would be populated with actual command associations
-};
+// Commented out unused variable to prevent compiler warning
+// static struct {
+//     const char* cmd_name;
+//     const uci_command_def_t* def;
+// } command_lookup_table[] = {
+//     // This would be populated with actual command associations
+// };
 
 // Generic handler that bridges the old CLI system to the new framework
 int uci_cmd_framework_handler(int argc, char** argv) {

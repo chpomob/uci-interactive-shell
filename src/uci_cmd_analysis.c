@@ -7,7 +7,6 @@
  * Qorvo QM35 SDK patterns.
  */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -424,33 +423,6 @@ void handle_analyze_command(int argc, char* argv[]) {
  * @param out_len Output parameter for actual number of bytes parsed
  * @return 0 on success, -1 on error
  */
-static int parse_hex_string(const char* hex_str, unsigned char* bytes, size_t max_len, size_t* out_len) {
-    if (!hex_str || !bytes || !out_len) {
-        return -1;
-    }
-    
-    *out_len = 0;
-    char* hex_copy = strdup(hex_str);
-    if (!hex_copy) {
-        return -1;
-    }
-    
-    char* token = strtok(hex_copy, " ");
-    while (token && *out_len < max_len) {
-        char* endptr;
-        unsigned long value = strtoul(token, &endptr, 16);
-        if (*endptr != '\0' || value > 0xFF) {
-            free(hex_copy);
-            return -1;
-        }
-        bytes[*out_len] = (unsigned char)value;
-        (*out_len)++;
-        token = strtok(NULL, " ");
-    }
-    
-    free(hex_copy);
-    return 0;
-}
 
 /**
  * @brief Perform enhanced packet analysis
@@ -462,6 +434,8 @@ static int parse_hex_string(const char* hex_str, unsigned char* bytes, size_t ma
  * @param compare_mode Enable comparison mode (not used in single packet analysis)
  */
 static void enhanced_packet_analysis(unsigned char* packet, size_t packet_len, int verbose_mode, int tlv_mode, int compare_mode) {
+    // Unused parameter - prevent compiler warning
+    (void)compare_mode;
     // Call existing analysis function with enhancements
     if (ui_color_enabled) {
         printf("%s%s%s=== Enhanced UCI Packet Analysis ===%s\n", 
@@ -705,7 +679,7 @@ static void enhanced_packet_analysis(unsigned char* packet, size_t packet_len, i
                                header_fields.group_id);
                     }
                     break;
-                case DATA_CONTROL:
+                case 0x03:  // DATA_CONTROL - RFU (Reserved for Future Use)
                     if (ui_color_enabled) {
                         printf("    %s%sDATA_CONTROL Group (0x%01X):%s Data transfer control%s\n", 
                                ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, header_fields.group_id, ANSI_RESET, ANSI_RESET);
@@ -714,21 +688,21 @@ static void enhanced_packet_analysis(unsigned char* packet, size_t packet_len, i
                                header_fields.group_id);
                     }
                     break;
-                case RANGING_DATA:
+                case 0x0B:  // QORVO_EXT2 - Qorvo vendor-specific commands (QM SDK compatibility)
                     if (ui_color_enabled) {
-                        printf("    %s%sRANGING_DATA Group (0x%01X):%s Ranging measurement data%s\n", 
+                        printf("    %s%sQORVO_EXT2 Group (0x%01X):%s Vendor-specific commands%s\n", 
                                ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, header_fields.group_id, ANSI_RESET, ANSI_RESET);
                     } else {
-                        printf("    RANGING_DATA Group (0x%01X): Ranging measurement data\n", 
+                        printf("    QORVO_EXT2 Group (0x%01X): Vendor-specific commands\n", 
                                header_fields.group_id);
                     }
                     break;
-                case VENDOR_ANDROID:
+                case ANDROID:
                     if (ui_color_enabled) {
-                        printf("    %s%sVENDOR_ANDROID Group (0x%01X):%s Android-specific vendor extensions%s\n", 
+                        printf("    %s%sANDROID Group (0x%01X):%s Android-specific vendor extensions%s\n", 
                                ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, header_fields.group_id, ANSI_RESET, ANSI_RESET);
                     } else {
-                        printf("    VENDOR_ANDROID Group (0x%01X): Android-specific vendor extensions\n", 
+                        printf("    ANDROID Group (0x%01X): Android-specific vendor extensions\n", 
                                header_fields.group_id);
                     }
                     break;

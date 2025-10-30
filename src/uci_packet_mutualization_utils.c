@@ -56,6 +56,8 @@ unsigned char* uci_create_packet_from_struct(uint8_t mt, uint8_t pbf, uint8_t gi
     } else if (gid == SESSION_CONFIG && (oid == SESSION_SET_APP_CONFIG || oid == SESSION_GET_APP_CONFIG)) {
         // Special case for app config which has variable size
         const uci_session_app_config_payload_t* app_payload = (const uci_session_app_config_payload_t*)payload_struct;
+        // Unused variable - prevent compiler warning
+        (void)app_payload;
         // This would need additional TLV handling
         actual_payload_size = 5; // Just the header for now
     }

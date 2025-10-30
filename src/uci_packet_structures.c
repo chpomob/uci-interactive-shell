@@ -469,7 +469,8 @@ uci_error_t uci_deserialize_session_multicast(const unsigned char* src, size_t s
     payload->subsession_id = src[14];
     payload->key_length = src[15];
     
-    if (payload->key_length > 0 && payload->key_length <= 32 && src_size >= 16 + payload->key_length) {
+    if (payload->key_length > 0 && payload->key_length <= 32 && 
+        src_size >= (size_t)(16 + payload->key_length)) {
         for (int i = 0; i < payload->key_length; i++) {
             payload->key[i] = src[16 + i];
         }
@@ -490,7 +491,8 @@ uci_error_t uci_deserialize_session_dtp_config(const unsigned char* src, size_t 
     payload->dtp_control = src[5];
     payload->dtp_size = src[6];
     
-    if (payload->dtp_size > 0 && payload->dtp_size <= 64 && src_size >= 7 + payload->dtp_size) {
+    if (payload->dtp_size > 0 && payload->dtp_size <= 64 && 
+        src_size >= (size_t)(7 + payload->dtp_size)) {
         for (int i = 0; i < payload->dtp_size; i++) {
             payload->dtp_payload[i] = src[7 + i];
         }
@@ -527,7 +529,7 @@ uci_error_t uci_deserialize_session_hus_config(const unsigned char* src, size_t 
     payload->hus_config_length = read_u16_le(src + 10);
     
     if (payload->hus_config_length > 0 && payload->hus_config_length <= 250 && 
-        src_size >= 12 + payload->hus_config_length) {
+        src_size >= (size_t)(12 + payload->hus_config_length)) {
         for (int i = 0; i < payload->hus_config_length; i++) {
             payload->hus_config_data[i] = src[12 + i];
         }

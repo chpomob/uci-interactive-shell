@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include "../include/uci_hw_chardev.h"
 #include "../include/uci.h"
 #include <stdio.h>

@@ -706,6 +706,17 @@ int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv) {
             }
             break;
             
+        case QORVO_SESSION_GET:  // 0x07
+            // QORVO_SESSION_GET typically requires parameters for session retrieval
+            // For now, use a simple payload - in a real implementation this would
+            // include session filters, status criteria, etc.
+            vendor_payload = malloc(1);
+            if (vendor_payload) {
+                vendor_payload[0] = 0x00; // Simple session retrieval payload
+                vendor_payload_len = 1;
+            }
+            break;
+            
         default:
             // For unsupported opcodes, use the simple payload as fallback
             vendor_payload = malloc(1);

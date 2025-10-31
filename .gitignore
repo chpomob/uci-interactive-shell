@@ -11,8 +11,27 @@ test_uci_security
 test_command_generation
 test_command_handlers
 test_chardev
+test_uci_functions
+test_final.sh
+demo_*
+qm_sdk_*
+final_*
+
+# Coverage and profiling
 *.gcda
 *.gcno
 *.gcov
 coverage/
-test_uci_functions
+
+# Build logs and temporary files
+*.log
+build_*
+final_*.log
+*.tmp
+*.bak
+*.backup
+*.before_fix
+
+# Generated files
+final_status.json
+build_output.txt

@@ -673,6 +673,17 @@ int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv) {
             }
             break;
             
+        case QORVO_TEST_TX_CW:  // 0x01
+            // QORVO_TEST_TX_CW typically requires parameters for CW transmission test
+            // For now, use a simple payload - in a real implementation this would
+            // include frequency, power level, duration, etc.
+            vendor_payload = malloc(1);
+            if (vendor_payload) {
+                vendor_payload[0] = 0x00; // Simple CW test payload
+                vendor_payload_len = 1;
+            }
+            break;
+            
         default:
             // For unsupported opcodes, use the simple payload as fallback
             vendor_payload = malloc(1);

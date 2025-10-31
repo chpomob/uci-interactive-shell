@@ -90,6 +90,7 @@ int cmd_simulate_multi_target_ranging(int argc, char** argv);
 int cmd_demo_session_flow(int argc, char** argv);
 int cmd_analyze_packet(int argc, char** argv);
 int cmd_help(int argc, char** argv);
+int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv);
 
 
 
@@ -526,7 +527,7 @@ int cmd_simulate_ranging(int argc, char** argv) {
     };
 
     size_t packet_len;
-    unsigned char* notification_packet = create_uci_packet(NOTIFICATION, COMPLETE, RANGING_DATA, RANGE_DATA_NTF_OPCODE,
+    unsigned char* notification_packet = create_uci_packet(NOTIFICATION, COMPLETE, SESSION_CONTROL, SESSION_INFO_NTF_OPCODE,
                                                          ranging_ntf_payload, sizeof(ranging_ntf_payload), &packet_len);
     if (notification_packet) {
         if (ui_color_enabled) {
@@ -598,6 +599,112 @@ int cmd_simulate_multi_target_ranging(int argc, char** argv) {
     }
 
     printf("=== Multi-Target Ranging Simulation Complete ===\n");
+    return 0;
+}
+
+int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv) {
+    if (argc < 2) {
+        if (ui_color_enabled) {
+            printf("%s%sUsage:%s simulate_qm_sdk_vendor_command <opcode> [params...]\n", 
+                   ANSI_COLOR_BRIGHT_RED, ANSI_BOLD, ANSI_RESET);
+            printf("  Send a QM SDK vendor-specific command through GID 0x0B (QORVO_EXT2)\n");
+            printf("\n");
+            printf("%s%sAvailable opcodes:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
+            printf("  0x00: QORVO_TEST_DEBUG - Debug/test command\n");
+            printf("  0x01: QORVO_TEST_TX_CW - Continuous wave transmission test\n");
+            printf("  0x02: QORVO_TEST_PLLRF - PLL status test\n");
+            printf("  0x03: QORVO_FIRA_RANGE_DIAGNOSTICS - Ranging diagnostics\n");
+            printf("  0x07: QORVO_SESSION_GET - Get session information\n");
+            printf("  0x08: QORVO_FIRA_SET_ANT_FLEX_CONFIG - Set antenna flexibility configuration\n");
+            printf("  0x09: QORVO_FIRA_GET_ANT_FLEX_CONFIG - Get antenna flexibility configuration\n");
+            printf("  0x0A: QORVO_CCC_SET_ANT_FLEX_CONFIG - Set CCC antenna flexibility configuration\n");
+            printf("  0x0B: QORVO_CCC_GET_ANT_FLEX_CONFIG - Get CCC antenna flexibility configuration\n");
+            printf("  0x22: QORVO_CORE_PSDU_DUMP - Dump PSDU data\n");
+            printf("  0x23: QORVO_CORE_GET_MEM_STATS - Get memory statistics\n");
+            printf("  0x24: QORVO_CORE_GET_POWER_STATS - Get power statistics\n");
+            printf("  0x25: QORVO_CORE_GET_CPU_STATS - Get CPU statistics\n");
+            printf("  0x26: QORVO_CORE_RESET_CPU_STATS - Reset CPU statistics\n");
+            printf("  0x27: QORVO_CORE_GET_DEVICE_STATS - Get device statistics\n");
+            printf("  0x30: QORVO_CORE_ERASE_CERTS - Erase certificates\n");
+            printf("  0x31: QORVO_CORE_DEVICE_BOOT - Device boot notification\n");
+            printf("  0x35: QORVO_CORE_TOGGLE_GPIO_TIMESYNC - Toggle GPIO timesync\n");
+            printf("  0x36: QORVO_CORE_QUERY_GPIO_TIMESTAMP - Query GPIO timestamp\n");
+        } else {
+            printf("Usage: simulate_qm_sdk_vendor_command <opcode> [params...]\n");
+            printf("  Send a QM SDK vendor-specific command through GID 0x0B (QORVO_EXT2)\n");
+            printf("\n");
+            printf("Available opcodes:\n");
+            printf("  0x00: QORVO_TEST_DEBUG - Debug/test command\n");
+            printf("  0x01: QORVO_TEST_TX_CW - Continuous wave transmission test\n");
+            printf("  0x02: QORVO_TEST_PLLRF - PLL status test\n");
+            printf("  0x03: QORVO_FIRA_RANGE_DIAGNOSTICS - Ranging diagnostics\n");
+            printf("  0x07: QORVO_SESSION_GET - Get session information\n");
+            printf("  0x08: QORVO_FIRA_SET_ANT_FLEX_CONFIG - Set antenna flexibility configuration\n");
+            printf("  0x09: QORVO_FIRA_GET_ANT_FLEX_CONFIG - Get antenna flexibility configuration\n");
+            printf("  0x0A: QORVO_CCC_SET_ANT_FLEX_CONFIG - Set CCC antenna flexibility configuration\n");
+            printf("  0x0B: QORVO_CCC_GET_ANT_FLEX_CONFIG - Get CCC antenna flexibility configuration\n");
+            printf("  0x22: QORVO_CORE_PSDU_DUMP - Dump PSDU data\n");
+            printf("  0x23: QORVO_CORE_GET_MEM_STATS - Get memory statistics\n");
+            printf("  0x24: QORVO_CORE_GET_POWER_STATS - Get power statistics\n");
+            printf("  0x25: QORVO_CORE_GET_CPU_STATS - Get CPU statistics\n");
+            printf("  0x26: QORVO_CORE_RESET_CPU_STATS - Reset CPU statistics\n");
+            printf("  0x27: QORVO_CORE_GET_DEVICE_STATS - Get device statistics\n");
+            printf("  0x30: QORVO_CORE_ERASE_CERTS - Erase certificates\n");
+            printf("  0x31: QORVO_CORE_DEVICE_BOOT - Device boot notification\n");
+            printf("  0x35: QORVO_CORE_TOGGLE_GPIO_TIMESYNC - Toggle GPIO timesync\n");
+            printf("  0x36: QORVO_CORE_QUERY_GPIO_TIMESTAMP - Query GPIO timestamp\n");
+        }
+        return 1;
+    }
+
+    unsigned char opcode = (unsigned char)strtol(argv[1], NULL, 0);
+    size_t packet_len;
+    unsigned char* vendor_payload = NULL;
+    size_t vendor_payload_len = 0;
+    
+    // Handle opcode-specific payload construction
+    switch(opcode) {
+        case QORVO_TEST_DEBUG:  // 0x00
+            // QORVO_TEST_DEBUG typically uses a simple payload
+            vendor_payload = malloc(1);
+            if (vendor_payload) {
+                vendor_payload[0] = 0x00; // Simple debug payload
+                vendor_payload_len = 1;
+            }
+            break;
+            
+        default:
+            // For unsupported opcodes, use the simple payload as fallback
+            vendor_payload = malloc(1);
+            if (vendor_payload) {
+                vendor_payload[0] = 0x00;
+                vendor_payload_len = 1;
+            }
+            break;
+    }
+    
+    if (!vendor_payload) {
+        fprintf(stderr, "Error: Failed to allocate memory for vendor payload\n");
+        return -1;
+    }
+    
+    // Send vendor command through GID 0x0B (QORVO_EXT2) - QM SDK compatibility
+    unsigned char* vendor_packet = create_uci_packet(COMMAND, COMPLETE, QORVO_EXT2, opcode,
+                                                   vendor_payload, vendor_payload_len, &packet_len);
+    free(vendor_payload);
+    
+    if (vendor_packet) {
+        if (ui_color_enabled) {
+            printf("%s%s→ Sending QM SDK vendor command packet through GID 0x0B (QORVO_EXT2)%s\n",
+                   ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+        } else {
+            printf("→ Sending QM SDK vendor command packet through GID 0x0B (QORVO_EXT2)\n");
+        }
+        
+        parse_uci_packet(vendor_packet, packet_len);
+        free(vendor_packet);
+    }
+    
     return 0;
 }
 

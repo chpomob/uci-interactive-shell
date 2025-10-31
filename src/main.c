@@ -684,6 +684,17 @@ int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv) {
             }
             break;
             
+        case QORVO_TEST_PLLRF:  // 0x02
+            // QORVO_TEST_PLLRF typically requires parameters for PLL status test
+            // For now, use a simple payload - in a real implementation this would
+            // include PLL settings, frequency bands, etc.
+            vendor_payload = malloc(1);
+            if (vendor_payload) {
+                vendor_payload[0] = 0x00; // Simple PLL test payload
+                vendor_payload_len = 1;
+            }
+            break;
+            
         default:
             // For unsupported opcodes, use the simple payload as fallback
             vendor_payload = malloc(1);

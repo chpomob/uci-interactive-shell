@@ -695,6 +695,17 @@ int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv) {
             }
             break;
             
+        case QORVO_FIRA_RANGE_DIAGNOSTICS:  // 0x03
+            // QORVO_FIRA_RANGE_DIAGNOSTICS typically requires parameters for ranging diagnostics
+            // For now, use a simple payload - in a real implementation this would
+            // include session ID, measurement filters, etc.
+            vendor_payload = malloc(1);
+            if (vendor_payload) {
+                vendor_payload[0] = 0x00; // Simple diagnostics payload
+                vendor_payload_len = 1;
+            }
+            break;
+            
         default:
             // For unsupported opcodes, use the simple payload as fallback
             vendor_payload = malloc(1);

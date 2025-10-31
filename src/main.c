@@ -717,6 +717,17 @@ int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv) {
             }
             break;
             
+        case QORVO_FIRA_SET_ANT_FLEX_CONFIG:  // 0x08
+            // QORVO_FIRA_SET_ANT_FLEX_CONFIG typically requires parameters for antenna flexibility configuration
+            // For now, use a simple payload - in a real implementation this would
+            // include antenna configuration parameters, modes, etc.
+            vendor_payload = malloc(1);
+            if (vendor_payload) {
+                vendor_payload[0] = 0x00; // Simple antenna flex config payload
+                vendor_payload_len = 1;
+            }
+            break;
+            
         default:
             // For unsupported opcodes, use the simple payload as fallback
             vendor_payload = malloc(1);

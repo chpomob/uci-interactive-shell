@@ -762,10 +762,10 @@ static const struct uci_command_handler_entry k_sim_handlers[] = {
     {TEST, TEST_RF_PER_RX, handle_test_rf_simple_status},
     {TEST, TEST_RF_RX, handle_test_rf_simple_status},
     {TEST, TEST_RF_STOP, handle_test_rf_simple_status},
-    {VENDOR_ANDROID, ANDROID_GET_POWER_STATS, handle_vendor_android_get_power_stats},
-    {VENDOR_ANDROID, ANDROID_SET_COUNTRY_CODE, handle_vendor_android_set_country_code},
-    {VENDOR_ANDROID, ANDROID_RADAR_SET_APP_CONFIG, handle_vendor_android_radar_set_app_config},
-    {VENDOR_ANDROID, ANDROID_RADAR_GET_APP_CONFIG, handle_vendor_android_radar_get_app_config},
+    {ANDROID, ANDROID_GET_POWER_STATS, handle_vendor_android_get_power_stats},
+    {ANDROID, ANDROID_SET_COUNTRY_CODE, handle_vendor_android_set_country_code},
+    {ANDROID, ANDROID_RADAR_SET_APP_CONFIG, handle_vendor_android_radar_set_app_config},
+    {ANDROID, ANDROID_RADAR_GET_APP_CONFIG, handle_vendor_android_radar_get_app_config},
 };
 
 static const size_t k_sim_handlers_count = sizeof(k_sim_handlers) / sizeof(k_sim_handlers[0]);

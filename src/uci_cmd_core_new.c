@@ -84,8 +84,9 @@ int handle_set_power_command_new(const char* cmd_name, int argc, char** argv,
     (void)params;
     (void)param_count;
     
+    // Validate minimum arguments using new utility function
     if (argc < 2) {
-        printf("Usage: %s <state> (active, ready, sleep)\n", cmd_name);
+        fprintf(stderr, "Usage: %s <state> (active, ready, sleep)\n", cmd_name);
         return -1;
     }
 
@@ -227,11 +228,12 @@ int handle_set_config_command_new(const char* cmd_name, int argc, char** argv,
     (void)params;
     (void)param_count;
     
+    // Validate minimum arguments using new utility function
     if (argc < 3) {
-        printf("Usage: %s <config_name> <value>\n", cmd_name);
-        printf("  Examples:\n");
-        printf("    %s device_state active\n", cmd_name);
-        printf("    %s low_power_mode off\n", cmd_name);
+        fprintf(stderr, "Usage: %s <config_name> <value>\n", cmd_name);
+        fprintf(stderr, "  Examples:\n");
+        fprintf(stderr, "    %s device_state active\n", cmd_name);
+        fprintf(stderr, "    %s low_power_mode off\n", cmd_name);
         return -1;
     }
 
@@ -301,5 +303,64 @@ int handle_query_timestamp_command_new(const char* cmd_name, int argc, char** ar
     (void)param_count;
     
     send_unified_command(COMMAND, 0, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
+    return 0;
+}
+
+/**
+ * @brief Handler for validate_arguments_command using new framework
+ * 
+ * Demonstrates the use of the new argument validation and error reporting utilities.
+ * Shows proper argument validation, numeric range validation, and consistent error reporting.
+ * 
+ * @param cmd_name Name of the command being executed
+ * @param argc Argument count (including command name)
+ * @param argv Argument values (argv[0] is command name)
+ * @param params Parameter definitions for the command
+ * @param param_count Number of parameters
+ * @return 0 on success, -1 on error
+ */
+int handle_validate_arguments_command_new(const char* cmd_name, int argc, char** argv, 
+                                          const uci_param_def_t* params, int param_count) {
+    // Unused parameters - prevent compiler warnings
+    (void)cmd_name;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    
+    if (argc < 4) {
+        fprintf(stderr, "Usage: validate_arguments <integer_value> <hex_string> <session_id>\n");
+        fprintf(stderr, "  Examples:\n");
+        fprintf(stderr, "    validate_arguments 42 AABBCCDD 1\n");
+        fprintf(stderr, "    validate_arguments -10 FFEE 2\n");
+        return -1;
+    }
+
+    const char* integer_str = argv[1];
+    const char* hex_str = argv[2];
+    const char* session_id_str = argv[3];
+    
+    // Validate integer value
+    long integer_val;
+    if (!validate_numeric_range(integer_str, -1000, 1000, "integer_value", &integer_val)) {
+        return -1;
+    }
+    
+    // Validate hex string
+    if (!validate_hex_string(hex_str, 0)) {
+        fprintf(stderr, "Error: Invalid hex string format for '%s'\n", hex_str);
+        return -1;
+    }
+    
+    // Validate session ID
+    unsigned int session_id;
+    if (!validate_session_id(session_id_str, &session_id)) {
+        return -1;
+    }
+    
+    printf("Arguments validated successfully:\n");
+    printf("  Integer Value: %ld\n", integer_val);
+    printf("  Hex String: %s\n", hex_str);
+    printf("  Session ID: %u\n", session_id);
+    
     return 0;
 }

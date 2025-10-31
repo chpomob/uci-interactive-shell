@@ -347,6 +347,13 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
                     printf(" (SESSION_CONFIG)");
                 }
                 break;
+            case 0x03:  // DATA_CONTROL - RFU (Reserved for Future Use)
+                if (ui_color_enabled) {
+                    printf(" %s(DATA_CONTROL)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
+                } else {
+                    printf(" (DATA_CONTROL)");
+                }
+                break;
             case SESSION_CONTROL: 
                 if (ui_color_enabled) {
                     printf(" %s(SESSION_CONTROL)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
@@ -354,32 +361,305 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
                     printf(" (SESSION_CONTROL)");
                 }
                 break;
-            case DATA_CONTROL: 
-                if (ui_color_enabled) {
-                    printf(" %s(DATA_CONTROL)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
-                } else {
-                    printf(" (DATA_CONTROL)");
-                }
-                break;
-            case RANGING_DATA: 
-                if (ui_color_enabled) {
-                    printf(" %s(RANGING_DATA)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
-                } else {
-                    printf(" (RANGING_DATA)");
-                }
-                break;
-            case TEST: 
+            case TEST:
                 if (ui_color_enabled) {
                     printf(" %s(TEST)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
                 } else {
                     printf(" (TEST)");
                 }
                 break;
-            case VENDOR_ANDROID: 
+            case ANDROID: 
                 if (ui_color_enabled) {
-                    printf(" %s(VENDOR_ANDROID)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
+                    printf(" %s(ANDROID)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
                 } else {
-                    printf(" (VENDOR_ANDROID)");
+                    printf(" (ANDROID)");
+                }
+                break;
+            case 0x0B:  // QORVO_EXT2 - Qorvo vendor-specific commands (QM SDK compatibility)
+                if (ui_color_enabled) {
+                    printf(" %s(QORVO_EXT2)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
+                } else {
+                    printf(" (QORVO_EXT2)");
+                }
+                
+                // Decode QM SDK vendor-specific commands
+                if (mt == NOTIFICATION) {
+                    switch(opcode) {
+                        case 0x00:  // QORVO_TEST_DEBUG
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_TEST_DEBUG_NTF:%s Vendor debug notification%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_TEST_DEBUG_NTF: Vendor debug notification\n");
+                            }
+                            break;
+                        case 0x01:  // QORVO_TEST_TX_CW
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_TEST_TX_CW_NTF:%s Continuous wave transmission test notification%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_TEST_TX_CW_NTF: Continuous wave transmission test notification\n");
+                            }
+                            break;
+                        case 0x02:  // QORVO_TEST_PLLRF
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_TEST_PLLRF_NTF:%s PLL status test notification%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_TEST_PLLRF_NTF: PLL status test notification\n");
+                            }
+                            break;
+                        case 0x03:  // QORVO_FIRA_RANGE_DIAGNOSTICS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_FIRA_RANGE_DIAGNOSTICS_NTF:%s Diagnostics notification%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_FIRA_RANGE_DIAGNOSTICS_NTF: Diagnostics notification\n");
+                            }
+                            break;
+                        case 0x07:  // QORVO_SESSION_GET
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_SESSION_GET_NTF:%s Session retrieval notification%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_SESSION_GET_NTF: Session retrieval notification\n");
+                            }
+                            break;
+                        case 0x22:  // QORVO_CORE_PSDU_DUMP
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_PSDU_DUMP_NTF:%s PSDU dump notification%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_PSDU_DUMP_NTF: PSDU dump notification\n");
+                            }
+                            break;
+                        case 0x23:  // QORVO_CORE_GET_MEM_STATS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_GET_MEM_STATS_NTF:%s Memory statistics notification%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_GET_MEM_STATS_NTF: Memory statistics notification\n");
+                            }
+                            break;
+                        case 0x24:  // QORVO_CORE_GET_POWER_STATS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_GET_POWER_STATS_NTF:%s Power statistics notification%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_GET_POWER_STATS_NTF: Power statistics notification\n");
+                            }
+                            break;
+                        case 0x25:  // QORVO_CORE_GET_CPU_STATS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_GET_CPU_STATS_NTF:%s CPU statistics notification%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_GET_CPU_STATS_NTF: CPU statistics notification\n");
+                            }
+                            break;
+                        case 0x26:  // QORVO_CORE_RESET_CPU_STATS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_RESET_CPU_STATS_RSP:%s CPU statistics reset response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_RESET_CPU_STATS_RSP: CPU statistics reset response\n");
+                            }
+                            break;
+                        case 0x27:  // QORVO_CORE_GET_DEVICE_STATS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_GET_DEVICE_STATS_NTF:%s Device statistics notification%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_GET_DEVICE_STATS_NTF: Device statistics notification\n");
+                            }
+                            break;
+                        case 0x31:  // QORVO_CORE_DEVICE_BOOT
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_DEVICE_BOOT_NTF:%s Device boot notification%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_DEVICE_BOOT_NTF: Device boot notification\n");
+                            }
+                            break;
+                        default:
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sNo specific decoder for QORVO_EXT2_NOTIFICATION opcode 0x%02X%s\n", 
+                                       ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, opcode, ANSI_RESET);
+                            } else {
+                                printf("\n  No specific decoder for QORVO_EXT2_NOTIFICATION opcode 0x%02X\n", opcode);
+                            }
+                            break;
+                    }
+                } else if (mt == RESPONSE) {
+                    switch(opcode) {
+                        case 0x00:  // QORVO_TEST_DEBUG
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_TEST_DEBUG_RSP:%s Vendor debug response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_TEST_DEBUG_RSP: Vendor debug response\n");
+                            }
+                            break;
+                        case 0x01:  // QORVO_TEST_TX_CW
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_TEST_TX_CW_RSP:%s Continuous wave transmission test response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_TEST_TX_CW_RSP: Continuous wave transmission test response\n");
+                            }
+                            break;
+                        case 0x02:  // QORVO_TEST_PLLRF
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_TEST_PLLRF_RSP:%s PLL status test response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_TEST_PLLRF_RSP: PLL status test response\n");
+                            }
+                            break;
+                        case 0x03:  // QORVO_FIRA_RANGE_DIAGNOSTICS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_FIRA_RANGE_DIAGNOSTICS_RSP:%s Diagnostics response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_FIRA_RANGE_DIAGNOSTICS_RSP: Diagnostics response\n");
+                            }
+                            break;
+                        case 0x07:  // QORVO_SESSION_GET
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_SESSION_GET_RSP:%s Session retrieval response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_SESSION_GET_RSP: Session retrieval response\n");
+                            }
+                            break;
+                        case 0x08:  // QORVO_FIRA_SET_ANT_FLEX_CONFIG
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_FIRA_SET_ANT_FLEX_CONFIG_RSP:%s Antenna flexibility config response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_FIRA_SET_ANT_FLEX_CONFIG_RSP: Antenna flexibility config response\n");
+                            }
+                            break;
+                        case 0x09:  // QORVO_FIRA_GET_ANT_FLEX_CONFIG
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_FIRA_GET_ANT_FLEX_CONFIG_RSP:%s Antenna flexibility config retrieval response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_FIRA_GET_ANT_FLEX_CONFIG_RSP: Antenna flexibility config retrieval response\n");
+                            }
+                            break;
+                        case 0x0A:  // QORVO_CCC_SET_ANT_FLEX_CONFIG
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CCC_SET_ANT_FLEX_CONFIG_RSP:%s CCC antenna flexibility config response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CCC_SET_ANT_FLEX_CONFIG_RSP: CCC antenna flexibility config response\n");
+                            }
+                            break;
+                        case 0x0B:  // QORVO_CCC_GET_ANT_FLEX_CONFIG
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CCC_GET_ANT_FLEX_CONFIG_RSP:%s CCC antenna flexibility config retrieval response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CCC_GET_ANT_FLEX_CONFIG_RSP: CCC antenna flexibility config retrieval response\n");
+                            }
+                            break;
+                        case 0x22:  // QORVO_CORE_PSDU_DUMP
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_PSDU_DUMP_RSP:%s PSDU dump response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_PSDU_DUMP_RSP: PSDU dump response\n");
+                            }
+                            break;
+                        case 0x23:  // QORVO_CORE_GET_MEM_STATS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_GET_MEM_STATS_RSP:%s Memory statistics response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_GET_MEM_STATS_RSP: Memory statistics response\n");
+                            }
+                            break;
+                        case 0x24:  // QORVO_CORE_GET_POWER_STATS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_GET_POWER_STATS_RSP:%s Power statistics response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_GET_POWER_STATS_RSP: Power statistics response\n");
+                            }
+                            break;
+                        case 0x25:  // QORVO_CORE_GET_CPU_STATS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_GET_CPU_STATS_RSP:%s CPU statistics response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_GET_CPU_STATS_RSP: CPU statistics response\n");
+                            }
+                            break;
+                        case 0x26:  // QORVO_CORE_RESET_CPU_STATS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_RESET_CPU_STATS_RSP:%s CPU statistics reset response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_RESET_CPU_STATS_RSP: CPU statistics reset response\n");
+                            }
+                            break;
+                        case 0x27:  // QORVO_CORE_GET_DEVICE_STATS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_GET_DEVICE_STATS_RSP:%s Device statistics response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_GET_DEVICE_STATS_RSP: Device statistics response\n");
+                            }
+                            break;
+                        case 0x30:  // QORVO_CORE_ERASE_CERTS
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_ERASE_CERTS_RSP:%s Certificate erase response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_ERASE_CERTS_RSP: Certificate erase response\n");
+                            }
+                            break;
+                        case 0x31:  // QORVO_CORE_DEVICE_BOOT
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_DEVICE_BOOT_RSP:%s Device boot response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_DEVICE_BOOT_RSP: Device boot response\n");
+                            }
+                            break;
+                        case 0x35:  // QORVO_CORE_TOGGLE_GPIO_TIMESYNC
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_TOGGLE_GPIO_TIMESYNC_RSP:%s GPIO timesync toggle response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_TOGGLE_GPIO_TIMESYNC_RSP: GPIO timesync toggle response\n");
+                            }
+                            break;
+                        case 0x36:  // QORVO_CORE_QUERY_GPIO_TIMESTAMP
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sQORVO_CORE_QUERY_GPIO_TIMESTAMP_RSP:%s GPIO timestamp query response%s\n", 
+                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                            } else {
+                                printf("\n  QORVO_CORE_QUERY_GPIO_TIMESTAMP_RSP: GPIO timestamp query response\n");
+                            }
+                            break;
+                        default:
+                            if (ui_color_enabled) {
+                                printf("\n  %s%sNo specific decoder for QORVO_EXT2_RESPONSE opcode 0x%02X%s\n", 
+                                       ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, opcode, ANSI_RESET);
+                            } else {
+                                printf("\n  No specific decoder for QORVO_EXT2_RESPONSE opcode 0x%02X\n", opcode);
+                            }
+                            break;
+                    }
+                } else {
+                    if (ui_color_enabled) {
+                        printf("\n  %s%sNo specific decoder for MT=%d, GID=11, OP=0x%02X%s\n", 
+                               ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, mt, opcode, ANSI_RESET);
+                    } else {
+                        printf("\n  No specific decoder for MT=%d, GID=11, OP=0x%02X\n", mt, opcode);
+                    }
                 }
                 break;
             default: 
@@ -736,25 +1016,25 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
                     }
                     break;
             }
-        } else if (mt == NOTIFICATION && gid == VENDOR_ANDROID) {
+        } else if (mt == NOTIFICATION && gid == ANDROID) {
             // Simplified handling for vendor notifications
             if (ui_color_enabled) {
-                printf("  %s%sNo specific decoder for VENDOR_ANDROID_NOTIFICATION opcode 0x%02X%s\n", 
+                printf("  %s%sNo specific decoder for ANDROID_NOTIFICATION opcode 0x%02X%s\n", 
                        ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, opcode, ANSI_RESET);
             } else {
-                printf("  No specific decoder for VENDOR_ANDROID_NOTIFICATION opcode 0x%02X\n", opcode);
+                printf("  No specific decoder for ANDROID_NOTIFICATION opcode 0x%02X\n", opcode);
             }
-        } else if (mt == NOTIFICATION && gid == RANGING_DATA) {
+        } else if (mt == NOTIFICATION && gid == SESSION_CONTROL) {
             switch(opcode) {
-                case RANGE_DATA_NTF_OPCODE:
+                case SESSION_INFO_NTF_OPCODE:
                     ui_decode_range_data_ntf(payload_ptr, payload_len_int);
                     break;
                 default:
                     if (ui_color_enabled) {
-                        printf("  %s%sNo specific decoder for RANGING_DATA_NOTIFICATION opcode 0x%02X%s\n", 
+                        printf("  %s%sNo specific decoder for SESSION_CONTROL_NOTIFICATION opcode 0x%02X%s\n", 
                                ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, opcode, ANSI_RESET);
                     } else {
-                        printf("  No specific decoder for RANGING_DATA_NOTIFICATION opcode 0x%02X\n", opcode);
+                        printf("  No specific decoder for SESSION_CONTROL_NOTIFICATION opcode 0x%02X\n", opcode);
                     }
                     break;
             }

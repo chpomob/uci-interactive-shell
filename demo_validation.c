@@ -70,6 +70,22 @@ int main() {
     report_error(404, "Command not found: %s", "invalid_command");
     report_error(0, "Generic error occurred");
     
+    // Test 6: Hex string parsing
+    printf("\nTest 6: Hex string parsing\n");
+    unsigned char parsed_bytes[16];
+    size_t parsed_len;
+    if (parse_hex_string_safe("AABBCCDD", parsed_bytes, sizeof(parsed_bytes), &parsed_len)) {
+        printf("  ✓ Successfully parsed hex string 'AABBCCDD' -> ");
+        for (size_t i = 0; i < parsed_len; i++) {
+            printf("%02X", parsed_bytes[i]);
+        }
+        printf(" (%zu bytes)\n", parsed_len);
+    }
+    
+    if (!parse_hex_string_safe("XYZ", parsed_bytes, sizeof(parsed_bytes), &parsed_len)) {
+        printf("  ✓ Invalid hex string 'XYZ' correctly rejected\n");
+    }
+    
     printf("\n=== Demo completed successfully ===\n");
     return 0;
 }

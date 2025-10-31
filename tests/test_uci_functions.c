@@ -779,8 +779,8 @@ int main() {
     TEST_CASE(vendor_and_test_commands);
     {
         unsigned char country_payload[2] = {'U', 'S'};
-        send_uci_command(COMMAND, COMPLETE, VENDOR_ANDROID, ANDROID_SET_COUNTRY_CODE, country_payload, sizeof(country_payload));
-        send_uci_command(COMMAND, COMPLETE, VENDOR_ANDROID, ANDROID_GET_POWER_STATS, NULL, 0);
+        send_uci_command(COMMAND, COMPLETE, ANDROID, ANDROID_SET_COUNTRY_CODE, country_payload, sizeof(country_payload));
+        send_uci_command(COMMAND, COMPLETE, ANDROID, ANDROID_GET_POWER_STATS, NULL, 0);
 
         unsigned char rf_payload[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
         send_uci_command(COMMAND, COMPLETE, TEST, TEST_RF_SET_CONFIG, rf_payload, sizeof(rf_payload));
@@ -1100,7 +1100,7 @@ int main() {
         payload_len += sizeof(segment_metrics_sample);
 
         struct uci_packet_header header;
-        set_header_values_safe(&header, NOTIFICATION, COMPLETE, VENDOR_ANDROID,
+        set_header_values_safe(&header, NOTIFICATION, COMPLETE, ANDROID,
                           ANDROID_FIRA_RANGE_DIAGNOSTICS, (unsigned char)payload_len);
 
         unsigned char packet[sizeof(struct uci_packet_header) + 128] = {0};
@@ -1156,8 +1156,8 @@ int main() {
         payload[offset++] = 0x07;
 
         struct uci_packet_header header;
-        set_header_values_safe(&header, NOTIFICATION, COMPLETE, RANGING_DATA,
-                          RANGE_DATA_NTF_OPCODE, (unsigned char)offset);
+        set_header_values_safe(&header, NOTIFICATION, COMPLETE, 0x0B,  // RANGING_DATA GID = 0x0B
+                          SESSION_INFO_NTF_OPCODE, (unsigned char)offset);
 
         unsigned char packet[sizeof(struct uci_packet_header) + 64] = {0};
         memcpy(packet, &header, sizeof(struct uci_packet_header));
@@ -1176,14 +1176,14 @@ int main() {
             0x01,                   // number of TLVs
             0x01, 0x01, 0xAA        // cfg_id, len, value
         };
-        send_uci_command(COMMAND, COMPLETE, VENDOR_ANDROID, ANDROID_RADAR_SET_APP_CONFIG, set_payload, sizeof(set_payload));
+        send_uci_command(COMMAND, COMPLETE, ANDROID, ANDROID_RADAR_SET_APP_CONFIG, set_payload, sizeof(set_payload));
 
         unsigned char get_payload[] = {
             0x05, 0x00, 0x00, 0x00, // session handle
             0x01,                   // number of TLVs
             0x01                    // cfg_id
         };
-        send_uci_command(COMMAND, COMPLETE, VENDOR_ANDROID, ANDROID_RADAR_GET_APP_CONFIG, get_payload, sizeof(get_payload));
+        send_uci_command(COMMAND, COMPLETE, ANDROID, ANDROID_RADAR_GET_APP_CONFIG, get_payload, sizeof(get_payload));
 
         uci_process_pending_notifications();
 
@@ -1197,7 +1197,7 @@ int main() {
         // Test real range notification packet from logs
         // Raw: 6b0300212a0000000800000006030100000001000001000000020100000401000005000000
         unsigned char real_packet[] = {
-            0x6b, 0x03, 0x00, 0x21,  // Header: RANGING_DATA notification, opcode 0x03, payload length 33
+            0x6b, 0x03, 0x00, 0x21,  // Header: RANGING_DATA notification (GID 0x0B), opcode 0x03, payload length 33
             0x2a, 0x00, 0x00, 0x00,  // Session token (little endian)
             0x08, 0x00, 0x00, 0x00,  // Sequence number (little endian)
             0x06, 0x03, 0x01, 0x00,  // Control field and more
@@ -1211,7 +1211,7 @@ int main() {
         struct uci_packet_header* header = (struct uci_packet_header*)real_packet;
         
         // Verify header fields from real packet
-        ASSERT_EQUAL(RANGING_DATA, get_gid(header));
+        ASSERT_EQUAL(0x0B, get_gid(header));  // RANGING_DATA GID = 0x0B
         ASSERT_EQUAL(NOTIFICATION, get_mt(header));
         ASSERT_EQUAL(33, header->payload_len);
 
@@ -1272,7 +1272,7 @@ int main() {
         // Test PDL specification packet: AndroidRangeDiagnosticsNtf
         // Raw: 6c0200110000000101010102020202010001020100010000
         unsigned char pdl_android_diag[] = {
-            0x6c, 0x02, 0x00, 0x11,  // Header: VENDOR_ANDROID notification, opcode 0x02, payload length 17
+            0x6c, 0x02, 0x00, 0x11,  // Header: ANDROID notification, opcode 0x02, payload length 17
             0x00, 0x00, 0x00, 0x01,  // session_token
             0x01, 0x01, 0x01, 0x02,  // sequence_number
             0x02, 0x02, 0x02, 0x01,  // frame reports data
@@ -1281,7 +1281,7 @@ int main() {
         };
 
         header = (struct uci_packet_header*)pdl_android_diag;
-        ASSERT_EQUAL(VENDOR_ANDROID, get_gid(header));
+        ASSERT_EQUAL(ANDROID, get_gid(header));
         ASSERT_EQUAL(NOTIFICATION, get_mt(header));
         ASSERT_EQUAL(0x02, get_opcode(header));  // ANDROID_FIRA_RANGE_DIAGNOSTICS
         ASSERT_EQUAL(17, header->payload_len);

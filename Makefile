@@ -1,6 +1,11 @@
 CC=gcc
-CFLAGS=-Iinclude -Wall -Wextra -std=c11 -Wno-unused-label -g -DHAVE_READLINE  # Added readline support
+CFLAGS=-Iinclude -Wall -Wextra -std=c11 -Wno-unused-label -g -DHAVE_READLINE -D_GNU_SOURCE -fPIC $(QM_SDK_COMPAT)
+LDFLAGS=-Wl,--no-as-needed
 LIBS=-lreadline
+
+# QM SDK Compatibility Build Options
+# Uncomment the following line to enable QM SDK compatibility mode
+# QM_SDK_COMPAT=-DQM_SDK_COMPAT
 
 SRC=$(wildcard src/*.c)
 OBJ=$(SRC:.c=.o)
@@ -13,14 +18,14 @@ CONFIG_TEST_TARGET=test_config_manager
 SESSION_MANAGER_TEST_TARGET=test_session_manager
 SECURITY_TEST_TARGET=test_uci_security
 COMMAND_GENERATION_TEST_TARGET=test_command_generation
-COMMAND_HANDLER_TEST_TARGET=test_command_handlers
+VALIDATION_DEMO_TARGET=demo_validation
 
 .PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test coverage
 
 all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test
 
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
 
 test-mutualization: $(MUTUALIZATION_TEST_TARGET)
 	./$(MUTUALIZATION_TEST_TARGET)
@@ -77,6 +82,11 @@ $(SECURITY_TEST_TARGET): tests/test_uci_security.o
 	$(CC) $(CFLAGS) -o $(SECURITY_TEST_TARGET) tests/test_uci_security.c $(LIBS)
 
 command-generation-test: $(COMMAND_GENERATION_TEST_TARGET)
+nvalidation-demo: $(VALIDATION_DEMO_TARGET)
+	./$(VALIDATION_DEMO_TARGET)
+
+$(VALIDATION_DEMO_TARGET): demo_validation.c src/uci_command_utils.o
+	$(CC) $(CFLAGS) -o $(VALIDATION_DEMO_TARGET) demo_validation.c src/uci_command_utils.o $(LIBS)
 	./$(COMMAND_GENERATION_TEST_TARGET)
 
 $(COMMAND_GENERATION_TEST_TARGET): tests/test_command_generation.c tests/test_helpers.c $(filter-out src/main.o,$(OBJ)) tests/stubs.o

@@ -4046,134 +4046,59 @@ void ui_decode_session_info_ntf(unsigned char* payload, int payload_len) {
     // Parse ranging measurements
     int offset = 25; // Starting after the fixed header fields
     for (uint8_t i = 0; i < num_measurements; i++) {
+        if (offset >= payload_len) {
+            if (ui_color_enabled) {
+                printf("      %s%sWARNING:%s No data left while expecting measurement %u\n", 
+                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, i + 1);
+            } else {
+                printf("      WARNING: No data left while expecting measurement %u\n", i + 1);
+            }
+            break;
+        }
+
         if (ui_color_enabled) {
             printf("    %s%sMeasurement %u:%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, i + 1, ANSI_RESET);
         } else {
             printf("    Measurement %u:\n", i + 1);
         }
-        
-        // Check if we have enough data for this measurement
-        if (offset >= payload_len) {
+
+        bool parsed = false;
+        switch (ranging_measurement_type) {
+            case 0x00:
+                parsed = decode_range_measurement_owr_ul_tdoa(payload, payload_len, &offset, mac_addressing_mode ? 8 : 2, i + 1);
+                break;
+            case 0x01:
+                parsed = decode_range_measurement_twr(payload, payload_len, &offset, mac_addressing_mode ? 8 : 2, i + 1);
+                break;
+            case 0x02:
+                parsed = decode_range_measurement_owr_dl_tdoa(payload, payload_len, &offset, mac_addressing_mode ? 8 : 2, i + 1);
+                break;
+            case 0x03:
+                parsed = decode_range_measurement_owr_aoa(payload, payload_len, &offset, mac_addressing_mode ? 8 : 2, i + 1);
+                break;
+            case 0x04:
+                parsed = decode_range_measurement_ccc_controller(payload, payload_len, &offset, i + 1);
+                break;
+            case 0x05:
+                parsed = decode_range_measurement_ccc_controlee(payload, payload_len, &offset, i + 1);
+                break;
+            case 0x06:
+                parsed = decode_range_measurement_owr_dl_tdoa_v2(payload, payload_len, &offset, mac_addressing_mode ? 8 : 2, i + 1);
+                break;
+            default:
+                parsed = decode_range_measurement_unknown(i + 1, ranging_measurement_type);
+                offset = payload_len;
+                break;
+        }
+
+        if (!parsed) {
             if (ui_color_enabled) {
-                printf("      %s%sERROR:%s Insufficient data for measurement %u\n", 
-                       ANSI_COLOR_RED, ANSI_BOLD, ANSI_RESET, i + 1);
+                printf("      %s%sWARNING:%s Stopping measurement parsing after entry %u\n", 
+                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, i + 1);
             } else {
-                printf("      ERROR: Insufficient data for measurement %u\n", i + 1);
+                printf("      WARNING: Stopping measurement parsing after entry %u\n", i + 1);
             }
             break;
-        }
-        
-        // Parse based on MAC addressing mode and ranging measurement type
-        if (ranging_measurement_type == 0x01) { // TWR measurements
-            int mac_addr_size = mac_addressing_mode ? 8 : 2; // Extended vs Short
-            if (offset + mac_addr_size + 18 > payload_len) {
-                if (ui_color_enabled) {
-                    printf("      %s%sERROR:%s Insufficient data for TWR measurement (need %d bytes, have %d)\n", 
-                           ANSI_COLOR_RED, ANSI_BOLD, ANSI_RESET, mac_addr_size + 18, payload_len - offset);
-                } else {
-                    printf("      ERROR: Insufficient data for TWR measurement (need %d bytes, have %d)\n", 
-                           mac_addr_size + 18, payload_len - offset);
-                }
-                break;
-            }
-            
-            // Parse MAC address
-            if (ui_color_enabled) {
-                printf("      %s%sMAC Address:%s ", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET);
-            } else {
-                printf("      MAC Address: ");
-            }
-            
-            if (mac_addressing_mode == 0) {
-                // Short address (2 bytes)
-                uint16_t mac_addr = ui_read_u16_le(&payload[offset]);
-                if (ui_color_enabled) {
-                    printf("0x%04X\n", mac_addr);
-                } else {
-                    printf("0x%04X\n", mac_addr);
-                }
-                offset += 2;
-            } else {
-                // Extended address (8 bytes) - display in reverse order to match typical MAC address notation
-                if (ui_color_enabled) {
-                    for (int j = 7; j >= 0; j--) {
-                        printf("%02X", payload[offset + j]);
-                        if (j > 0) printf(":");
-                    }
-                    printf("\n");
-                } else {
-                    for (int j = 7; j >= 0; j--) {
-                        printf("%02X", payload[offset + j]);
-                        if (j > 0) printf(":");
-                    }
-                    printf("\n");
-                }
-                offset += 8;
-            }
-            
-            // Parse TWR measurement fields (18 bytes)
-            uint8_t status = payload[offset];
-            uint8_t nlos = payload[offset + 1];
-            uint16_t distance = ui_read_u16_le(&payload[offset + 2]);
-            uint16_t aoa_azimuth = ui_read_u16_le(&payload[offset + 4]);
-            uint8_t aoa_azimuth_fom = payload[offset + 6];
-            uint16_t aoa_elevation = ui_read_u16_le(&payload[offset + 7]);
-            uint8_t aoa_elevation_fom = payload[offset + 9];
-            uint16_t dst_aoa_azimuth = ui_read_u16_le(&payload[offset + 10]);
-            uint8_t dst_aoa_azimuth_fom = payload[offset + 12];
-            uint16_t dst_aoa_elevation = ui_read_u16_le(&payload[offset + 13]);
-            uint8_t dst_aoa_elevation_fom = payload[offset + 15];
-            uint8_t slot_index = payload[offset + 16];
-            int8_t rssi = (int8_t)payload[offset + 17];
-            
-            if (ui_color_enabled) {
-                printf("      %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, status);
-                if (status == UCI_STATUS_OK) {
-                    printf(" %s(OK)%s", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET);
-                }
-                printf("\n");
-                printf("      %s%sNLOS:%s 0x%02X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, nlos);
-                printf("      %s%sDistance:%s %u cm\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, distance);
-                printf("      %s%sAoA Azimuth:%s %u degrees\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_azimuth);
-                printf("      %s%sAoA Azimuth FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_azimuth_fom);
-                printf("      %s%sAoA Elevation:%s %u degrees\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_elevation);
-                printf("      %s%sAoA Elevation FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, aoa_elevation_fom);
-                printf("      %s%sDest AoA Azimuth:%s %u degrees\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, dst_aoa_azimuth);
-                printf("      %s%sDest AoA Azimuth FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, dst_aoa_azimuth_fom);
-                printf("      %s%sDest AoA Elevation:%s %u degrees\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, dst_aoa_elevation);
-                printf("      %s%sDest AoA Elevation FoM:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, dst_aoa_elevation_fom);
-                printf("      %s%sSlot Index:%s %u\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, slot_index);
-                printf("      %s%sRSSI:%s %d dBm\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, rssi);
-            } else {
-                printf("      Status: 0x%02X (%s)\n", status, status == UCI_STATUS_OK ? "OK" : "ERROR");
-                printf("      NLOS: 0x%02X\n", nlos);
-                printf("      Distance: %u cm\n", distance);
-                printf("      AoA Azimuth: %u degrees\n", aoa_azimuth);
-                printf("      AoA Azimuth FoM: %u\n", aoa_azimuth_fom);
-                printf("      AoA Elevation: %u degrees\n", aoa_elevation);
-                printf("      AoA Elevation FoM: %u\n", aoa_elevation_fom);
-                printf("      Dest AoA Azimuth: %u degrees\n", dst_aoa_azimuth);
-                printf("      Dest AoA Azimuth FoM: %u\n", dst_aoa_azimuth_fom);
-                printf("      Dest AoA Elevation: %u degrees\n", dst_aoa_elevation);
-                printf("      Dest AoA Elevation FoM: %u\n", dst_aoa_elevation_fom);
-                printf("      Slot Index: %u\n", slot_index);
-                printf("      RSSI: %d dBm\n", rssi);
-            }
-            
-            offset += 18;
-        } else {
-            // For other measurement types, just show that we detected them
-            if (ui_color_enabled) {
-                printf("      %s%sRanging measurement type 0x%02X not fully implemented.%s\n", 
-                       ANSI_COLOR_YELLOW, ANSI_BOLD, ranging_measurement_type, ANSI_RESET);
-            } else {
-                printf("      Ranging measurement type 0x%02X not fully implemented.\n", ranging_measurement_type);
-            }
-            // Skip to next measurement (we don't know the exact size, so we'll skip a reasonable amount)
-            offset += 32; // Skip 32 bytes for unknown measurement type
-            if (offset > payload_len) {
-                break;
-            }
         }
     }
 
@@ -4184,8 +4109,12 @@ void ui_decode_session_info_ntf(unsigned char* payload, int payload_len) {
         } else {
             printf("    Vendor-specific Data: %d bytes\n", payload_len - offset);
         }
-    }
-}
+        print_hex_data(4,
+                       "Trailing Vendor Data",
+                       &payload[offset],
+                       payload_len - offset,
+                       32);
+    }}
 
 void ui_decode_range_data_ntf(unsigned char* payload, int payload_len) {
     if (ui_color_enabled) {

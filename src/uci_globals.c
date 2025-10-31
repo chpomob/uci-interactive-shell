@@ -44,6 +44,7 @@ extern int cmd_simulate_multi_target_ranging(int argc, char** argv);
 extern int cmd_demo_session_flow(int argc, char** argv);
 extern int cmd_analyze_packet(int argc, char** argv);
 extern int cmd_help(int argc, char** argv);
+extern int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv);
 
 // Command table definition
 const cli_command_t g_cli_commands[] = {
@@ -95,6 +96,7 @@ const cli_command_t g_cli_commands[] = {
     { "simulate_ranging", { NULL }, CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate single-target ranging notification", cmd_simulate_ranging },
     { "simulate_multi_target_ranging", { NULL }, CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate multi-target ranging notification", cmd_simulate_multi_target_ranging },
     { "demo_session_flow", { NULL }, CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Demonstrate session flow", cmd_demo_session_flow },
+    { "simulate_qm_sdk_vendor_command", { NULL }, CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate QM SDK vendor-specific command (GID 0x0B)", cmd_simulate_qm_sdk_vendor_command },
 };
 
 const int g_cli_commands_count = sizeof(g_cli_commands) / sizeof(cli_command_t);

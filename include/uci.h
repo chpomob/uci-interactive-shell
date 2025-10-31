@@ -226,4 +226,5 @@ void uci_send_data_message(uint32_t identifier,
                            const unsigned char *app_data,
                            size_t app_data_len);
 
+#include "uci_command_utils.h"
 #endif // UCI_H

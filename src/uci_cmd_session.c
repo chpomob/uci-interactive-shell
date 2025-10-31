@@ -4,6 +4,7 @@
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
 #include "../include/uci_pdl.h"
+#include "uci_command_utils.h"
 #include "../include/uci_config_manager.h"
 
 // Helper function to encode session_id in little-endian format

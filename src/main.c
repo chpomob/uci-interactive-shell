@@ -728,6 +728,39 @@ int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv) {
             }
             break;
             
+        case QORVO_FIRA_GET_ANT_FLEX_CONFIG:  // 0x09
+            // QORVO_FIRA_GET_ANT_FLEX_CONFIG typically requires parameters for querying antenna flexibility configuration
+            // For now, use a simple payload - in a real implementation this would
+            // include antenna configuration query parameters, etc.
+            vendor_payload = malloc(1);
+            if (vendor_payload) {
+                vendor_payload[0] = 0x00; // Simple antenna flex config query payload
+                vendor_payload_len = 1;
+            }
+            break;
+            
+        case QORVO_CCC_SET_ANT_FLEX_CONFIG:  // 0x0A
+            // QORVO_CCC_SET_ANT_FLEX_CONFIG typically requires parameters for CCC antenna flexibility configuration
+            // For now, use a simple payload - in a real implementation this would
+            // include CCC-specific antenna configuration parameters, etc.
+            vendor_payload = malloc(1);
+            if (vendor_payload) {
+                vendor_payload[0] = 0x00; // Simple CCC antenna flex config payload
+                vendor_payload_len = 1;
+            }
+            break;
+            
+        case QORVO_CCC_GET_ANT_FLEX_CONFIG:  // 0x0B
+            // QORVO_CCC_GET_ANT_FLEX_CONFIG typically requires parameters for querying CCC antenna flexibility configuration
+            // For now, use a simple payload - in a real implementation this would
+            // include CCC-specific antenna configuration query parameters, etc.
+            vendor_payload = malloc(1);
+            if (vendor_payload) {
+                vendor_payload[0] = 0x00; // Simple CCC antenna flex config query payload
+                vendor_payload_len = 1;
+            }
+            break;
+            
         default:
             // For unsupported opcodes, use the simple payload as fallback
             vendor_payload = malloc(1);

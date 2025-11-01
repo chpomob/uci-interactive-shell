@@ -353,7 +353,7 @@ int handle_validate_arguments_command_new(const char* cmd_name, int argc, char**
     
     // Validate session ID
     unsigned int session_id;
-    if (!validate_session_id(session_id_str, &session_id)) {
+    if (!uci_cmd_validate_session_id(session_id_str, &session_id)) {
         return -1;
     }
     

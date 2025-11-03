@@ -3357,29 +3357,23 @@ void ui_decode_session_query_data_size_in_ranging_rsp(unsigned char* payload, in
         printf("  SESSION_QUERY_DATA_SIZE_IN_RANGING Response:\n");
     }
 
-    if (payload_len < 7) {  // Need at least 7 bytes: session_token(4) + status(1) + max_data_size(2)
+    if (payload_len < 3) {  // Need at least 3 bytes: status(1) + max_data_size(2)
         if (ui_color_enabled) {
-            printf("    %s%sError: Payload too short (%d bytes, need at least 7)%s\n",
+            printf("    %s%sError: Payload too short (%d bytes, need at least 3)%s\n",
                    ANSI_COLOR_RED, ANSI_BOLD, payload_len, ANSI_RESET);
         } else {
-            printf("    Error: Payload too short (%d bytes, need at least 7)\n", payload_len);
+            printf("    Error: Payload too short (%d bytes, need at least 3)\n", payload_len);
         }
         return;
     }
 
     // Extract fields
-    unsigned int session_token = (unsigned int)payload[0] |
-                                ((unsigned int)payload[1] << 8) |
-                                ((unsigned int)payload[2] << 16) |
-                                ((unsigned int)payload[3] << 24);
-    
-    unsigned char status = payload[4];
-    unsigned short max_data_size = (unsigned short)payload[5] |
-                                  ((unsigned short)payload[6] << 8);
+    unsigned char status = payload[0];
+    unsigned short max_data_size = (unsigned short)payload[1] |
+                                  ((unsigned short)payload[2] << 8);
 
     // Display decoded information
     if (ui_color_enabled) {
-        printf("    %s%sSession Token:%s 0x%08X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, session_token);
         printf("    %s%sStatus:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, status);
         switch(status) {
             case UCI_STATUS_OK: printf(" %s(OK)%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET); break;
@@ -3389,7 +3383,6 @@ void ui_decode_session_query_data_size_in_ranging_rsp(unsigned char* payload, in
         }
         printf("    %s%sMax Data Size:%s %u bytes\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, max_data_size);
     } else {
-        printf("    Session Token: 0x%08X\n", session_token);
         printf("    Status: 0x%02X", status);
         switch(status) {
             case UCI_STATUS_OK: printf(" (OK)\n"); break;

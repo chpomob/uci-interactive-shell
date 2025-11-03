@@ -3,19 +3,13 @@
 
 # Executables
 uci-shell
-test_config_manager
-test_hw_interface
-test_session_manager
-test_mutualization
-test_uci_security
-test_command_generation
-test_command_handlers
-test_chardev
-test_uci_functions
-test_final.sh
 demo_*
 qm_sdk_*
 final_*
+test_*
+!test_*.c
+!test_*.h
+!test_commands.sh
 
 # Coverage and profiling
 *.gcda
@@ -37,3 +31,4 @@ final_status.json
 build_output.txt
 dist/
 uci_analysis/
+logs/

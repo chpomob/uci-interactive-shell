@@ -35,3 +35,5 @@ final_*.log
 # Generated files
 final_status.json
 build_output.txt
+dist/
+uci_analysis/

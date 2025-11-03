@@ -283,6 +283,16 @@ typedef enum {
 typedef enum {
     DEVICE_STATE = 0x00,
     LOW_POWER_MODE = 0x01,
+    DEVICE_CHANNEL = 0xA0,
+    DEVICE_PREAMBLE_CODE = 0xA1,
+    DEVICE_PAN_ID = 0xA2,
+    DEVICE_SHORT_ADDR = 0xA3,
+    DEVICE_EXTENDED_ADDR = 0xA4,
+    DEVICE_PAN_COORD = 0xA5,
+    DEVICE_PROMISCUOUS = 0xA6,
+    DEVICE_FRAME_RETRIES = 0xA7,
+    DEVICE_TRACES = 0xA8,
+    DEVICE_PM_MIN_INACTIVITY_S4 = 0xA9,
 } DeviceConfigId;
 
 // Session types - aligned with Android UWB spec

@@ -386,11 +386,88 @@ int main(void) {
     }
 #undef test_case_end
 
+#define test_case_end test_case_end_set_config_device_channel
+    TEST_CASE(core_set_config_device_channel);
+    {
+        reset_command_capture();
+        int rc = handle_set_config_command("device_channel", "9");
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+
+        const unsigned char expected[] = {0x01, DEVICE_CHANNEL, 0x01, 0x09};
+        if (!payload_matches(expected, sizeof(expected))) {
+            TEST_FAIL("Payload mismatch for set_config device_channel");
+            goto test_case_end;
+        }
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
+#define test_case_end test_case_end_set_config_device_pan_id
+    TEST_CASE(core_set_config_device_pan_id);
+    {
+        reset_command_capture();
+        int rc = handle_set_config_command("device_pan_id", "0x1234");
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+
+        const unsigned char expected[] = {0x01, DEVICE_PAN_ID, 0x02, 0x34, 0x12};
+        if (!payload_matches(expected, sizeof(expected))) {
+            TEST_FAIL("Payload mismatch for set_config device_pan_id");
+            goto test_case_end;
+        }
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
+#define test_case_end test_case_end_set_config_device_extended_addr
+    TEST_CASE(core_set_config_device_extended_addr);
+    {
+        reset_command_capture();
+        int rc = handle_set_config_command("device_extended_addr", "0x1122334455667788");
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+
+        const unsigned char expected[] = {
+            0x01, DEVICE_EXTENDED_ADDR, 0x08,
+            0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11
+        };
+        if (!payload_matches(expected, sizeof(expected))) {
+            TEST_FAIL("Payload mismatch for set_config device_extended_addr");
+            goto test_case_end;
+        }
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
 #define test_case_end test_case_end_set_config_invalid
     TEST_CASE(core_set_config_invalid_value);
     {
         reset_command_capture();
         int rc = handle_set_config_command("device_state", "unsupported");
+
+        ASSERT_EQUAL(-1, rc);
+        ASSERT_EQUAL(0, g_captured_command.called);
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
+#define test_case_end test_case_end_set_config_invalid_channel_value
+    TEST_CASE(core_set_config_invalid_channel_value);
+    {
+        reset_command_capture();
+        int rc = handle_set_config_command("device_channel", "invalid");
 
         ASSERT_EQUAL(-1, rc);
         ASSERT_EQUAL(0, g_captured_command.called);

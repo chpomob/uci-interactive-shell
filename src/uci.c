@@ -159,8 +159,10 @@ static void decode_range_vendor_data(const unsigned char* data, int length) {
 }
 
 int is_valid_device_config_id(unsigned char cfg_id) {
-    return cfg_id == DEVICE_STATE || cfg_id == LOW_POWER_MODE;
+    return uci_config_get_device_param_name((DeviceConfigId)cfg_id) != NULL;
 }
+
+static const char* get_device_config_name(DeviceConfigId cfg_id);
 
 #define MAX_RESPONSE_PAYLOAD_LEN 255
 #define UCI_SIM_MAX_QUEUED_PACKETS 8
@@ -2290,10 +2292,9 @@ void handle_core_set_config_rsp(unsigned char* payload, int payload_len) {
         }
         DeviceConfigId cfg_id = (DeviceConfigId)payload[offset];
         unsigned char cfg_status = payload[offset + 1];
-        printf("    Config ID: 0x%02X (%s), Status: 0x%02X", cfg_id, 
-               cfg_id == DEVICE_STATE ? "DEVICE_STATE" : 
-               cfg_id == LOW_POWER_MODE ? "LOW_POWER_MODE" : "UNKNOWN", 
-               cfg_status);
+        const char* cfg_name = get_device_config_name(cfg_id);
+        printf("    Config ID: 0x%02X (%s), Status: 0x%02X", cfg_id,
+               cfg_name ? cfg_name : "UNKNOWN", cfg_status);
         if (cfg_status == UCI_STATUS_OK) {
             printf(" (OK)");
         } else if (cfg_status == UCI_STATUS_INVALID_PARAM) {
@@ -2599,12 +2600,9 @@ static void decode_frame_report_tlv(FrameReportTlvType tlv_type,
 }
 
 // Helper function to print device config ID name
-const char* get_device_config_name(DeviceConfigId cfg_id) {
-    switch(cfg_id) {
-        case DEVICE_STATE: return "DEVICE_STATE";
-        case LOW_POWER_MODE: return "LOW_POWER_MODE";
-        default: return "UNKNOWN";
-    }
+static const char* get_device_config_name(DeviceConfigId cfg_id) {
+    const char* name = uci_config_get_device_param_name(cfg_id);
+    return name ? name : "UNKNOWN";
 }
 
 // Helper function to interpret and print device state value
@@ -2614,6 +2612,66 @@ void print_device_state_value(unsigned char value) {
         case DEVICE_STATE_ACTIVE: printf("(ACTIVE)"); break;
         case DEVICE_STATE_ERROR: printf("(ERROR)"); break;
         default: printf("(UNKNOWN: 0x%02X)", value); break;
+    }
+}
+
+static void print_device_config_value(DeviceConfigId cfg_id, const unsigned char* value, size_t len) {
+    if (!value || len == 0) {
+        return;
+    }
+
+    switch (cfg_id) {
+        case DEVICE_STATE:
+            if (len == 1) {
+                print_device_state_value(value[0]);
+            }
+            break;
+        case LOW_POWER_MODE:
+        case DEVICE_PAN_COORD:
+        case DEVICE_PROMISCUOUS:
+            if (len == 1) {
+                printf("(%s)", value[0] ? "ON" : "OFF");
+            }
+            break;
+        case DEVICE_CHANNEL:
+            if (len == 1) {
+                printf("(Channel %u)", value[0]);
+            }
+            break;
+        case DEVICE_PREAMBLE_CODE:
+            if (len == 1) {
+                printf("(Preamble Code %u)", value[0]);
+            }
+            break;
+        case DEVICE_PAN_ID:
+        case DEVICE_SHORT_ADDR:
+            if (len == 2) {
+                printf("(0x%04X)", (unsigned int)read_u16_le(value));
+            }
+            break;
+        case DEVICE_EXTENDED_ADDR:
+            if (len == 8) {
+                unsigned long long addr = read_u64_le(value);
+                printf("(0x%016llX)", addr);
+            }
+            break;
+        case DEVICE_FRAME_RETRIES:
+            if (len == 1) {
+                printf("(%u retries)", value[0]);
+            }
+            break;
+        case DEVICE_TRACES:
+            if (len == 4) {
+                printf("(Trace mask 0x%08X)", read_u32_le(value));
+            }
+            break;
+        case DEVICE_PM_MIN_INACTIVITY_S4:
+            if (len == 4) {
+                printf("(%u ms)", read_u32_le(value));
+            }
+            break;
+        default:
+            break;
     }
 }
 
@@ -2657,20 +2715,15 @@ void handle_core_get_config_rsp(unsigned char* payload, int payload_len) {
             return;
         }
         
-        printf("    Config ID: 0x%02X (%s), Length: %d, Value: ", cfg_id, 
-               get_device_config_name(cfg_id), tlv_len);
+        const char* cfg_name = get_device_config_name(cfg_id);
+        printf("    Config ID: 0x%02X (%s), Length: %d, Value: ", cfg_id,
+               cfg_name ? cfg_name : "UNKNOWN", tlv_len);
         
         for (int j = 0; j < tlv_len; j++) {
             printf("%02X ", payload[offset + j]);
         }
         
-        // Interpret the value based on config ID
-        if (cfg_id == DEVICE_STATE && tlv_len == 1) {
-            print_device_state_value(payload[offset]);
-        } else if (cfg_id == LOW_POWER_MODE && tlv_len == 1) {
-            unsigned char lpm_state = payload[offset];
-            printf("(LPM: %s)", lpm_state ? "ON" : "OFF");
-        }
+        print_device_config_value(cfg_id, &payload[offset], tlv_len);
         
         printf("\n");
         offset += tlv_len;

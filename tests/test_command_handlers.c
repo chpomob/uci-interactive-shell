@@ -811,5 +811,25 @@ int main(void) {
     }
 #undef test_case_end
 
+#define test_case_end test_case_end_show_device_configs_command
+    TEST_CASE(core_show_device_configs_command);
+    {
+        char* argv[] = { "show_device_configs" };
+        ASSERT_EQUAL(0, cmd_show_device_configs(1, argv));
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_show_app_configs_command
+    TEST_CASE(core_show_app_configs_command);
+    {
+        char* argv[] = { "show_app_configs" };
+        ASSERT_EQUAL(0, cmd_show_app_configs(1, argv));
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
     TEST_SUITE_END();
 }

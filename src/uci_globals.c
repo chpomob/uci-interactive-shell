@@ -19,6 +19,8 @@ extern int cmd_set_device_ready(int argc, char** argv);
 extern int cmd_set_config(int argc, char** argv);
 extern int cmd_device_suspend(int argc, char** argv);
 extern int cmd_query_timestamp(int argc, char** argv);
+extern int cmd_show_device_configs(int argc, char** argv);
+extern int cmd_show_app_configs(int argc, char** argv);
 extern int cmd_session_init(int argc, char** argv);
 extern int cmd_session_deinit(int argc, char** argv);
 extern int cmd_session_start(int argc, char** argv);
@@ -66,6 +68,7 @@ const cli_command_t g_cli_commands[] = {
     { "set_device_active", { NULL }, CLI_GROUP_DEVICE, CLI_CMD_FLAG_NONE, "Force device Active state", cmd_set_device_active },
     { "set_device_ready", { NULL }, CLI_GROUP_DEVICE, CLI_CMD_FLAG_NONE, "Force device Ready state", cmd_set_device_ready },
     { "set_config", { NULL }, CLI_GROUP_DEVICE, CLI_CMD_FLAG_NONE, "Update a device configuration parameter", cmd_set_config },
+    { "show_device_configs", { NULL }, CLI_GROUP_DEVICE, CLI_CMD_FLAG_NONE, "List supported device configuration parameters", cmd_show_device_configs },
     { "device_suspend", { NULL }, CLI_GROUP_DEVICE, CLI_CMD_FLAG_NONE, "Suspend device operation", cmd_device_suspend },
     { "query_timestamp", { NULL }, CLI_GROUP_DEVICE, CLI_CMD_FLAG_NONE, "Query device timestamp", cmd_query_timestamp },
 
@@ -81,6 +84,7 @@ const cli_command_t g_cli_commands[] = {
 
     { "set_app_config", { NULL }, CLI_GROUP_SESSION_CONFIG, CLI_CMD_FLAG_NONE, "Configure session application parameters", cmd_set_app_config },
     { "get_app_config", { NULL }, CLI_GROUP_SESSION_CONFIG, CLI_CMD_FLAG_NONE, "Read session application parameters", cmd_get_app_config },
+    { "show_app_configs", { NULL }, CLI_GROUP_SESSION_CONFIG, CLI_CMD_FLAG_NONE, "List supported session application parameters", cmd_show_app_configs },
     { "session_update_multicast_list", { "update_multicast_list", NULL }, CLI_GROUP_SESSION_CONFIG, CLI_CMD_FLAG_NONE, "Maintain multicast list entries", cmd_session_update_multicast_list },
     { "session_update_dt_tag_rounds", { NULL }, CLI_GROUP_SESSION_CONFIG, CLI_CMD_FLAG_NONE, "Configure DT-Tag active rounds", cmd_session_update_dt_tag_rounds },
     { "session_data_transfer_phase_config", { NULL }, CLI_GROUP_SESSION_CONFIG, CLI_CMD_FLAG_NONE, "Configure data transfer phase", cmd_session_data_transfer_phase_config },

@@ -22,4 +22,8 @@ int handle_set_config_command(char* config_name, char* value_str);
 void handle_device_suspend_command(void);
 void handle_query_timestamp_command(void);
 
+// CLI helpers for configuration discovery
+int cmd_show_device_configs(int argc, char** argv);
+int cmd_show_app_configs(int argc, char** argv);
+
 #endif // UCI_CMD_CORE_H

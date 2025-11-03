@@ -752,9 +752,12 @@ int uci_config_show_device_param_help(DeviceConfigId cfg_id) {
 // Show all application parameters
 int uci_config_show_all_app_params() {
     printf("=== All Application Configuration Parameters ===\n");
-    size_t num_params = sizeof(app_config_params) / sizeof(app_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        const config_param_info_t* param = &app_config_params[i];
+    size_t count = uci_config_get_app_param_count();
+    for (size_t i = 0; i < count; i++) {
+        const config_param_info_t* param = uci_config_get_app_param_info_at(i);
+        if (!param) {
+            continue;
+        }
         printf("\n%s (0x%02X):\n", param->name, param->cfg_id);
         printf("  Description: %s\n", param->description);
         printf("  Default Value: %lu %s\n", (unsigned long)param->default_value, param->unit);
@@ -776,16 +779,19 @@ int uci_config_show_all_app_params() {
             printf("  Current Value: Unable to retrieve\n");
         }
     }
-    printf("\nTotal: %zu parameters\n", num_params);
+    printf("\nTotal: %zu parameters\n", count);
     return 0;
 }
 
 // Show all device parameters
 int uci_config_show_all_device_params() {
     printf("=== All Device Configuration Parameters ===\n");
-    size_t num_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        const device_config_param_info_t* param = &device_config_params[i];
+    size_t count = uci_config_get_device_param_count();
+    for (size_t i = 0; i < count; i++) {
+        const device_config_param_info_t* param = uci_config_get_device_param_info_at(i);
+        if (!param) {
+            continue;
+        }
         printf("\n%s (0x%02X):\n", param->name, param->cfg_id);
         printf("  Description: %s\n", param->description);
         printf("  Default Value: %lu\n", (unsigned long)param->default_value);
@@ -808,6 +814,6 @@ int uci_config_show_all_device_params() {
             printf("  Current Value: Unable to retrieve\n");
         }
     }
-    printf("\nTotal: %zu parameters\n", num_params);
+    printf("\nTotal: %zu parameters\n", count);
     return 0;
 }

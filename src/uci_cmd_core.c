@@ -197,3 +197,29 @@ void handle_device_suspend_command(void) {
 void handle_query_timestamp_command(void) {
     send_core_command(COMMAND, COMPLETE, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
 }
+
+int cmd_show_device_configs(int argc, char** argv) {
+    (void)argc;
+    (void)argv;
+
+    if (argc > 1 && argv[1] && strcmp(argv[1], "--full") == 0) {
+        uci_config_show_all_device_params();
+    } else {
+        uci_config_list_device_params();
+        printf("Use 'show_device_configs --full' for detailed values.\n");
+    }
+    return 0;
+}
+
+int cmd_show_app_configs(int argc, char** argv) {
+    (void)argc;
+    (void)argv;
+
+    if (argc > 1 && argv[1] && strcmp(argv[1], "--full") == 0) {
+        uci_config_show_all_app_params();
+    } else {
+        uci_config_list_app_params();
+        printf("Use 'show_app_configs --full' for detailed values.\n");
+    }
+    return 0;
+}

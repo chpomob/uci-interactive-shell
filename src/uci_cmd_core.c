@@ -108,7 +108,8 @@ int handle_get_config_command(char* config_name) {
     }
 
     DeviceConfigId cfg_id;
-    if (uci_config_parse_device_param_name(config_name, &cfg_id) != 0) {
+    const device_config_param_info_t* info = NULL;
+    if (uci_config_lookup_device_param(config_name, &cfg_id, &info) != 0) {
         printf("Unknown config_name: %s. Use 'show_device_configs' to list supported parameters.\n",
                config_name);
         return -1;
@@ -158,7 +159,8 @@ int handle_set_config_command(char* config_name, char* value_str) {
     }
 
     DeviceConfigId cfg_id;
-    if (uci_config_parse_device_param_name(config_name, &cfg_id) != 0) {
+    const device_config_param_info_t* info = NULL;
+    if (uci_config_lookup_device_param(config_name, &cfg_id, &info) != 0) {
         printf("Unknown config_name: %s. Use 'show_device_configs' to list supported parameters.\n",
                config_name);
         return -1;
@@ -175,10 +177,12 @@ int handle_set_config_command(char* config_name, char* value_str) {
     unsigned char value_buffer[256];
     size_t value_len = sizeof(value_buffer);
     if (uci_config_parse_device_value(cfg_id, value_str, value_buffer, &value_len) != 0) {
-        const char* name = uci_config_get_device_param_name(cfg_id);
+        const char* name = info ? info->name : NULL;
         printf("Invalid value '%s' for %s (ID 0x%02X).\n", value_str,
                name ? name : "device config", cfg_id);
-        uci_config_show_device_param_help(cfg_id);
+        if (info) {
+            uci_config_show_device_param_help(cfg_id);
+        }
         return -1;
     }
 

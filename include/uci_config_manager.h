@@ -24,6 +24,7 @@ typedef struct {
     uint64_t min_value;
     uint64_t max_value;
     uint64_t default_value;
+    size_t value_len;
     const char* unit;
 } device_config_param_info_t;
 
@@ -48,10 +49,16 @@ const char* uci_config_get_device_param_name(DeviceConfigId cfg_id);
 const char* uci_config_get_device_param_desc(DeviceConfigId cfg_id);
 uint64_t uci_config_get_device_param_default(DeviceConfigId cfg_id);
 int uci_config_get_device_param_range(DeviceConfigId cfg_id, uint64_t* min_val, uint64_t* max_val);
+size_t uci_config_get_device_param_length(DeviceConfigId cfg_id);
+const device_config_param_info_t* uci_config_get_device_param_info(DeviceConfigId cfg_id);
+int uci_config_lookup_device_param(const char* name, DeviceConfigId* cfg_id,
+                                   const device_config_param_info_t** info_out);
 
 // Helper functions for parameter parsing
 int uci_config_parse_app_param_name(const char* name, AppConfigTlvType* cfg_id);
 int uci_config_parse_device_param_name(const char* name, DeviceConfigId* cfg_id);
+int uci_config_parse_device_value(DeviceConfigId cfg_id, const char* value_str,
+                                  unsigned char* value, size_t* value_len);
 int uci_config_parse_hex_value(const char* hex_str, unsigned char* value, size_t* value_len);
 int uci_config_format_hex_value(const unsigned char* value, size_t value_len, char* output, size_t output_len);
 

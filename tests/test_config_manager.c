@@ -27,6 +27,78 @@ int main() {
     test_case_end:;
 #undef test_case_end
 
+#define test_case_end test_case_end_device_config_set_and_get_pan
+    TEST_CASE(device_config_set_and_get_pan_id);
+    {
+        unsigned char value[2] = {0x34, 0x12};
+        ASSERT_EQUAL(0, uci_config_set_device_param(DEVICE_PAN_ID, value, sizeof(value)));
+
+        unsigned char buffer[4] = {0};
+        size_t buffer_len = sizeof(buffer);
+        ASSERT_EQUAL(0, uci_config_get_device_param(DEVICE_PAN_ID, buffer, &buffer_len));
+        ASSERT_EQUAL(2, (int)buffer_len);
+        ASSERT_EQUAL(0x34, buffer[0]);
+        ASSERT_EQUAL(0x12, buffer[1]);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_device_config_invalid_length
+    TEST_CASE(device_config_set_invalid_length);
+    {
+        unsigned char value[1] = {0x01};
+        ASSERT_EQUAL(-1, uci_config_set_device_param(DEVICE_PAN_ID, value, sizeof(value)));
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_device_config_parse_values
+    TEST_CASE(device_config_parse_value_helpers);
+    {
+        unsigned char buffer[8] = {0};
+        size_t len = sizeof(buffer);
+        ASSERT_EQUAL(0, uci_config_parse_device_value(DEVICE_CHANNEL, "7", buffer, &len));
+        ASSERT_EQUAL(1, (int)len);
+        ASSERT_EQUAL(7, buffer[0]);
+
+        len = sizeof(buffer);
+        ASSERT_EQUAL(0, uci_config_parse_device_value(DEVICE_PAN_ID, "0xBEEF", buffer, &len));
+        ASSERT_EQUAL(2, (int)len);
+        ASSERT_EQUAL(0xEF, buffer[0]);
+        ASSERT_EQUAL(0xBE, buffer[1]);
+
+        len = sizeof(buffer);
+        ASSERT_EQUAL(0, uci_config_parse_device_value(DEVICE_EXTENDED_ADDR, "0x0102030405060708", buffer, &len));
+        ASSERT_EQUAL(8, (int)len);
+        ASSERT_EQUAL(0x08, buffer[0]);
+        ASSERT_EQUAL(0x01, buffer[7]);
+
+        len = sizeof(buffer);
+        ASSERT_EQUAL(0, uci_config_parse_device_value(DEVICE_PROMISCUOUS, "on", buffer, &len));
+        ASSERT_EQUAL(1, (int)len);
+        ASSERT_EQUAL(1, buffer[0]);
+
+        len = sizeof(buffer);
+        ASSERT_EQUAL(-1, uci_config_parse_device_value(DEVICE_CHANNEL, "invalid", buffer, &len));
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_device_config_length_lookup
+    TEST_CASE(device_config_get_length);
+    {
+        ASSERT_EQUAL(1u, uci_config_get_device_param_length(DEVICE_CHANNEL));
+        ASSERT_EQUAL(2u, uci_config_get_device_param_length(DEVICE_PAN_ID));
+        ASSERT_EQUAL(8u, uci_config_get_device_param_length(DEVICE_EXTENDED_ADDR));
+        ASSERT_EQUAL(0u, uci_config_get_device_param_length((DeviceConfigId)0xEE));
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
 #define test_case_end test_case_end_2
     // Test device configuration parameter name retrieval
     TEST_CASE(device_config_param_name);
@@ -176,9 +248,40 @@ int main() {
         ASSERT_EQUAL(DEVICE_STATE, cfg_id);
         ASSERT_EQUAL(0, uci_config_parse_device_param_name("device_state", &cfg_id));
         ASSERT_EQUAL(DEVICE_STATE, cfg_id);
+        ASSERT_EQUAL(0, uci_config_parse_device_param_name("device_channel", &cfg_id));
+        ASSERT_EQUAL(DEVICE_CHANNEL, cfg_id);
         ASSERT_EQUAL(0, uci_config_parse_device_param_name("0x01", &cfg_id));
         ASSERT_EQUAL(LOW_POWER_MODE, cfg_id);
         ASSERT_EQUAL(-1, uci_config_parse_device_param_name("invalid_device_param", &cfg_id));
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_device_config_lookup_helper
+    TEST_CASE(device_config_lookup_helper);
+    {
+        DeviceConfigId cfg_id = (DeviceConfigId)0;
+        const device_config_param_info_t* info = NULL;
+
+        ASSERT_EQUAL(0, uci_config_lookup_device_param("device_state", &cfg_id, &info));
+        ASSERT_EQUAL(DEVICE_STATE, cfg_id);
+        ASSERT_TRUE(info != NULL);
+        ASSERT_STRING_EQUAL("device_state", info->name);
+
+        cfg_id = (DeviceConfigId)0;
+        info = NULL;
+        ASSERT_EQUAL(0, uci_config_lookup_device_param("0xA0", &cfg_id, &info));
+        ASSERT_EQUAL(DEVICE_CHANNEL, cfg_id);
+        ASSERT_TRUE(info != NULL);
+        ASSERT_STRING_EQUAL("device_channel", info->name);
+
+        cfg_id = (DeviceConfigId)0;
+        info = (const device_config_param_info_t*)1;
+        ASSERT_EQUAL(0, uci_config_lookup_device_param("0x10", &cfg_id, &info));
+        ASSERT_EQUAL((DeviceConfigId)0x10, cfg_id);
+        ASSERT_TRUE(info == NULL);
+
         TEST_PASS();
     }
     test_case_end:;

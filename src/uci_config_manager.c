@@ -95,6 +95,21 @@ static const device_config_param_info_t* find_device_config_info(DeviceConfigId 
     return NULL;
 }
 
+static const device_config_param_info_t* find_device_config_info_by_name(const char* name) {
+    if (!name) {
+        return NULL;
+    }
+
+    size_t num_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
+    for (size_t i = 0; i < num_params; i++) {
+        if (strcasecmp(device_config_params[i].name, name) == 0) {
+            return &device_config_params[i];
+        }
+    }
+
+    return NULL;
+}
+
 static int parse_unsigned_value(const char* value_str, uint64_t* out_value) {
     if (!value_str || !out_value) {
         return -1;
@@ -330,7 +345,7 @@ int uci_config_get_app_param_range(AppConfigTlvType cfg_id, uint64_t* min_val, u
 
 // Set device configuration parameter
 int uci_config_set_device_param(DeviceConfigId cfg_id, const unsigned char* value, size_t value_len) {
-    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    const device_config_param_info_t* info = uci_config_get_device_param_info(cfg_id);
     if (!info) {
         if (g_verbose_mode) {
             printf("Error: Unknown device config ID 0x%02X\n", cfg_id);
@@ -373,7 +388,7 @@ int uci_config_set_device_param(DeviceConfigId cfg_id, const unsigned char* valu
 
 // Get device configuration parameter
 int uci_config_get_device_param(DeviceConfigId cfg_id, unsigned char* value, size_t* value_len) {
-    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    const device_config_param_info_t* info = uci_config_get_device_param_info(cfg_id);
     if (!info) {
         if (g_verbose_mode) {
             printf("Error: Unknown device config ID 0x%02X\n", cfg_id);
@@ -426,19 +441,19 @@ int uci_config_list_device_params() {
 
 // Get device configuration parameter name
 const char* uci_config_get_device_param_name(DeviceConfigId cfg_id) {
-    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    const device_config_param_info_t* info = uci_config_get_device_param_info(cfg_id);
     return info ? info->name : NULL;
 }
 
 // Get device configuration parameter description
 const char* uci_config_get_device_param_desc(DeviceConfigId cfg_id) {
-    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    const device_config_param_info_t* info = uci_config_get_device_param_info(cfg_id);
     return info ? info->description : "Unknown device configuration parameter";
 }
 
 // Get device configuration parameter default value
 uint64_t uci_config_get_device_param_default(DeviceConfigId cfg_id) {
-    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    const device_config_param_info_t* info = uci_config_get_device_param_info(cfg_id);
     return info ? info->default_value : 0;
 }
 
@@ -448,7 +463,7 @@ int uci_config_get_device_param_range(DeviceConfigId cfg_id, uint64_t* min_val, 
         return -1;
     }
     
-    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    const device_config_param_info_t* info = uci_config_get_device_param_info(cfg_id);
     if (!info) {
         *min_val = 0;
         *max_val = 0;
@@ -461,8 +476,41 @@ int uci_config_get_device_param_range(DeviceConfigId cfg_id, uint64_t* min_val, 
 }
 
 size_t uci_config_get_device_param_length(DeviceConfigId cfg_id) {
-    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    const device_config_param_info_t* info = uci_config_get_device_param_info(cfg_id);
     return info ? info->value_len : 0;
+}
+
+const device_config_param_info_t* uci_config_get_device_param_info(DeviceConfigId cfg_id) {
+    return find_device_config_info(cfg_id);
+}
+
+int uci_config_lookup_device_param(const char* name, DeviceConfigId* cfg_id,
+                                   const device_config_param_info_t** info_out) {
+    if (!name || !cfg_id) {
+        return -1;
+    }
+
+    const device_config_param_info_t* info = find_device_config_info_by_name(name);
+    if (info) {
+        *cfg_id = info->cfg_id;
+        if (info_out) {
+            *info_out = info;
+        }
+        return 0;
+    }
+
+    errno = 0;
+    char* endptr = NULL;
+    unsigned long value = strtoul(name, &endptr, 0);
+    if (errno == 0 && endptr && *endptr == '\0' && value <= 0xFF) {
+        *cfg_id = (DeviceConfigId)value;
+        if (info_out) {
+            *info_out = find_device_config_info((DeviceConfigId)value);
+        }
+        return 0;
+    }
+
+    return -1;
 }
 
 // Parse application parameter name to ID
@@ -495,24 +543,8 @@ int uci_config_parse_device_param_name(const char* name, DeviceConfigId* cfg_id)
     if (!name || !cfg_id) {
         return -1;
     }
-    
-    size_t num_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (strcasecmp(device_config_params[i].name, name) == 0) {
-            *cfg_id = device_config_params[i].cfg_id;
-            return 0;
-        }
-    }
-    
-    // Try to parse as hex number
-    char* endptr;
-    unsigned long value = strtoul(name, &endptr, 0);
-    if (*endptr == '\0' && value <= 0xFF) {
-        *cfg_id = (DeviceConfigId)value;
-        return 0;
-    }
-    
-    return -1;
+
+    return uci_config_lookup_device_param(name, cfg_id, NULL);
 }
 
 int uci_config_parse_device_value(DeviceConfigId cfg_id, const char* value_str,
@@ -521,7 +553,7 @@ int uci_config_parse_device_value(DeviceConfigId cfg_id, const char* value_str,
         return -1;
     }
 
-    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    const device_config_param_info_t* info = uci_config_get_device_param_info(cfg_id);
     if (!info) {
         return -1;
     }
@@ -653,7 +685,7 @@ int uci_config_show_app_param_help(AppConfigTlvType cfg_id) {
 
 // Show help for specific device parameter
 int uci_config_show_device_param_help(DeviceConfigId cfg_id) {
-    const device_config_param_info_t* param = find_device_config_info(cfg_id);
+    const device_config_param_info_t* param = uci_config_get_device_param_info(cfg_id);
     if (!param) {
         printf("Unknown Device Configuration Parameter: 0x%02X\n", cfg_id);
         return -1;

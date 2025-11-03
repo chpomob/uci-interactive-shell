@@ -198,28 +198,203 @@ void handle_query_timestamp_command(void) {
     send_core_command(COMMAND, COMPLETE, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
 }
 
-int cmd_show_device_configs(int argc, char** argv) {
-    (void)argc;
-    (void)argv;
+static int parse_config_filters(int argc, char** argv, const char** id_filter, const char** name_filter, int* full) {
+    *id_filter = NULL;
+    *name_filter = NULL;
+    *full = 0;
 
-    if (argc > 1 && argv[1] && strcmp(argv[1], "--full") == 0) {
-        uci_config_show_all_device_params();
-    } else {
-        uci_config_list_device_params();
-        printf("Use 'show_device_configs --full' for detailed values.\n");
+    for (int i = 1; i < argc; i++) {
+        if (!argv[i]) {
+            continue;
+        }
+        if (strcmp(argv[i], "--full") == 0) {
+            *full = 1;
+        } else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc) {
+            *id_filter = argv[++i];
+        } else if (strcmp(argv[i], "--filter") == 0 && i + 1 < argc) {
+            *name_filter = argv[++i];
+        } else {
+            printf("Unknown option: %s\n", argv[i]);
+            printf("Usage: %s [--full] [--id <hex|decimal>] [--filter <substring>]\n", argv[0]);
+            return -1;
+        }
     }
     return 0;
 }
 
-int cmd_show_app_configs(int argc, char** argv) {
-    (void)argc;
-    (void)argv;
+static int matches_substring(const char* haystack, const char* needle) {
+    if (!needle || !needle[0]) {
+        return 1;
+    }
+    if (!haystack) {
+        return 0;
+    }
+    return strcasestr(haystack, needle) != NULL;
+}
 
-    if (argc > 1 && argv[1] && strcmp(argv[1], "--full") == 0) {
-        uci_config_show_all_app_params();
+static int filter_app_configs(const char* id_filter, const char* name_filter, int full) {
+    size_t count = uci_config_get_app_param_count();
+    unsigned long id_numeric = 0;
+    int id_has_value = 0;
+    if (id_filter) {
+        char* endptr = NULL;
+        id_numeric = strtoul(id_filter, &endptr, 0);
+        if (endptr && *endptr != '\0') {
+            printf("Invalid ID value: %s\n", id_filter);
+            return -1;
+        }
+        id_has_value = 1;
+    }
+
+    size_t match_count = 0;
+    for (size_t i = 0; i < count; i++) {
+        const config_param_info_t* param = uci_config_get_app_param_info_at(i);
+        if (!param) {
+            continue;
+        }
+        if (id_has_value && param->cfg_id != (AppConfigTlvType)id_numeric) {
+            continue;
+        }
+        if (!matches_substring(param->name, name_filter)) {
+            continue;
+        }
+
+        match_count++;
+        if (full) {
+            printf("\n%s (0x%02X):\n", param->name, param->cfg_id);
+            printf("  Description: %s\n", param->description);
+            printf("  Default Value: %lu %s\n", (unsigned long)param->default_value, param->unit);
+            printf("  Valid Range: %lu to %lu\n",
+                   (unsigned long)param->min_value, (unsigned long)param->max_value);
+            if (param->unit && param->unit[0]) {
+                printf("  Unit: %s\n", param->unit);
+            }
+
+            unsigned char current_value[256];
+            size_t current_len = sizeof(current_value);
+            if (uci_config_get_app_param(param->cfg_id, current_value, &current_len) == 0) {
+                printf("  Current Value: ");
+                for (size_t j = 0; j < current_len; j++) {
+                    printf("%02X ", current_value[j]);
+                }
+                printf("(%zu bytes)\n", current_len);
+            } else {
+                printf("  Current Value: Unable to retrieve\n");
+            }
+        } else {
+            printf("  %-30s (0x%02X) - %s (default: %lu %s)\n",
+                   param->name, param->cfg_id, param->description,
+                   (unsigned long)param->default_value, param->unit);
+        }
+    }
+
+    if (match_count == 0) {
+        printf("No application configuration matches");
+        if (id_has_value) {
+            printf(" ID 0x%02lX", id_numeric);
+        }
+        if (name_filter && name_filter[0]) {
+            printf(" and filter '%s'", name_filter);
+        }
+        printf(".\n");
     } else {
-        uci_config_list_app_params();
-        printf("Use 'show_app_configs --full' for detailed values.\n");
+        printf("\nTotal matches: %zu\n", match_count);
     }
     return 0;
+}
+
+static int filter_device_configs(const char* id_filter, const char* name_filter, int full) {
+    size_t count = uci_config_get_device_param_count();
+    unsigned long id_numeric = 0;
+    int id_has_value = 0;
+    if (id_filter) {
+        char* endptr = NULL;
+        id_numeric = strtoul(id_filter, &endptr, 0);
+        if (endptr && *endptr != '\0') {
+            printf("Invalid ID value: %s\n", id_filter);
+            return -1;
+        }
+        id_has_value = 1;
+    }
+
+    size_t match_count = 0;
+    for (size_t i = 0; i < count; i++) {
+        const device_config_param_info_t* param = uci_config_get_device_param_info_at(i);
+        if (!param) {
+            continue;
+        }
+        if (id_has_value && param->cfg_id != (DeviceConfigId)id_numeric) {
+            continue;
+        }
+        if (!matches_substring(param->name, name_filter)) {
+            continue;
+        }
+
+        match_count++;
+        if (full) {
+            printf("\n%s (0x%02X):\n", param->name, param->cfg_id);
+            printf("  Description: %s\n", param->description);
+            printf("  Default Value: %lu\n", (unsigned long)param->default_value);
+            printf("  Valid Range: %lu to %lu\n",
+                   (unsigned long)param->min_value, (unsigned long)param->max_value);
+            printf("  Value Length: %zu byte%s\n", param->value_len,
+                   param->value_len == 1 ? "" : "s");
+            if (param->unit && param->unit[0]) {
+                printf("  Unit: %s\n", param->unit);
+            }
+
+            unsigned char current_value[256];
+            size_t current_len = sizeof(current_value);
+            if (uci_config_get_device_param(param->cfg_id, current_value, &current_len) == 0) {
+                printf("  Current Value: ");
+                for (size_t j = 0; j < current_len; j++) {
+                    printf("%02X ", current_value[j]);
+                }
+                printf("(%zu bytes)\n", current_len);
+            } else {
+                printf("  Current Value: Unable to retrieve\n");
+            }
+        } else {
+            printf("  %-28s (0x%02X) - %s (default: %lu, size: %zu byte%s)\n",
+                   param->name, param->cfg_id, param->description,
+                   (unsigned long)param->default_value, param->value_len,
+                   param->value_len == 1 ? "" : "s");
+        }
+    }
+
+    if (match_count == 0) {
+        printf("No device configuration matches");
+        if (id_has_value) {
+            printf(" ID 0x%02lX", id_numeric);
+        }
+        if (name_filter && name_filter[0]) {
+            printf(" and filter '%s'", name_filter);
+        }
+        printf(".\n");
+    } else {
+        printf("\nTotal matches: %zu\n", match_count);
+    }
+    return 0;
+}
+
+int cmd_show_device_configs(int argc, char** argv) {
+    const char* id_filter = NULL;
+    const char* name_filter = NULL;
+    int full = 0;
+    if (parse_config_filters(argc, argv, &id_filter, &name_filter, &full) != 0) {
+        return -1;
+    }
+
+    return filter_device_configs(id_filter, name_filter, full);
+}
+
+int cmd_show_app_configs(int argc, char** argv) {
+    const char* id_filter = NULL;
+    const char* name_filter = NULL;
+    int full = 0;
+    if (parse_config_filters(argc, argv, &id_filter, &name_filter, &full) != 0) {
+        return -1;
+    }
+
+    return filter_app_configs(id_filter, name_filter, full);
 }

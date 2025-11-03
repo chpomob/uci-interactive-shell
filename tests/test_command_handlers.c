@@ -816,6 +816,18 @@ int main(void) {
     {
         char* argv[] = { "show_device_configs" };
         ASSERT_EQUAL(0, cmd_show_device_configs(1, argv));
+
+        char* argv_full[] = { "show_device_configs", "--full" };
+        ASSERT_EQUAL(0, cmd_show_device_configs(2, argv_full));
+
+        char* argv_filter[] = { "show_device_configs", "--filter", "device" };
+        ASSERT_EQUAL(0, cmd_show_device_configs(3, argv_filter));
+
+        char* argv_id[] = { "show_device_configs", "--id", "0x00" };
+        ASSERT_EQUAL(0, cmd_show_device_configs(3, argv_id));
+
+        char* argv_unknown[] = { "show_device_configs", "--unknown" };
+        ASSERT_EQUAL(-1, cmd_show_device_configs(2, argv_unknown));
         TEST_PASS();
     }
     test_case_end:;
@@ -826,6 +838,19 @@ int main(void) {
     {
         char* argv[] = { "show_app_configs" };
         ASSERT_EQUAL(0, cmd_show_app_configs(1, argv));
+
+        char* argv_full[] = { "show_app_configs", "--full" };
+        ASSERT_EQUAL(0, cmd_show_app_configs(2, argv_full));
+
+        char* argv_filter[] = { "show_app_configs", "--filter", "session" };
+        ASSERT_EQUAL(0, cmd_show_app_configs(3, argv_filter));
+
+        char* argv_id[] = { "show_app_configs", "--id", "0x0" };
+        ASSERT_EQUAL(0, cmd_show_app_configs(3, argv_id));
+
+        char* argv_bad_id[] = { "show_app_configs", "--id", "not_a_number" };
+        ASSERT_EQUAL(-1, cmd_show_app_configs(3, argv_bad_id));
+
         TEST_PASS();
     }
     test_case_end:;

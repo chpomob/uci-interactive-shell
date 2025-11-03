@@ -185,9 +185,12 @@ static int g_verbose_mode = 0;
 // Initialize configuration manager
 int uci_config_init() {
     // Initialize all configuration values to defaults
-    size_t num_app_params = sizeof(app_config_params) / sizeof(app_config_params[0]);
+    size_t num_app_params = uci_config_get_app_param_count();
     for (size_t i = 0; i < num_app_params; i++) {
-        const config_param_info_t* param = &app_config_params[i];
+        const config_param_info_t* param = uci_config_get_app_param_info_at(i);
+        if (!param) {
+            continue;
+        }
         app_config_values[param->cfg_id][0] = (unsigned char)(param->default_value & 0xFF);
         app_config_lengths[param->cfg_id] = 1;
         
@@ -218,9 +221,12 @@ int uci_config_init() {
     }
     
     // Initialize device configuration values to defaults
-    size_t num_device_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
+    size_t num_device_params = uci_config_get_device_param_count();
     for (size_t i = 0; i < num_device_params; i++) {
-        const device_config_param_info_t* param = &device_config_params[i];
+        const device_config_param_info_t* param = uci_config_get_device_param_info_at(i);
+        if (!param) {
+            continue;
+        }
         size_t value_len = param->value_len > 0 ? param->value_len : 1;
         if (value_len > sizeof(device_config_values[param->cfg_id])) {
             value_len = sizeof(device_config_values[param->cfg_id]);
@@ -310,9 +316,12 @@ int uci_config_list_app_params() {
     printf("Available Application Configuration Parameters:\n");
     printf("=============================================\n");
     
-    size_t num_params = sizeof(app_config_params) / sizeof(app_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        const config_param_info_t* param = &app_config_params[i];
+    size_t count = uci_config_get_app_param_count();
+    for (size_t i = 0; i < count; i++) {
+        const config_param_info_t* param = uci_config_get_app_param_info_at(i);
+        if (!param) {
+            continue;
+        }
         printf("  %-30s (0x%02X) - %s (default: %lu %s, range: %lu-%lu)\n", 
                param->name, param->cfg_id, param->description, 
                (unsigned long)param->default_value, param->unit, 
@@ -332,6 +341,19 @@ const char* uci_config_get_app_param_name(AppConfigTlvType cfg_id) {
 const char* uci_config_get_app_param_desc(AppConfigTlvType cfg_id) {
     const config_param_info_t* info = find_app_config_info(cfg_id);
     return info ? info->description : "Unknown configuration parameter";
+}
+
+size_t uci_config_get_app_param_count(void) {
+    return sizeof(app_config_params) / sizeof(app_config_params[0]);
+}
+
+const config_param_info_t* uci_config_get_app_param_info(AppConfigTlvType cfg_id) {
+    return find_app_config_info(cfg_id);
+}
+
+const config_param_info_t* uci_config_get_app_param_info_at(size_t index) {
+    size_t count = uci_config_get_app_param_count();
+    return (index < count) ? &app_config_params[index] : NULL;
 }
 
 // Get application configuration parameter default value
@@ -440,9 +462,12 @@ int uci_config_list_device_params() {
     printf("Available Device Configuration Parameters:\n");
     printf("=========================================\n");
     
-    size_t num_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        const device_config_param_info_t* param = &device_config_params[i];
+    size_t count = uci_config_get_device_param_count();
+    for (size_t i = 0; i < count; i++) {
+        const device_config_param_info_t* param = uci_config_get_device_param_info_at(i);
+        if (!param) {
+            continue;
+        }
         printf("  %-28s (0x%02X) - %s (default: %lu, range: %lu-%lu, size: %zu byte%s)\n", 
                param->name, param->cfg_id, param->description, 
                (unsigned long)param->default_value, 
@@ -497,6 +522,15 @@ size_t uci_config_get_device_param_length(DeviceConfigId cfg_id) {
 
 const device_config_param_info_t* uci_config_get_device_param_info(DeviceConfigId cfg_id) {
     return find_device_config_info(cfg_id);
+}
+
+size_t uci_config_get_device_param_count(void) {
+    return sizeof(device_config_params) / sizeof(device_config_params[0]);
+}
+
+const device_config_param_info_t* uci_config_get_device_param_info_at(size_t index) {
+    size_t count = uci_config_get_device_param_count();
+    return (index < count) ? &device_config_params[index] : NULL;
 }
 
 int uci_config_lookup_device_param(const char* name, DeviceConfigId* cfg_id,

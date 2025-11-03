@@ -222,6 +222,24 @@ int main() {
     test_case_end:;
 #undef test_case_end
 
+#define test_case_end test_case_end_app_config_info_helpers
+    TEST_CASE(app_config_info_helpers);
+    {
+        size_t count = uci_config_get_app_param_count();
+        ASSERT_TRUE(count > 0);
+
+        const config_param_info_t* first = uci_config_get_app_param_info_at(0);
+        ASSERT_TRUE(first != NULL);
+
+        const config_param_info_t* by_id = uci_config_get_app_param_info(first->cfg_id);
+        ASSERT_TRUE(by_id == first);
+
+        ASSERT_TRUE(uci_config_get_app_param_info_at(count) == NULL);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
 #define test_case_end test_case_end_11
     // Test setting and retrieving a device configuration value
     TEST_CASE(device_config_set_and_get_value);
@@ -282,6 +300,24 @@ int main() {
         ASSERT_EQUAL((DeviceConfigId)0x10, cfg_id);
         ASSERT_TRUE(info == NULL);
 
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_device_config_info_helpers
+    TEST_CASE(device_config_info_helpers);
+    {
+        size_t count = uci_config_get_device_param_count();
+        ASSERT_TRUE(count > 0);
+
+        const device_config_param_info_t* first = uci_config_get_device_param_info_at(0);
+        ASSERT_TRUE(first != NULL);
+
+        const device_config_param_info_t* by_id = uci_config_get_device_param_info(first->cfg_id);
+        ASSERT_TRUE(by_id == first);
+
+        ASSERT_TRUE(uci_config_get_device_param_info_at(count) == NULL);
         TEST_PASS();
     }
     test_case_end:;

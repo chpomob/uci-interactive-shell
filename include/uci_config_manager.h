@@ -40,6 +40,9 @@ const char* uci_config_get_app_param_name(AppConfigTlvType cfg_id);
 const char* uci_config_get_app_param_desc(AppConfigTlvType cfg_id);
 uint64_t uci_config_get_app_param_default(AppConfigTlvType cfg_id);
 int uci_config_get_app_param_range(AppConfigTlvType cfg_id, uint64_t* min_val, uint64_t* max_val);
+size_t uci_config_get_app_param_count(void);
+const config_param_info_t* uci_config_get_app_param_info(AppConfigTlvType cfg_id);
+const config_param_info_t* uci_config_get_app_param_info_at(size_t index);
 
 // Device configuration management
 int uci_config_set_device_param(DeviceConfigId cfg_id, const unsigned char* value, size_t value_len);
@@ -51,6 +54,8 @@ uint64_t uci_config_get_device_param_default(DeviceConfigId cfg_id);
 int uci_config_get_device_param_range(DeviceConfigId cfg_id, uint64_t* min_val, uint64_t* max_val);
 size_t uci_config_get_device_param_length(DeviceConfigId cfg_id);
 const device_config_param_info_t* uci_config_get_device_param_info(DeviceConfigId cfg_id);
+size_t uci_config_get_device_param_count(void);
+const device_config_param_info_t* uci_config_get_device_param_info_at(size_t index);
 int uci_config_lookup_device_param(const char* name, DeviceConfigId* cfg_id,
                                    const device_config_param_info_t** info_out);
 

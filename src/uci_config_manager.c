@@ -4,6 +4,7 @@
 #include <string.h>
 #include <strings.h>  // For strcasecmp
 #include <stdint.h>
+#include <errno.h>
 
 // Application configuration parameter information
 static const config_param_info_t app_config_params[] = {
@@ -58,11 +59,89 @@ static const config_param_info_t app_config_params[] = {
     {SUB_SESSION_ID, "sub_session_id", "Sub-session ID", 0, 0xFFFFFFFF, 0, ""},
 };
 
+static const config_param_info_t* find_app_config_info(AppConfigTlvType cfg_id) {
+    size_t num_params = sizeof(app_config_params) / sizeof(app_config_params[0]);
+    for (size_t i = 0; i < num_params; i++) {
+        if (app_config_params[i].cfg_id == cfg_id) {
+            return &app_config_params[i];
+        }
+    }
+    return NULL;
+}
+
 // Device configuration parameter information
 static const device_config_param_info_t device_config_params[] = {
-    {DEVICE_STATE, "device_state", "Device state", 0, 3, 1, ""},
-    {LOW_POWER_MODE, "low_power_mode", "Low power mode", 0, 1, 0, ""},
+    {DEVICE_STATE, "device_state", "Device state", 0, 3, DEVICE_STATE_READY, 1, ""},
+    {LOW_POWER_MODE, "low_power_mode", "Low power mode", 0, 1, 0, 1, ""},
+    {DEVICE_CHANNEL, "device_channel", "Default operating channel", 0, 0xFF, 0, 1, ""},
+    {DEVICE_PREAMBLE_CODE, "device_preamble_code", "Default preamble code index", 0, 0xFF, 0, 1, ""},
+    {DEVICE_PAN_ID, "device_pan_id", "Default PAN identifier", 0, 0xFFFF, 0, 2, ""},
+    {DEVICE_SHORT_ADDR, "device_short_addr", "Device short address", 0, 0xFFFF, 0, 2, ""},
+    {DEVICE_EXTENDED_ADDR, "device_extended_addr", "Device extended address", 0, 0xFFFFFFFFFFFFFFFFULL, 0, 8, ""},
+    {DEVICE_PAN_COORD, "device_pan_coord", "PAN coordinator flag", 0, 1, 0, 1, ""},
+    {DEVICE_PROMISCUOUS, "device_promiscuous", "Promiscuous mode flag", 0, 1, 0, 1, ""},
+    {DEVICE_FRAME_RETRIES, "device_frame_retries", "Max MAC frame retries", 0, 0xFF, 0, 1, ""},
+    {DEVICE_TRACES, "device_traces", "Trace enable bitmask", 0, 0xFFFFFFFF, 0, 4, ""},
+    {DEVICE_PM_MIN_INACTIVITY_S4, "device_pm_min_inactivity_s4", "Minimum inactivity before S4", 0, 0xFFFFFFFF, 0, 4, "ms"},
 };
+
+static const device_config_param_info_t* find_device_config_info(DeviceConfigId cfg_id) {
+    size_t num_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
+    for (size_t i = 0; i < num_params; i++) {
+        if (device_config_params[i].cfg_id == cfg_id) {
+            return &device_config_params[i];
+        }
+    }
+    return NULL;
+}
+
+static int parse_unsigned_value(const char* value_str, uint64_t* out_value) {
+    if (!value_str || !out_value) {
+        return -1;
+    }
+
+    errno = 0;
+    char* endptr = NULL;
+    unsigned long long parsed = strtoull(value_str, &endptr, 0);
+    if (errno != 0 || !value_str[0] || (endptr && *endptr != '\0')) {
+        return -1;
+    }
+
+    *out_value = (uint64_t)parsed;
+    return 0;
+}
+
+static int parse_boolean_value(const char* value_str, unsigned char* out_value) {
+    if (!value_str || !out_value) {
+        return -1;
+    }
+
+    if (strcasecmp(value_str, "on") == 0 ||
+        strcasecmp(value_str, "enable") == 0 ||
+        strcasecmp(value_str, "enabled") == 0 ||
+        strcasecmp(value_str, "true") == 0 ||
+        strcasecmp(value_str, "yes") == 0) {
+        *out_value = 1;
+        return 0;
+    }
+
+    if (strcasecmp(value_str, "off") == 0 ||
+        strcasecmp(value_str, "disable") == 0 ||
+        strcasecmp(value_str, "disabled") == 0 ||
+        strcasecmp(value_str, "false") == 0 ||
+        strcasecmp(value_str, "no") == 0) {
+        *out_value = 0;
+        return 0;
+    }
+
+    uint64_t numeric = 0;
+    if (parse_unsigned_value(value_str, &numeric) == 0 && numeric <= 1) {
+        *out_value = (unsigned char)numeric;
+        return 0;
+    }
+
+    return -1;
+}
 
 // Configuration storage arrays
 static unsigned char app_config_values[256][256];  // Up to 256 config params with up to 256 bytes each
@@ -112,32 +191,14 @@ int uci_config_init() {
     size_t num_device_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
     for (size_t i = 0; i < num_device_params; i++) {
         const device_config_param_info_t* param = &device_config_params[i];
-        device_config_values[param->cfg_id][0] = (unsigned char)(param->default_value & 0xFF);
-        device_config_lengths[param->cfg_id] = 1;
-        
-        // Special handling for multi-byte values
-        if (param->default_value > 0xFF) {
-            if (param->default_value <= 0xFFFF) {
-                device_config_values[param->cfg_id][0] = (unsigned char)(param->default_value & 0xFF);
-                device_config_values[param->cfg_id][1] = (unsigned char)((param->default_value >> 8) & 0xFF);
-                device_config_lengths[param->cfg_id] = 2;
-            } else if (param->default_value <= 0xFFFFFFFF) {
-                device_config_values[param->cfg_id][0] = (unsigned char)(param->default_value & 0xFF);
-                device_config_values[param->cfg_id][1] = (unsigned char)((param->default_value >> 8) & 0xFF);
-                device_config_values[param->cfg_id][2] = (unsigned char)((param->default_value >> 16) & 0xFF);
-                device_config_values[param->cfg_id][3] = (unsigned char)((param->default_value >> 24) & 0xFF);
-                device_config_lengths[param->cfg_id] = 4;
-            } else if (param->default_value <= 0xFFFFFFFFFFFFFFFFULL) {
-                device_config_values[param->cfg_id][0] = (unsigned char)(param->default_value & 0xFF);
-                device_config_values[param->cfg_id][1] = (unsigned char)((param->default_value >> 8) & 0xFF);
-                device_config_values[param->cfg_id][2] = (unsigned char)((param->default_value >> 16) & 0xFF);
-                device_config_values[param->cfg_id][3] = (unsigned char)((param->default_value >> 24) & 0xFF);
-                device_config_values[param->cfg_id][4] = (unsigned char)((param->default_value >> 32) & 0xFF);
-                device_config_values[param->cfg_id][5] = (unsigned char)((param->default_value >> 40) & 0xFF);
-                device_config_values[param->cfg_id][6] = (unsigned char)((param->default_value >> 48) & 0xFF);
-                device_config_values[param->cfg_id][7] = (unsigned char)((param->default_value >> 56) & 0xFF);
-                device_config_lengths[param->cfg_id] = 8;
-            }
+        size_t value_len = param->value_len > 0 ? param->value_len : 1;
+        if (value_len > sizeof(device_config_values[param->cfg_id])) {
+            value_len = sizeof(device_config_values[param->cfg_id]);
+        }
+        device_config_lengths[param->cfg_id] = value_len;
+        for (size_t byte = 0; byte < value_len; byte++) {
+            device_config_values[param->cfg_id][byte] =
+                (unsigned char)((param->default_value >> (8 * byte)) & 0xFF);
         }
     }
     
@@ -233,35 +294,20 @@ int uci_config_list_app_params() {
 
 // Get application configuration parameter name
 const char* uci_config_get_app_param_name(AppConfigTlvType cfg_id) {
-    size_t num_params = sizeof(app_config_params) / sizeof(app_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (app_config_params[i].cfg_id == cfg_id) {
-            return app_config_params[i].name;
-        }
-    }
-    return NULL;
+    const config_param_info_t* info = find_app_config_info(cfg_id);
+    return info ? info->name : NULL;
 }
 
 // Get application configuration parameter description
 const char* uci_config_get_app_param_desc(AppConfigTlvType cfg_id) {
-    size_t num_params = sizeof(app_config_params) / sizeof(app_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (app_config_params[i].cfg_id == cfg_id) {
-            return app_config_params[i].description;
-        }
-    }
-    return "Unknown configuration parameter";
+    const config_param_info_t* info = find_app_config_info(cfg_id);
+    return info ? info->description : "Unknown configuration parameter";
 }
 
 // Get application configuration parameter default value
 uint64_t uci_config_get_app_param_default(AppConfigTlvType cfg_id) {
-    size_t num_params = sizeof(app_config_params) / sizeof(app_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (app_config_params[i].cfg_id == cfg_id) {
-            return app_config_params[i].default_value;
-        }
-    }
-    return 0;
+    const config_param_info_t* info = find_app_config_info(cfg_id);
+    return info ? info->default_value : 0;
 }
 
 // Get application configuration parameter range
@@ -270,13 +316,11 @@ int uci_config_get_app_param_range(AppConfigTlvType cfg_id, uint64_t* min_val, u
         return -1;
     }
     
-    size_t num_params = sizeof(app_config_params) / sizeof(app_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (app_config_params[i].cfg_id == cfg_id) {
-            *min_val = app_config_params[i].min_value;
-            *max_val = app_config_params[i].max_value;
-            return 0;
-        }
+    const config_param_info_t* info = find_app_config_info(cfg_id);
+    if (info) {
+        *min_val = info->min_value;
+        *max_val = info->max_value;
+        return 0;
     }
     
     *min_val = 0;
@@ -286,9 +330,26 @@ int uci_config_get_app_param_range(AppConfigTlvType cfg_id, uint64_t* min_val, u
 
 // Set device configuration parameter
 int uci_config_set_device_param(DeviceConfigId cfg_id, const unsigned char* value, size_t value_len) {
+    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    if (!info) {
+        if (g_verbose_mode) {
+            printf("Error: Unknown device config ID 0x%02X\n", cfg_id);
+        }
+        return -1;
+    }
+
     if (!value || value_len == 0 || value_len > 256) {
         if (g_verbose_mode) {
             printf("Error: Invalid parameters for uci_config_set_device_param\n");
+        }
+        return -1;
+    }
+
+    size_t expected_len = info->value_len > 0 ? info->value_len : value_len;
+    if (expected_len > 0 && value_len != expected_len) {
+        if (g_verbose_mode) {
+            printf("Error: Device config %s expects %zu bytes but got %zu\n",
+                   info->name, expected_len, value_len);
         }
         return -1;
     }
@@ -312,6 +373,14 @@ int uci_config_set_device_param(DeviceConfigId cfg_id, const unsigned char* valu
 
 // Get device configuration parameter
 int uci_config_get_device_param(DeviceConfigId cfg_id, unsigned char* value, size_t* value_len) {
+    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    if (!info) {
+        if (g_verbose_mode) {
+            printf("Error: Unknown device config ID 0x%02X\n", cfg_id);
+        }
+        return -1;
+    }
+
     if (!value || !value_len || *value_len < device_config_lengths[cfg_id]) {
         if (g_verbose_mode) {
             printf("Error: Invalid parameters for uci_config_get_device_param\n");
@@ -344,10 +413,12 @@ int uci_config_list_device_params() {
     size_t num_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
     for (size_t i = 0; i < num_params; i++) {
         const device_config_param_info_t* param = &device_config_params[i];
-        printf("  %-20s (0x%02X) - %s (default: %lu, range: %lu-%lu)\n", 
+        printf("  %-28s (0x%02X) - %s (default: %lu, range: %lu-%lu, size: %zu byte%s)\n", 
                param->name, param->cfg_id, param->description, 
                (unsigned long)param->default_value, 
-               (unsigned long)param->min_value, (unsigned long)param->max_value);
+               (unsigned long)param->min_value, (unsigned long)param->max_value,
+               param->value_len,
+               param->value_len == 1 ? "" : "s");
     }
     
     return 0;
@@ -355,35 +426,20 @@ int uci_config_list_device_params() {
 
 // Get device configuration parameter name
 const char* uci_config_get_device_param_name(DeviceConfigId cfg_id) {
-    size_t num_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (device_config_params[i].cfg_id == cfg_id) {
-            return device_config_params[i].name;
-        }
-    }
-    return NULL;
+    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    return info ? info->name : NULL;
 }
 
 // Get device configuration parameter description
 const char* uci_config_get_device_param_desc(DeviceConfigId cfg_id) {
-    size_t num_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (device_config_params[i].cfg_id == cfg_id) {
-            return device_config_params[i].description;
-        }
-    }
-    return "Unknown device configuration parameter";
+    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    return info ? info->description : "Unknown device configuration parameter";
 }
 
 // Get device configuration parameter default value
 uint64_t uci_config_get_device_param_default(DeviceConfigId cfg_id) {
-    size_t num_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (device_config_params[i].cfg_id == cfg_id) {
-            return device_config_params[i].default_value;
-        }
-    }
-    return 0;
+    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    return info ? info->default_value : 0;
 }
 
 // Get device configuration parameter range
@@ -392,18 +448,21 @@ int uci_config_get_device_param_range(DeviceConfigId cfg_id, uint64_t* min_val, 
         return -1;
     }
     
-    size_t num_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (device_config_params[i].cfg_id == cfg_id) {
-            *min_val = device_config_params[i].min_value;
-            *max_val = device_config_params[i].max_value;
-            return 0;
-        }
+    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    if (!info) {
+        *min_val = 0;
+        *max_val = 0;
+        return -1;
     }
-    
-    *min_val = 0;
-    *max_val = 0;
-    return -1;
+
+    *min_val = info->min_value;
+    *max_val = info->max_value;
+    return 0;
+}
+
+size_t uci_config_get_device_param_length(DeviceConfigId cfg_id) {
+    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    return info ? info->value_len : 0;
 }
 
 // Parse application parameter name to ID
@@ -454,6 +513,74 @@ int uci_config_parse_device_param_name(const char* name, DeviceConfigId* cfg_id)
     }
     
     return -1;
+}
+
+int uci_config_parse_device_value(DeviceConfigId cfg_id, const char* value_str,
+                                  unsigned char* value, size_t* value_len) {
+    if (!value_str || !value || !value_len) {
+        return -1;
+    }
+
+    const device_config_param_info_t* info = find_device_config_info(cfg_id);
+    if (!info) {
+        return -1;
+    }
+
+    size_t expected_len = info->value_len > 0 ? info->value_len : 1;
+    if (*value_len < expected_len) {
+        return -1;
+    }
+
+    memset(value, 0, expected_len);
+
+    if (cfg_id == DEVICE_STATE) {
+        unsigned char state_value = 0;
+        if (strcasecmp(value_str, "ready") == 0) {
+            state_value = DEVICE_STATE_READY;
+        } else if (strcasecmp(value_str, "active") == 0) {
+            state_value = DEVICE_STATE_ACTIVE;
+        } else if (strcasecmp(value_str, "error") == 0) {
+            state_value = DEVICE_STATE_ERROR;
+        } else {
+            uint64_t numeric = 0;
+            if (parse_unsigned_value(value_str, &numeric) != 0 || numeric > 0xFF) {
+                return -1;
+            }
+            state_value = (unsigned char)numeric;
+        }
+
+        value[0] = state_value;
+        *value_len = 1;
+        return 0;
+    }
+
+    if (cfg_id == LOW_POWER_MODE ||
+        cfg_id == DEVICE_PAN_COORD ||
+        cfg_id == DEVICE_PROMISCUOUS) {
+        unsigned char bool_value = 0;
+        if (parse_boolean_value(value_str, &bool_value) != 0) {
+            return -1;
+        }
+        value[0] = bool_value;
+        *value_len = 1;
+        return 0;
+    }
+
+    uint64_t numeric_value = 0;
+    if (parse_unsigned_value(value_str, &numeric_value) != 0) {
+        return -1;
+    }
+
+    if (numeric_value < info->min_value || numeric_value > info->max_value) {
+        return -1;
+    }
+
+    for (size_t i = 0; i < expected_len; i++) {
+        value[i] = (unsigned char)((numeric_value >> (8 * i)) & 0xFF);
+    }
+
+    *value_len = expected_len;
+    return 0;
 }
 
 // Parse hex value string to bytes
@@ -508,19 +635,16 @@ int uci_config_format_hex_value(const unsigned char* value, size_t value_len, ch
 
 // Show help for specific application parameter
 int uci_config_show_app_param_help(AppConfigTlvType cfg_id) {
-    size_t num_params = sizeof(app_config_params) / sizeof(app_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (app_config_params[i].cfg_id == cfg_id) {
-            const config_param_info_t* param = &app_config_params[i];
-            printf("Application Configuration Parameter: %s (0x%02X)\n", param->name, param->cfg_id);
-            printf("  Description: %s\n", param->description);
-            printf("  Default Value: %lu %s\n", (unsigned long)param->default_value, param->unit);
-            printf("  Valid Range: %lu to %lu\n", (unsigned long)param->min_value, (unsigned long)param->max_value);
-            if (strlen(param->unit) > 0) {
-                printf("  Unit: %s\n", param->unit);
-            }
-            return 0;
+    const config_param_info_t* param = find_app_config_info(cfg_id);
+    if (param) {
+        printf("Application Configuration Parameter: %s (0x%02X)\n", param->name, param->cfg_id);
+        printf("  Description: %s\n", param->description);
+        printf("  Default Value: %lu %s\n", (unsigned long)param->default_value, param->unit);
+        printf("  Valid Range: %lu to %lu\n", (unsigned long)param->min_value, (unsigned long)param->max_value);
+        if (strlen(param->unit) > 0) {
+            printf("  Unit: %s\n", param->unit);
         }
+        return 0;
     }
     
     printf("Unknown Application Configuration Parameter: 0x%02X\n", cfg_id);
@@ -529,23 +653,21 @@ int uci_config_show_app_param_help(AppConfigTlvType cfg_id) {
 
 // Show help for specific device parameter
 int uci_config_show_device_param_help(DeviceConfigId cfg_id) {
-    size_t num_params = sizeof(device_config_params) / sizeof(device_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (device_config_params[i].cfg_id == cfg_id) {
-            const device_config_param_info_t* param = &device_config_params[i];
-            printf("Device Configuration Parameter: %s (0x%02X)\n", param->name, param->cfg_id);
-            printf("  Description: %s\n", param->description);
-            printf("  Default Value: %lu\n", (unsigned long)param->default_value);
-            printf("  Valid Range: %lu to %lu\n", (unsigned long)param->min_value, (unsigned long)param->max_value);
-            if (strlen(param->unit) > 0) {
-                printf("  Unit: %s\n", param->unit);
-            }
-            return 0;
-        }
+    const device_config_param_info_t* param = find_device_config_info(cfg_id);
+    if (!param) {
+        printf("Unknown Device Configuration Parameter: 0x%02X\n", cfg_id);
+        return -1;
     }
-    
-    printf("Unknown Device Configuration Parameter: 0x%02X\n", cfg_id);
-    return -1;
+
+    printf("Device Configuration Parameter: %s (0x%02X)\n", param->name, param->cfg_id);
+    printf("  Description: %s\n", param->description);
+    printf("  Default Value: %lu\n", (unsigned long)param->default_value);
+    printf("  Valid Range: %lu to %lu\n", (unsigned long)param->min_value, (unsigned long)param->max_value);
+    printf("  Value Length: %zu byte%s\n", param->value_len, param->value_len == 1 ? "" : "s");
+    if (strlen(param->unit) > 0) {
+        printf("  Unit: %s\n", param->unit);
+    }
+    return 0;
 }
 
 // Show all application parameters
@@ -589,6 +711,7 @@ int uci_config_show_all_device_params() {
         printf("  Description: %s\n", param->description);
         printf("  Default Value: %lu\n", (unsigned long)param->default_value);
         printf("  Valid Range: %lu to %lu\n", (unsigned long)param->min_value, (unsigned long)param->max_value);
+        printf("  Value Length: %zu byte%s\n", param->value_len, param->value_len == 1 ? "" : "s");
         if (strlen(param->unit) > 0) {
             printf("  Unit: %s\n", param->unit);
         }

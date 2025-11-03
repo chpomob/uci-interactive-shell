@@ -1,58 +1,57 @@
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
-#include "../include/uci_hw_interface.h"
 #include "../include/uci_pdl.h"
 #include "../include/uci_packet_utils.h"
+#include "../include/uci_config_manager.h"
+#include "../include/uci_command_framework.h"
 
-// Helper function to send UCI command in unified mode (hardware or simulation)
-static int send_unified_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid,
-                                unsigned char* payload, int payload_len) {
-    if (uci_is_hardware_mode_enabled()) {
-        if (!uci_hw_interface_is_connected()) {
-            printf("Hardware not connected. Use 'hw_connect <device_path>' first.\n");
-            return -1;
-        }
+#define CORE_CMD_MAX_PAYLOAD 512
 
-        if (uci_hw_interface_send_command(mt, pbf, gid, oid, payload, payload_len) == 0) {
-            printf("Command sent to hardware successfully\n");
-            unsigned char response_buffer[1024];
-            int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
-            if (response_len > 0) {
-                printf("Received %d bytes from hardware: ", response_len);
-                for (int i = 0; i < response_len; i++) {
-                    printf("%02X ", response_buffer[i]);
-                }
-                printf("\n");
-                parse_uci_packet(response_buffer, response_len);
-            }
-            return 0;
-        } else {
-            printf("Failed to send command to hardware\n");
-            return -1;
-        }
-    } else {
-        send_uci_command(mt, pbf, gid, oid, payload, payload_len);
-        return 0;
+static int send_core_command(unsigned char mt,
+                             unsigned char pbf,
+                             unsigned char gid,
+                             unsigned char oid,
+                             const unsigned char* payload,
+                             size_t payload_len) {
+    if (payload_len > CORE_CMD_MAX_PAYLOAD) {
+        printf("Error: payload too large (%zu bytes)\n", payload_len);
+        return -1;
     }
+
+    unsigned char buffer[CORE_CMD_MAX_PAYLOAD];
+    uci_command_context_t ctx = {
+        .mt = mt,
+        .pbf = pbf,
+        .gid = gid,
+        .oid = oid,
+        .payload = buffer,
+        .payload_len = 0,
+        .max_payload_len = sizeof(buffer),
+    };
+
+    if (payload_len > 0) {
+        if (!payload) {
+            printf("Error: NULL payload with non-zero length\n");
+            return -1;
+        }
+        memcpy(buffer, payload, payload_len);
+    }
+    ctx.payload_len = payload_len;
+
+    return uci_cmd_execute_unified(&ctx);
 }
 
 void handle_get_device_info_command(void) {
-    send_unified_command(COMMAND, 0, CORE, CORE_DEVICE_INFO, NULL, 0);
+    send_core_command(COMMAND, COMPLETE, CORE, CORE_DEVICE_INFO, NULL, 0);
 }
 
 void handle_device_reset_command(void) {
-    size_t packet_len;
-    unsigned char* packet = create_device_reset_packet(UWBS_RESET, &packet_len);
-    if (packet) {
-        struct uci_packet_header* header = (struct uci_packet_header*)packet;
-        uci_header_fields_t header_fields;
-        uci_extract_header_fields_safe(header, &header_fields);
-        send_unified_command(header_fields.message_type, header_fields.packet_boundary, header_fields.group_id, header_fields.opcode_id, packet + sizeof(struct uci_packet_header), header_fields.payload_length);
-        free(packet);
-    }
+    unsigned char payload[] = {UWBS_RESET};
+    send_core_command(COMMAND, COMPLETE, CORE, CORE_DEVICE_RESET, payload, sizeof(payload));
 
     // In simulation mode, also send status notification
     if (!uci_is_hardware_mode_enabled()) {
@@ -62,15 +61,7 @@ void handle_device_reset_command(void) {
 }
 
 void handle_get_caps_info_command(void) {
-    size_t packet_len;
-    unsigned char* packet = create_get_caps_info_packet(&packet_len);
-    if (packet) {
-        struct uci_packet_header* header = (struct uci_packet_header*)packet;
-        uci_header_fields_t header_fields;
-        uci_extract_header_fields_safe(header, &header_fields);
-        send_unified_command(header_fields.message_type, header_fields.packet_boundary, header_fields.group_id, header_fields.opcode_id, packet + sizeof(struct uci_packet_header), header_fields.payload_length);
-        free(packet);
-    }
+    send_core_command(COMMAND, COMPLETE, CORE, CORE_GET_CAPS_INFO, NULL, 0);
 }
 
 int handle_set_power_command(char* power_state) {
@@ -89,7 +80,7 @@ int handle_set_power_command(char* power_state) {
     } else if (strcmp(power_state, "sleep") == 0 || strcmp(power_state, "suspend") == 0) {
         // For sleep, send the device suspend command
         unsigned char suspend_payload[] = {0x00}; // Wakeup source
-        send_unified_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, suspend_payload, sizeof(suspend_payload));
+        send_core_command(COMMAND, COMPLETE, CORE, CORE_DEVICE_SUSPEND, suspend_payload, sizeof(suspend_payload));
         return 0;
     } else {
         printf("Invalid power state: %s. Use 'active', 'ready', 'sleep', or 'suspend'.\n", power_state);
@@ -97,8 +88,7 @@ int handle_set_power_command(char* power_state) {
     }
 
     unsigned char payload[] = {0x01, cfg_id, 0x01, value};
-    send_unified_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
-    return 0;
+    return send_core_command(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
 }
 
 void handle_device_on_command(void) {
@@ -112,102 +102,94 @@ void handle_device_off_command(void) {
 int handle_get_config_command(char* config_name) {
     if (!config_name) {
         printf("Usage: get_config <config_name>\n");
-        printf("  Examples:\n");
-        printf("    get_config device_state\n");
-        printf("    get_config low_power_mode\n");
+        printf("  Example: get_config device_state\n");
+        printf("  Hint: run 'show_device_configs' to list available parameters.\n");
         return -1;
     }
 
     DeviceConfigId cfg_id;
-    if (strcmp(config_name, "device_state") == 0) {
-        cfg_id = DEVICE_STATE;
-    } else if (strcmp(config_name, "low_power_mode") == 0) {
-        cfg_id = LOW_POWER_MODE;
-    } else {
-        printf("Unknown config_name: %s. Supported configs: device_state, low_power_mode\n", config_name);
+    if (uci_config_parse_device_param_name(config_name, &cfg_id) != 0) {
+        printf("Unknown config_name: %s. Use 'show_device_configs' to list supported parameters.\n",
+               config_name);
         return -1;
     }
 
-    unsigned char payload[] = {0x01, cfg_id}; // num_tlvs(1), cfg_id
-    send_unified_command(COMMAND, 0, CORE, CORE_GET_CONFIG, payload, sizeof(payload));
+    unsigned char payload[] = {0x01, (unsigned char)cfg_id};
+    send_core_command(COMMAND, COMPLETE, CORE, CORE_GET_CONFIG, payload, sizeof(payload));
     return 0;
 }
 
 void handle_get_device_state_command(void) {
     unsigned char payload[] = {0x01, DEVICE_STATE}; // num_tlvs(1), cfg_id
-    send_unified_command(COMMAND, 0, CORE, CORE_GET_CONFIG, payload, sizeof(payload));
+    send_core_command(COMMAND, COMPLETE, CORE, CORE_GET_CONFIG, payload, sizeof(payload));
 }
 
 void handle_set_device_active_command(void) {
     unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_ACTIVE};
-    send_unified_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
+    send_core_command(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
 }
 
 void handle_set_device_ready_command(void) {
     unsigned char payload[] = {0x01, DEVICE_STATE, 0x01, DEVICE_STATE_READY};
-    send_unified_command(COMMAND, 0, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
+    send_core_command(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
+}
+
+static int send_device_config(DeviceConfigId cfg_id, const unsigned char* value, size_t value_len) {
+    if (!value || value_len == 0 || value_len > 255) {
+        printf("Invalid device config payload length: %zu\n", value_len);
+        return -1;
+    }
+
+    unsigned char payload[1 + 2 + 256];
+    payload[0] = 0x01; // number of TLVs
+    payload[1] = (unsigned char)cfg_id;
+    payload[2] = (unsigned char)value_len;
+    memcpy(&payload[3], value, value_len);
+
+    return send_core_command(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, payload, value_len + 3);
 }
 
 int handle_set_config_command(char* config_name, char* value_str) {
     if (!config_name || !value_str) {
         printf("Usage: set_config <config_name> <value>\n");
-        printf("  Examples:\n");
-        printf("    set_config device_state active\n");
-        printf("    set_config low_power_mode off\n");
+        printf("  Example: set_config device_channel 9\n");
+        printf("  Hint: run 'show_device_configs' for supported parameters.\n");
         return -1;
     }
 
     DeviceConfigId cfg_id;
-    unsigned char value;
-
-    if (strcmp(config_name, "device_state") == 0) {
-        cfg_id = DEVICE_STATE;
-        if (strcmp(value_str, "active") == 0) {
-            value = DEVICE_STATE_ACTIVE;
-        } else if (strcmp(value_str, "ready") == 0) {
-            value = DEVICE_STATE_READY;
-        } else if (strcmp(value_str, "sleep") == 0 || strcmp(value_str, "suspend") == 0) {
-            // For sleep, send the device suspend command
-            unsigned char suspend_payload[] = {0x00}; // Wakeup source
-            send_unified_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, suspend_payload, sizeof(suspend_payload));
-            return 0;
-        } else {
-            printf("Invalid device_state value: %s. Use 'active', 'ready', 'sleep', or 'suspend'.\n", value_str);
-            return -1;
-        }
-    } else if (strcmp(config_name, "low_power_mode") == 0) {
-        cfg_id = LOW_POWER_MODE;
-        if (strcmp(value_str, "on") == 0) {
-            value = 0x01;
-        } else if (strcmp(value_str, "off") == 0) {
-            value = 0x00;
-        } else {
-            printf("Invalid low_power_mode value: %s. Use 'on' or 'off'.\n", value_str);
-            return -1;
-        }
-    } else {
-        printf("Unknown config_name: %s. Supported configs: device_state, low_power_mode\n", config_name);
+    if (uci_config_parse_device_param_name(config_name, &cfg_id) != 0) {
+        printf("Unknown config_name: %s. Use 'show_device_configs' to list supported parameters.\n",
+               config_name);
         return -1;
     }
 
-    unsigned char configs[] = {cfg_id, 0x01, value};
-    size_t packet_len;
-    unsigned char* packet = create_set_config_packet(1, configs, sizeof(configs), &packet_len);
-    if (packet) {
-        struct uci_packet_header* header = (struct uci_packet_header*)packet;
-        uci_header_fields_t header_fields;
-        uci_extract_header_fields_safe(header, &header_fields);
-        send_unified_command(header_fields.message_type, header_fields.packet_boundary, header_fields.group_id, header_fields.opcode_id, packet + sizeof(struct uci_packet_header), header_fields.payload_length);
-        free(packet);
+    if (cfg_id == DEVICE_STATE &&
+        (strcasecmp(value_str, "sleep") == 0 || strcasecmp(value_str, "suspend") == 0)) {
+        unsigned char suspend_payload[] = {0x00};
+        send_core_command(COMMAND, COMPLETE, CORE, CORE_DEVICE_SUSPEND,
+                          suspend_payload, sizeof(suspend_payload));
+        return 0;
     }
-    return 0;
+
+    unsigned char value_buffer[256];
+    size_t value_len = sizeof(value_buffer);
+    if (uci_config_parse_device_value(cfg_id, value_str, value_buffer, &value_len) != 0) {
+        const char* name = uci_config_get_device_param_name(cfg_id);
+        printf("Invalid value '%s' for %s (ID 0x%02X).\n", value_str,
+               name ? name : "device config", cfg_id);
+        uci_config_show_device_param_help(cfg_id);
+        return -1;
+    }
+
+    return send_device_config(cfg_id, value_buffer, value_len);
 }
 
 void handle_device_suspend_command(void) {
     unsigned char payload[] = {0x00};  // Wakeup source
-    send_unified_command(COMMAND, 0, CORE, CORE_DEVICE_SUSPEND, payload, sizeof(payload));
+    send_core_command(COMMAND, COMPLETE, CORE, CORE_DEVICE_SUSPEND, payload, sizeof(payload));
 }
 
 void handle_query_timestamp_command(void) {
-    send_unified_command(COMMAND, 0, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
+    send_core_command(COMMAND, COMPLETE, CORE, CORE_QUERY_UWBS_TIMESTAMP, NULL, 0);
 }

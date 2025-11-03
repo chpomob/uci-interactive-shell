@@ -72,6 +72,8 @@ void report_error(int error_code, const char* fmt, ...);
  * @param out_session_id Optional pointer to store parsed session ID
  * @return true if validation passes, false if validation fails
  */
+bool validate_session_id(const char* session_id_str, unsigned int* out_session_id);
+
 /**
  * @brief Safely parse a hex string into a byte array
  * 

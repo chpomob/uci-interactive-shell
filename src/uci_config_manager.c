@@ -69,6 +69,21 @@ static const config_param_info_t* find_app_config_info(AppConfigTlvType cfg_id) 
     return NULL;
 }
 
+static const config_param_info_t* find_app_config_info_by_name(const char* name) {
+    if (!name) {
+        return NULL;
+    }
+
+    size_t num_params = sizeof(app_config_params) / sizeof(app_config_params[0]);
+    for (size_t i = 0; i < num_params; i++) {
+        if (strcasecmp(app_config_params[i].name, name) == 0) {
+            return &app_config_params[i];
+        }
+    }
+
+    return NULL;
+}
+
 // Device configuration parameter information
 static const device_config_param_info_t device_config_params[] = {
     {DEVICE_STATE, "device_state", "Device state", 0, 3, DEVICE_STATE_READY, 1, ""},
@@ -519,12 +534,10 @@ int uci_config_parse_app_param_name(const char* name, AppConfigTlvType* cfg_id) 
         return -1;
     }
     
-    size_t num_params = sizeof(app_config_params) / sizeof(app_config_params[0]);
-    for (size_t i = 0; i < num_params; i++) {
-        if (strcasecmp(app_config_params[i].name, name) == 0) {
-            *cfg_id = app_config_params[i].cfg_id;
-            return 0;
-        }
+    const config_param_info_t* info = find_app_config_info_by_name(name);
+    if (info) {
+        *cfg_id = info->cfg_id;
+        return 0;
     }
     
     // Try to parse as hex number

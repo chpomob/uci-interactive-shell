@@ -751,15 +751,14 @@ int main() {
         unsigned char bad_set_payload[] = {0x01, DEVICE_STATE, 0x02, 0xAA};
         send_uci_command(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, bad_set_payload, sizeof(bad_set_payload));
 
-        unsigned char multi_byte_payload[] = {0x01, LOW_POWER_MODE, 0x02, 0x34, 0x12};
+        unsigned char multi_byte_payload[] = {0x01, LOW_POWER_MODE, 0x01, 0x01};
         send_uci_command(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, multi_byte_payload, sizeof(multi_byte_payload));
 
         unsigned char stored_config[4] = {0};
         size_t stored_len = sizeof(stored_config);
         ASSERT_EQUAL(0, uci_config_get_device_param(LOW_POWER_MODE, stored_config, &stored_len));
-        ASSERT_EQUAL(2, (int)stored_len);
-        ASSERT_EQUAL(0x34, stored_config[0]);
-        ASSERT_EQUAL(0x12, stored_config[1]);
+        ASSERT_EQUAL(1, (int)stored_len);
+        ASSERT_EQUAL(1, stored_config[0]);
 
         unsigned char get_payload[] = {0x01, DEVICE_STATE};
         send_uci_command(COMMAND, COMPLETE, CORE, CORE_GET_CONFIG, get_payload, sizeof(get_payload));

@@ -2035,17 +2035,14 @@ static int handle_vendor_android_get_power_stats(unsigned char *response_payload
     return 17;
 }
 
-static int handle_vendor_android_set_country_code(unsigned char *response_payload,
-                                                  size_t max_len,
-                                                  const unsigned char *payload,
-                                                  size_t payload_len) {
+static int handle_vendor_android_set_country_code(unsigned char *response_payload, size_t max_len,
+                                                  const unsigned char *payload, size_t payload_len) {
+    (void)max_len;
     (void)payload;
     (void)payload_len;
-    if (max_len < 1) {
-        return -1;
-    }
     response_payload[0] = UCI_STATUS_OK;
-    return 1;
+    response_payload[1] = 0;
+    return 2;
 }
 
 static int handle_vendor_android_radar_set_app_config(unsigned char *response_payload,

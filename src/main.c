@@ -341,10 +341,89 @@ int cmd_session_query_data_size_in_ranging(int argc, char** argv) {
     return handle_session_query_data_size_in_ranging_command(session_id_str);
 }
 
+static void print_simulation_usage(void) {
+    printf("Simulation helpers:\n");
+    printf("  simulate_notification device_status <active|ready|error>\n");
+    printf("  simulate_session_status <session_id> <state> <reason>\n");
+    printf("    state  : init, deinit, active, idle\n");
+    printf("    reason : mgmt_cmd\n");
+}
+
+static int parse_device_state(const char* value_str, unsigned char* state_out) {
+    if (!value_str || !state_out) {
+        print_simulation_usage();
+        return -1;
+    }
+
+    if (strcasecmp(value_str, "active") == 0) {
+        *state_out = DEVICE_STATE_ACTIVE;
+    } else if (strcasecmp(value_str, "ready") == 0) {
+        *state_out = DEVICE_STATE_READY;
+    } else if (strcasecmp(value_str, "error") == 0) {
+        *state_out = DEVICE_STATE_ERROR;
+    } else {
+        printf("Invalid value for device_status '%s'. Use active, ready, or error.\n", value_str);
+        return -1;
+    }
+    return 0;
+}
+
+static int parse_sim_session_state(const char* state_str, unsigned char* state_out) {
+    if (!state_str || !state_out) {
+        print_simulation_usage();
+        return -1;
+    }
+
+    if (strcasecmp(state_str, "init") == 0) {
+        *state_out = SESSION_STATE_INIT;
+    } else if (strcasecmp(state_str, "deinit") == 0) {
+        *state_out = SESSION_STATE_DEINIT;
+    } else if (strcasecmp(state_str, "active") == 0) {
+        *state_out = SESSION_STATE_ACTIVE;
+    } else if (strcasecmp(state_str, "idle") == 0) {
+        *state_out = SESSION_STATE_IDLE;
+    } else {
+        printf("Invalid session state '%s'. Use init, deinit, active, or idle.\n", state_str);
+        return -1;
+    }
+    return 0;
+}
+
+static int parse_sim_session_reason(const char* reason_str, unsigned char* reason_out) {
+    if (!reason_str || !reason_out) {
+        print_simulation_usage();
+        return -1;
+    }
+
+    if (strcasecmp(reason_str, "mgmt_cmd") == 0 || strcasecmp(reason_str, "command") == 0) {
+        *reason_out = STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS;
+    } else {
+        printf("Invalid reason '%s'. Use mgmt_cmd.\n", reason_str);
+        return -1;
+    }
+    return 0;
+}
+
+static int parse_sim_session_id(const char* session_id_str, uint32_t* session_id_out) {
+    if (!session_id_str || !session_id_out) {
+        print_simulation_usage();
+        return -1;
+    }
+
+    char* endptr = NULL;
+    unsigned long parsed = strtoul(session_id_str, &endptr, 0);
+    if (endptr == session_id_str || (endptr && *endptr != '\0') || parsed > 0xFFFFFFFFUL) {
+        printf("Invalid session_id '%s'. Must be 0-0xFFFFFFFF.\n", session_id_str);
+        return -1;
+    }
+
+    *session_id_out = (uint32_t)parsed;
+    return 0;
+}
+
 int cmd_simulate_notification(int argc, char** argv) {
     if (argc < 3) {
-        printf("Usage: simulate_notification <type> <value>\n");
-        printf("  Example: simulate_notification device_status active\n");
+        print_simulation_usage();
         return -1;
     }
 
@@ -352,21 +431,15 @@ int cmd_simulate_notification(int argc, char** argv) {
     const char* value_str = argv[2];
 
     if (strcmp(type_str, "device_status") == 0) {
-        unsigned char device_state;
-        if (strcmp(value_str, "active") == 0) {
-            device_state = DEVICE_STATE_ACTIVE;
-        } else if (strcmp(value_str, "ready") == 0) {
-            device_state = DEVICE_STATE_READY;
-        } else if (strcmp(value_str, "error") == 0) {
-            device_state = DEVICE_STATE_ERROR;
-        } else {
-            printf("Invalid value for device_status. Use 'active', 'ready', or 'error'.\n");
+        unsigned char device_state = 0;
+        if (parse_device_state(value_str, &device_state) != 0) {
             return -1;
         }
 
-        size_t packet_len;
-        unsigned char* notification_packet = create_uci_packet(NOTIFICATION, COMPLETE, CORE, CORE_DEVICE_STATUS_NTF,
-                                                             &device_state, 1, &packet_len);
+        size_t packet_len = 0;
+        unsigned char* notification_packet =
+            create_uci_packet(NOTIFICATION, COMPLETE, CORE, CORE_DEVICE_STATUS_NTF,
+                              &device_state, 1, &packet_len);
         if (notification_packet) {
             parse_uci_packet(notification_packet, packet_len);
             free(notification_packet);
@@ -375,36 +448,28 @@ int cmd_simulate_notification(int argc, char** argv) {
     }
 
     printf("Unknown notification type: %s\n", type_str);
+    print_simulation_usage();
     return -1;
 }
 
 int cmd_simulate_session_status(int argc, char** argv) {
     if (argc < 4) {
-        printf("Usage: simulate_session_status <session_id> <state> <reason>\n");
-        printf("  Example: simulate_session_status 1 active mgmt_cmd\n");
+        print_simulation_usage();
         return -1;
     }
 
-    unsigned int session_id = (unsigned int)strtoul(argv[1], NULL, 10);
-    const char* state_str = argv[2];
-    const char* reason_str = argv[3];
-
-    unsigned char session_state;
-    unsigned char reason_code;
-
-    if (strcmp(state_str, "init") == 0) session_state = SESSION_STATE_INIT;
-    else if (strcmp(state_str, "deinit") == 0) session_state = SESSION_STATE_DEINIT;
-    else if (strcmp(state_str, "active") == 0) session_state = SESSION_STATE_ACTIVE;
-    else if (strcmp(state_str, "idle") == 0) session_state = SESSION_STATE_IDLE;
-    else {
-        printf("Invalid session state '%s'. Use init, deinit, active, or idle.\n", state_str);
+    uint32_t session_id = 0;
+    if (parse_sim_session_id(argv[1], &session_id) != 0) {
         return -1;
     }
 
-    if (strcmp(reason_str, "mgmt_cmd") == 0 || strcmp(reason_str, "command") == 0) {
-        reason_code = STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS;
-    } else {
-        printf("Invalid reason '%s'. Use mgmt_cmd.\n", reason_str);
+    unsigned char session_state = 0;
+    if (parse_sim_session_state(argv[2], &session_state) != 0) {
+        return -1;
+    }
+
+    unsigned char reason_code = 0;
+    if (parse_sim_session_reason(argv[3], &reason_code) != 0) {
         return -1;
     }
 
@@ -413,9 +478,10 @@ int cmd_simulate_session_status(int argc, char** argv) {
     notification_payload[4] = session_state;
     notification_payload[5] = reason_code;
 
-    size_t packet_len;
-    unsigned char* notification_packet = create_uci_packet(NOTIFICATION, COMPLETE, SESSION_CONFIG, SESSION_STATUS_NTF,
-                                                         notification_payload, sizeof(notification_payload), &packet_len);
+    size_t packet_len = 0;
+    unsigned char* notification_packet =
+        create_uci_packet(NOTIFICATION, COMPLETE, SESSION_CONFIG, SESSION_STATUS_NTF,
+                          notification_payload, sizeof(notification_payload), &packet_len);
     if (notification_packet) {
         parse_uci_packet(notification_packet, packet_len);
         free(notification_packet);

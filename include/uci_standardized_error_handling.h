@@ -10,25 +10,25 @@
 
 // Standardized error handling macros and functions for UCI Interactive Shell
 
-// Log error with context - updated to use new logging system
-static inline void uci_log_error(const char* function, const char* context, uci_error_t error) {
-    const char* error_str;
+static inline const char* uci_error_to_string(uci_error_t error) {
     switch (error) {
-        case UCI_SUCCESS: error_str = "SUCCESS"; break;
-        case UCI_ERROR_INVALID_PARAM: error_str = "INVALID_PARAM"; break;
-        case UCI_ERROR_BUFFER_OVERFLOW: error_str = "BUFFER_OVERFLOW"; break;
-        case UCI_ERROR_OUT_OF_MEMORY: error_str = "OUT_OF_MEMORY"; break;
-        case UCI_ERROR_MALFORMED_PACKET: error_str = "MALFORMED_PACKET"; break;
-        case UCI_ERROR_UNSUPPORTED_OPERATION: error_str = "UNSUPPORTED_OPERATION"; break;
-        case UCI_ERROR_RESOURCE_EXHAUSTED: error_str = "RESOURCE_EXHAUSTED"; break;
-        default: error_str = "UNKNOWN_ERROR"; break;
+        case UCI_SUCCESS: return "SUCCESS";
+        case UCI_ERROR_INVALID_PARAM: return "INVALID_PARAM";
+        case UCI_ERROR_BUFFER_OVERFLOW: return "BUFFER_OVERFLOW";
+        case UCI_ERROR_OUT_OF_MEMORY: return "OUT_OF_MEMORY";
+        case UCI_ERROR_MALFORMED_PACKET: return "MALFORMED_PACKET";
+        case UCI_ERROR_UNSUPPORTED_OPERATION: return "UNSUPPORTED_OPERATION";
+        case UCI_ERROR_RESOURCE_EXHAUSTED: return "RESOURCE_EXHAUSTED";
+        default: return "UNKNOWN_ERROR";
     }
-    
-    // Use the enhanced logging system to output detailed error information
-    fprintf(stderr, "[ERROR] %s: %s (%s)\n", function, context, error_str);
-    uci_log_message(UCI_LOG_LEVEL_ERROR, __FILE__, __LINE__, function, "%s (%d)", context, error);
 }
 
+#define uci_log_error(function, context, error) \
+    do { \
+        const char* __uci_error_str = uci_error_to_string(error); \
+        uci_log_message(UCI_LOG_LEVEL_ERROR, __FILE__, __LINE__, function, \
+                        "%s (%s/%d)", context, __uci_error_str, (int)(error)); \
+    } while (0)
 
 
 // Safe string copy with bounds checking using standardized error codes

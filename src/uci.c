@@ -631,7 +631,7 @@ void uci_enable_hardware_mode(const char* device_path) {
                 return;
             }
         }
-        printf("Warning: Failed to initialize hardware device: %s\n", device_path);
+        UCI_LOG_WARNING("Failed to initialize hardware device: %s", device_path);
         g_hardware_mode = 0; // Disable if init failed
     } else {
         printf("Hardware mode enabled with default device\n");
@@ -822,8 +822,8 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
 
     // Validate input parameters
     if (payload_len < 0 || payload_len > UCI_MAX_CONTROL_PAYLOAD_SIZE) {
-        printf("Error: Invalid payload length: %d\n", payload_len);
-        UCI_LOG_ERROR("Invalid payload length", UCI_ERROR_INVALID_PARAM);
+        UCI_LOG_ERROR("Invalid payload length: %d", payload_len);
+        uci_log_error(__func__, "Invalid payload length", UCI_ERROR_INVALID_PARAM);
         return;
     }
 
@@ -841,23 +841,23 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
         // Check for potential integer overflow
         if (payload_len > UCI_MAX_CONTROL_PAYLOAD_SIZE || 
             total_packet_size < (int)sizeof(struct uci_packet_header)) {
-            printf("Error: Payload size would cause integer overflow.\n");
-            UCI_LOG_ERROR("Integer overflow in packet size calculation", UCI_ERROR_INVALID_PARAM);
+            UCI_LOG_ERROR("Payload size would cause integer overflow (len=%d)", payload_len);
+            uci_log_error(__func__, "Integer overflow in packet size calculation", UCI_ERROR_INVALID_PARAM);
             return;
         }
 
         unsigned char *packet = safe_malloc(total_packet_size);
         if (!packet) {
-            printf("Error: Failed to allocate memory for UCI packet.\n");
-            UCI_LOG_ERROR("Memory allocation failure", UCI_ERROR_OUT_OF_MEMORY);
+            UCI_LOG_ERROR("Failed to allocate memory for UCI packet (size=%d)", total_packet_size);
+            uci_log_error(__func__, "Memory allocation failure", UCI_ERROR_OUT_OF_MEMORY);
             return;
         }
 
         struct uci_packet_header *header = (struct uci_packet_header *)packet;
         uci_error_t result = set_header_values_safe(header, mt, pbf, gid, oid, payload_len);
         if (result != UCI_SUCCESS) {
-            printf("Error: Failed to set header values.\n");
-            UCI_LOG_ERROR("Header validation failed", result);
+            UCI_LOG_ERROR("Failed to set header values (error=%d)", result);
+            uci_log_error(__func__, "Header validation failed", result);
             free(packet);
             return;
         }
@@ -867,8 +867,8 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
                                 total_packet_size - sizeof(struct uci_packet_header),
                                 payload, payload_len);
             if (result != UCI_SUCCESS) {
-                printf("Error: Failed to copy payload data.\n");
-                UCI_LOG_ERROR("Payload copy failed", result);
+                UCI_LOG_ERROR("Failed to copy payload data (error=%d)", result);
+                uci_log_error(__func__, "Payload copy failed", result);
                 free(packet);
                 return;
             }
@@ -908,8 +908,8 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
     struct uci_packet_header header;
     uci_error_t result = set_header_values_safe(&header, mt, pbf, gid, oid, payload_len);
     if (result != UCI_SUCCESS) {
-        printf("Error: Failed to set header values in simulation mode.\n");
-        UCI_LOG_ERROR("Header validation failed in simulation", result);
+        UCI_LOG_ERROR("Failed to set header values in simulation mode (error=%d)", result);
+        uci_log_error(__func__, "Header validation failed in simulation", result);
         return;
     }
 
@@ -965,8 +965,8 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
     result = set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid,
                            (unsigned char)generated_len);
     if (result != UCI_SUCCESS) {
-        printf("Error: Failed to set response header values.\n");
-        UCI_LOG_ERROR("Response header validation failed", result);
+        UCI_LOG_ERROR("Failed to set response header values (error=%d)", result);
+        uci_log_error(__func__, "Response header validation failed", result);
         return;
     }
 
@@ -981,7 +981,8 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
 static void sim_handle_data_message_send(const unsigned char *payload, size_t payload_len)
 {
     if (!payload || payload_len < UCI_DATA_MESSAGE_SND_HEADER) {
-        printf("Error: DATA_MESSAGE_SND payload too short.\n");
+        UCI_LOG_ERROR("DATA_MESSAGE_SND payload too short (len=%zu)", payload_len);
+        uci_log_error(__func__, "DATA_MESSAGE_SND payload too short", UCI_ERROR_INVALID_PARAM);
         return;
     }
 
@@ -1065,8 +1066,9 @@ void uci_send_data_message(uint32_t identifier,
 
     unsigned char *payload = safe_malloc(payload_capacity);
     if (!payload) {
-        printf("Error: Failed to allocate DATA_MESSAGE_SND payload buffer.\n");
-        UCI_LOG_ERROR("Memory allocation failure for payload", UCI_ERROR_OUT_OF_MEMORY);
+        UCI_LOG_ERROR("Failed to allocate DATA_MESSAGE_SND payload buffer (requested %zu bytes)",
+                      payload_capacity);
+        uci_log_error(__func__, "Memory allocation failure for payload", UCI_ERROR_OUT_OF_MEMORY);
         return;
     }
 
@@ -1081,8 +1083,8 @@ void uci_send_data_message(uint32_t identifier,
                                            destination_address, sequence_number,
                                            app_data, app_data_len);
     if (payload_len == 0) {
-        printf("Error: Failed to compose DATA_MESSAGE_SND payload.\n");
-        UCI_LOG_ERROR("Failed to build data message payload", UCI_ERROR_INVALID_PARAM);
+        UCI_LOG_ERROR("Failed to compose DATA_MESSAGE_SND payload");
+        uci_log_error(__func__, "Failed to build data message payload", UCI_ERROR_INVALID_PARAM);
         free(payload);
         return;
     }
@@ -1123,20 +1125,20 @@ static int handle_core_device_info(unsigned char *response_payload, size_t max_l
     (void)payload_len;
     
     if (!response_payload || max_len < 1) {
-        printf("Error: Invalid parameters in CORE_DEVICE_INFO handler\n");
+        UCI_LOG_ERROR("Invalid parameters in CORE_DEVICE_INFO handler");
         uci_log_error(__func__, "Invalid parameters", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
     
     if (payload_len != 0) {
-        printf("Warning: CORE_DEVICE_INFO command has unexpected payload of %zu bytes\n", payload_len);
+        UCI_LOG_WARNING("CORE_DEVICE_INFO command has unexpected payload of %zu bytes", payload_len);
         // This is just a warning, we still process the command
     }
     
     int result = build_core_device_info_response(response_payload, max_len);
     
     if (result < 0) {
-        printf("Error: Failed to build CORE_DEVICE_INFO response\n");
+        UCI_LOG_ERROR("Failed to build CORE_DEVICE_INFO response");
         uci_log_error(__func__, "Failed to build response", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
@@ -1150,20 +1152,20 @@ static int handle_core_get_caps_info(unsigned char *response_payload, size_t max
     (void)payload_len;
     
     if (!response_payload || max_len < 2) {  // At least status + num_tlvs
-        printf("Error: Invalid parameters in CORE_GET_CAPS_INFO handler\n");
+        UCI_LOG_ERROR("Invalid parameters in CORE_GET_CAPS_INFO handler");
         uci_log_error(__func__, "Invalid parameters", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
     
     if (payload_len != 0) {
-        printf("Warning: CORE_GET_CAPS_INFO command has unexpected payload of %zu bytes\n", payload_len);
+        UCI_LOG_WARNING("CORE_GET_CAPS_INFO command has unexpected payload of %zu bytes", payload_len);
         // This is just a warning, we still process the command
     }
     
     int result = build_core_get_caps_info_response(response_payload, max_len);
     
     if (result < 0) {
-        printf("Error: Failed to build CORE_GET_CAPS_INFO response\n");
+        UCI_LOG_ERROR("Failed to build CORE_GET_CAPS_INFO response");
         uci_log_error(__func__, "Failed to build response", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
@@ -1177,20 +1179,20 @@ static int handle_core_query_timestamp(unsigned char *response_payload, size_t m
     (void)payload_len;
     
     if (!response_payload || max_len < 10) {  // At least status + 8-byte timestamp
-        printf("Error: Invalid parameters in CORE_QUERY_UWBS_TIMESTAMP handler\n");
+        UCI_LOG_ERROR("Invalid parameters in CORE_QUERY_UWBS_TIMESTAMP handler");
         uci_log_error(__func__, "Invalid parameters", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
     
     if (payload_len != 0) {
-        printf("Warning: CORE_QUERY_UWBS_TIMESTAMP command has unexpected payload of %zu bytes\n", payload_len);
+        UCI_LOG_WARNING("CORE_QUERY_UWBS_TIMESTAMP command has unexpected payload of %zu bytes", payload_len);
         // This is just a warning, we still process the command
     }
     
     int result = build_core_query_timestamp_response(response_payload, max_len);
     
     if (result < 0) {
-        printf("Error: Failed to build CORE_QUERY_UWBS_TIMESTAMP response\n");
+        UCI_LOG_ERROR("Failed to build CORE_QUERY_UWBS_TIMESTAMP response");
         uci_log_error(__func__, "Failed to build response", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
@@ -1240,13 +1242,13 @@ static int handle_core_get_config(unsigned char *response_payload, size_t max_le
 static int handle_core_set_config(unsigned char *response_payload, size_t max_len,
                                   const unsigned char *payload, size_t payload_len) {
     if (!response_payload || !payload || max_len < 1) {
-        printf("Error: Invalid parameters in CORE_SET_CONFIG handler\n");
+        UCI_LOG_ERROR("Invalid parameters in CORE_SET_CONFIG handler");
         uci_log_error(__func__, "Invalid parameters", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
     
     if (payload_len < 1) {
-        printf("Error: CORE_SET_CONFIG command has insufficient payload (need at least 1 byte for declared count)\n");
+        UCI_LOG_ERROR("CORE_SET_CONFIG command has insufficient payload (need at least 1 byte for declared count)");
         response_payload[0] = UCI_STATUS_INVALID_PARAM;
         return 1;
     }
@@ -1254,8 +1256,8 @@ static int handle_core_set_config(unsigned char *response_payload, size_t max_le
     // Validate the declared count against reasonable limits
     unsigned char declared = payload[0];
     if (declared > MAX_SESSION_CONFIGS) {  // Using MAX_SESSION_CONFIGS as an upper bound for validation
-        printf("Error: CORE_SET_CONFIG command declares too many configs (%d, max %d)\n", 
-               declared, MAX_SESSION_CONFIGS);
+        UCI_LOG_ERROR("CORE_SET_CONFIG command declares too many configs (%d, max %d)",
+                      declared, MAX_SESSION_CONFIGS);
         response_payload[0] = UCI_STATUS_INVALID_PARAM;
         return 1;
     }
@@ -1322,14 +1324,14 @@ static int handle_core_device_suspend(unsigned char *response_payload, size_t ma
 static int handle_session_init(unsigned char *response_payload, size_t max_len,
                                const unsigned char *payload, size_t payload_len) {
     if (!response_payload || !payload || max_len < 5) {
-        printf("Error: Invalid parameters in SESSION_INIT handler\n");
+        UCI_LOG_ERROR("Invalid parameters in SESSION_INIT handler");
         uci_log_error(__func__, "Invalid parameters", UCI_ERROR_INVALID_PARAM);
         response_payload[0] = UCI_STATUS_INVALID_PARAM;
         return 1;
     }
 
     if (payload_len < 5) {
-        printf("Error: SESSION_INIT command has insufficient payload (need at least 5 bytes)\n");
+        UCI_LOG_ERROR("SESSION_INIT command has insufficient payload (need at least 5 bytes)");
         response_payload[0] = UCI_STATUS_INVALID_PARAM;
         return 1;
     }
@@ -1339,14 +1341,14 @@ static int handle_session_init(unsigned char *response_payload, size_t max_len,
 
     // Validate session type is valid
     if (session_type > 0x05) {
-        printf("Error: Invalid session_type %d in SESSION_INIT command\n", session_type);
+        UCI_LOG_ERROR("Invalid session_type %d in SESSION_INIT command", session_type);
         response_payload[0] = UCI_STATUS_INVALID_PARAM;
         return 1;
     }
 
     int session_idx = find_free_session_slot();
     if (session_idx < 0) {
-        printf("Error: No free session slots available\n");
+        UCI_LOG_ERROR("No free session slots available for SESSION_INIT");
         response_payload[0] = UCI_STATUS_MAX_SESSIONS_EXCEEDED;
         return 1;
     }
@@ -3086,15 +3088,18 @@ static unsigned char session_remove_multicast_entry(struct uci_session* session,
 // Helper function to store configuration value in session
 void store_session_config(int session_idx, uci_uint8 cfg_id, uci_uint8* value, uci_uint8 len) {
     if (session_idx < 0 || session_idx >= MAX_SESSIONS) {
-        printf("Error: Invalid session index %d in store_session_config\n", session_idx);
+        UCI_LOG_ERROR("Invalid session index %d in store_session_config", session_idx);
+        uci_log_error(__func__, "Invalid session index in store_session_config", UCI_ERROR_INVALID_PARAM);
         return;
     }
     if (!value) {
-        printf("Error: Null value pointer in store_session_config\n");
+        UCI_LOG_ERROR("Null value pointer in store_session_config");
+        uci_log_error(__func__, "Null value pointer in store_session_config", UCI_ERROR_INVALID_PARAM);
         return;
     }
     if (len == 0) {
-        printf("Error: Zero length configuration value in store_session_config\n");
+        UCI_LOG_ERROR("Zero length configuration value in store_session_config");
+        uci_log_error(__func__, "Zero length configuration value", UCI_ERROR_INVALID_PARAM);
         return;
     }
 
@@ -3123,17 +3128,19 @@ void store_session_config(int session_idx, uci_uint8 cfg_id, uci_uint8* value, u
         }
     }
 
-    printf("Warning: No space to store session config 0x%02X\n", cfg_id);
+    UCI_LOG_WARNING("No space to store session config 0x%02X", cfg_id);
 }
 
 // Helper function to get configuration value from session
 int get_session_config(int session_idx, uci_uint8 cfg_id, uci_uint8* value, uci_uint8* len) {
     if (session_idx < 0 || session_idx >= MAX_SESSIONS) {
-        printf("Error: Invalid session index %d in get_session_config\n", session_idx);
+        UCI_LOG_ERROR("Invalid session index %d in get_session_config", session_idx);
+        uci_log_error(__func__, "Invalid session index in get_session_config", UCI_ERROR_INVALID_PARAM);
         return 0;
     }
     if (!len) {
-        printf("Error: Null length pointer in get_session_config\n");
+        UCI_LOG_ERROR("Null length pointer in get_session_config");
+        uci_log_error(__func__, "Null length pointer in get_session_config", UCI_ERROR_INVALID_PARAM);
         return 0;
     }
 
@@ -3147,8 +3154,8 @@ int get_session_config(int session_idx, uci_uint8 cfg_id, uci_uint8* value, uci_
                 size_t copy_len = entry->length;
                 if (copy_len > available) {
                     copy_len = available;
-                    printf("Warning: Buffer too small for session config 0x%02X (need %u bytes)\n",
-                           cfg_id, entry->length);
+                    UCI_LOG_WARNING("Buffer too small for session config 0x%02X (need %u bytes)",
+                                    cfg_id, entry->length);
                 }
                 memcpy(value, entry->value, copy_len);
             }

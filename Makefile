@@ -83,12 +83,13 @@ $(SECURITY_TEST_TARGET): tests/test_uci_security.o
 	$(CC) $(CFLAGS) -o $(SECURITY_TEST_TARGET) tests/test_uci_security.c $(LIBS)
 
 command-generation-test: $(COMMAND_GENERATION_TEST_TARGET)
-nvalidation-demo: $(VALIDATION_DEMO_TARGET)
+	./$(COMMAND_GENERATION_TEST_TARGET)
+
+validation-demo: $(VALIDATION_DEMO_TARGET)
 	./$(VALIDATION_DEMO_TARGET)
 
 $(VALIDATION_DEMO_TARGET): demo_validation.c src/uci_command_utils.o
 	$(CC) $(CFLAGS) -o $(VALIDATION_DEMO_TARGET) demo_validation.c src/uci_command_utils.o $(LIBS)
-	./$(COMMAND_GENERATION_TEST_TARGET)
 
 $(COMMAND_GENERATION_TEST_TARGET): tests/test_command_generation.c tests/test_helpers.c $(filter-out src/main.o,$(OBJ)) tests/stubs.o
 	$(CC) $(CFLAGS) -o $(COMMAND_GENERATION_TEST_TARGET) tests/test_command_generation.c tests/test_helpers.c $(filter-out src/main.o,$(OBJ)) tests/stubs.o $(LIBS)

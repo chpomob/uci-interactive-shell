@@ -10,7 +10,7 @@
 
 // Standardized error handling macros and functions for UCI Interactive Shell
 
-// Log error with context
+// Log error with context - updated to use new logging system
 static inline void uci_log_error(const char* function, const char* context, uci_error_t error) {
     const char* error_str;
     switch (error) {
@@ -24,11 +24,12 @@ static inline void uci_log_error(const char* function, const char* context, uci_
         default: error_str = "UNKNOWN_ERROR"; break;
     }
     
+    // Use the enhanced logging system to output detailed error information
     fprintf(stderr, "[ERROR] %s: %s (%s)\n", function, context, error_str);
+    uci_log_message(UCI_LOG_LEVEL_ERROR, __FILE__, __LINE__, function, "%s (%d)", context, error);
 }
 
-// Macro for logging errors with context
-#define UCI_LOG_ERROR(context, error) uci_log_error(__func__, context, error)
+
 
 // Safe string copy with bounds checking using standardized error codes
 static inline uci_error_t uci_safe_strcpy(char* dest, size_t dest_size, const char* src) {

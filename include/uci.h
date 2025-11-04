@@ -4,6 +4,7 @@
 #include "uci_pdl.h"
 #include "uci_utils.h"  // Include utilities for secure operations
 #include "uci_types.h"  // Include standardized type definitions
+#include "uci_logging.h"  // Include logging system
 #include <stddef.h>
 
 // UCI Packet Header - aligned with Android UWB specification

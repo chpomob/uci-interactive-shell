@@ -1121,35 +1121,156 @@ static int handle_core_device_info(unsigned char *response_payload, size_t max_l
                                    const unsigned char *payload, size_t payload_len) {
     (void)payload;
     (void)payload_len;
-    return build_core_device_info_response(response_payload, max_len);
+    
+    if (!response_payload || max_len < 1) {
+        printf("Error: Invalid parameters in CORE_DEVICE_INFO handler\n");
+        uci_log_error(__func__, "Invalid parameters", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+    
+    if (payload_len != 0) {
+        printf("Warning: CORE_DEVICE_INFO command has unexpected payload of %zu bytes\n", payload_len);
+        // This is just a warning, we still process the command
+    }
+    
+    int result = build_core_device_info_response(response_payload, max_len);
+    
+    if (result < 0) {
+        printf("Error: Failed to build CORE_DEVICE_INFO response\n");
+        uci_log_error(__func__, "Failed to build response", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+    
+    return result;
 }
 
 static int handle_core_get_caps_info(unsigned char *response_payload, size_t max_len,
                                      const unsigned char *payload, size_t payload_len) {
     (void)payload;
     (void)payload_len;
-    return build_core_get_caps_info_response(response_payload, max_len);
+    
+    if (!response_payload || max_len < 2) {  // At least status + num_tlvs
+        printf("Error: Invalid parameters in CORE_GET_CAPS_INFO handler\n");
+        uci_log_error(__func__, "Invalid parameters", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+    
+    if (payload_len != 0) {
+        printf("Warning: CORE_GET_CAPS_INFO command has unexpected payload of %zu bytes\n", payload_len);
+        // This is just a warning, we still process the command
+    }
+    
+    int result = build_core_get_caps_info_response(response_payload, max_len);
+    
+    if (result < 0) {
+        printf("Error: Failed to build CORE_GET_CAPS_INFO response\n");
+        uci_log_error(__func__, "Failed to build response", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+    
+    return result;
 }
 
 static int handle_core_query_timestamp(unsigned char *response_payload, size_t max_len,
                                        const unsigned char *payload, size_t payload_len) {
     (void)payload;
     (void)payload_len;
-    return build_core_query_timestamp_response(response_payload, max_len);
+    
+    if (!response_payload || max_len < 10) {  // At least status + 8-byte timestamp
+        printf("Error: Invalid parameters in CORE_QUERY_UWBS_TIMESTAMP handler\n");
+        uci_log_error(__func__, "Invalid parameters", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+    
+    if (payload_len != 0) {
+        printf("Warning: CORE_QUERY_UWBS_TIMESTAMP command has unexpected payload of %zu bytes\n", payload_len);
+        // This is just a warning, we still process the command
+    }
+    
+    int result = build_core_query_timestamp_response(response_payload, max_len);
+    
+    if (result < 0) {
+        printf("Error: Failed to build CORE_QUERY_UWBS_TIMESTAMP response\n");
+        uci_log_error(__func__, "Failed to build response", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+    
+    return result;
 }
 
 static int handle_core_get_config(unsigned char *response_payload, size_t max_len,
                                   const unsigned char *payload, size_t payload_len) {
-    return build_core_get_config_response(response_payload, max_len, payload,
-                                          (int)payload_len);
+    if (!response_payload || !payload || max_len < 2) {  // At least status + num_tlvs
+        UCI_LOG_ERROR("Invalid parameters in CORE_GET_CONFIG handler");
+        uci_log_error(__func__, "Invalid parameters", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+    
+    if (payload_len == 0) {
+        UCI_LOG_WARNING("CORE_GET_CONFIG called without parameters - will return all configs");
+    } else if (payload_len < 1) {
+        UCI_LOG_ERROR("CORE_GET_CONFIG command has insufficient payload (need at least 1 byte for config ID)");
+        response_payload[0] = UCI_STATUS_INVALID_PARAM;
+        response_payload[1] = 0;
+        return 2;
+    }
+    
+    // Validate the number of config IDs provided in the payload
+    if (payload_len > MAX_RESPONSE_PAYLOAD_LEN - 2) {  // Leave space for status and count
+        UCI_LOG_ERROR("CORE_GET_CONFIG command has too many config IDs requested");
+        response_payload[0] = UCI_STATUS_INVALID_PARAM;
+        response_payload[1] = 0;
+        return 2;
+    }
+    
+    int result = build_core_get_config_response(response_payload, max_len, payload,
+                                                (int)payload_len);
+    
+    if (result < 0) {
+        UCI_LOG_ERROR("Failed to build CORE_GET_CONFIG response");
+        uci_log_error(__func__, "Failed to build response", UCI_ERROR_INVALID_PARAM);
+        response_payload[0] = UCI_STATUS_INVALID_PARAM;
+        response_payload[1] = 0;
+        return 2;
+    }
+    
+    return result;
 }
 
 static int handle_core_set_config(unsigned char *response_payload, size_t max_len,
                                   const unsigned char *payload, size_t payload_len) {
-    int len = build_core_set_config_response(response_payload, max_len, payload,
-                                             (int)payload_len);
+    if (!response_payload || !payload || max_len < 1) {
+        printf("Error: Invalid parameters in CORE_SET_CONFIG handler\n");
+        uci_log_error(__func__, "Invalid parameters", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+    
+    if (payload_len < 1) {
+        printf("Error: CORE_SET_CONFIG command has insufficient payload (need at least 1 byte for declared count)\n");
+        response_payload[0] = UCI_STATUS_INVALID_PARAM;
+        return 1;
+    }
+    
+    // Validate the declared count against reasonable limits
+    unsigned char declared = payload[0];
+    if (declared > MAX_SESSION_CONFIGS) {  // Using MAX_SESSION_CONFIGS as an upper bound for validation
+        printf("Error: CORE_SET_CONFIG command declares too many configs (%d, max %d)\n", 
+               declared, MAX_SESSION_CONFIGS);
+        response_payload[0] = UCI_STATUS_INVALID_PARAM;
+        return 1;
+    }
+    
+    if (payload_len < (size_t)(1 + declared)) {  // Need at least 1 byte for declared count + IDs
+        UCI_LOG_ERROR("CORE_SET_CONFIG command has insufficient payload (need at least %zu bytes for %d config IDs)", 
+                      (size_t)(1 + declared), declared);
+        response_payload[0] = UCI_STATUS_INVALID_PARAM;
+        return 1;
+    }
+    
+    int result = build_core_set_config_response(response_payload, max_len, payload,
+                                               (int)payload_len);
 
-    if (len > 0 && response_payload[0] == UCI_STATUS_OK && payload && payload_len >= 1) {
+    if (result > 0 && response_payload[0] == UCI_STATUS_OK && payload && payload_len >= 1) {
         unsigned char declared = payload[0];
         const unsigned char *tlv_buffer = (payload_len > 1) ? &payload[1] : NULL;
         size_t tlv_length = (payload_len > 1) ? (size_t)(payload_len - 1) : 0;
@@ -1166,13 +1287,19 @@ static int handle_core_set_config(unsigned char *response_payload, size_t max_le
                 break;
             }
 
+            // Validate that the config ID is supported
+            if (!is_valid_device_config_id(cfg_id)) {
+                UCI_LOG_WARNING("CORE_SET_CONFIG received request for unsupported config ID 0x%02X", cfg_id);
+                continue;
+            }
+
             if (cfg_id == DEVICE_STATE && cfg_len >= 1) {
                 sim_update_device_state(value_ptr[0], true);
             }
         }
     }
 
-    return len;
+    return result;
 }
 
 static int handle_core_device_reset(unsigned char *response_payload, size_t max_len,
@@ -1194,8 +1321,15 @@ static int handle_core_device_suspend(unsigned char *response_payload, size_t ma
 
 static int handle_session_init(unsigned char *response_payload, size_t max_len,
                                const unsigned char *payload, size_t payload_len) {
-    (void)max_len;
-    if (!payload || payload_len < 5) {
+    if (!response_payload || !payload || max_len < 5) {
+        printf("Error: Invalid parameters in SESSION_INIT handler\n");
+        uci_log_error(__func__, "Invalid parameters", UCI_ERROR_INVALID_PARAM);
+        response_payload[0] = UCI_STATUS_INVALID_PARAM;
+        return 1;
+    }
+
+    if (payload_len < 5) {
+        printf("Error: SESSION_INIT command has insufficient payload (need at least 5 bytes)\n");
         response_payload[0] = UCI_STATUS_INVALID_PARAM;
         return 1;
     }
@@ -1203,8 +1337,16 @@ static int handle_session_init(unsigned char *response_payload, size_t max_len,
     unsigned int session_id = read_u32_le(payload);
     SessionType session_type = (SessionType)payload[4];
 
+    // Validate session type is valid
+    if (session_type > 0x05) {
+        printf("Error: Invalid session_type %d in SESSION_INIT command\n", session_type);
+        response_payload[0] = UCI_STATUS_INVALID_PARAM;
+        return 1;
+    }
+
     int session_idx = find_free_session_slot();
     if (session_idx < 0) {
+        printf("Error: No free session slots available\n");
         response_payload[0] = UCI_STATUS_MAX_SESSIONS_EXCEEDED;
         return 1;
     }
@@ -3294,20 +3436,22 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
 
 void parse_uci_packet(uci_uint8* packet, size_t packet_len) {
     if (!packet) {
-        UCI_LOG_ERROR("NULL packet pointer", UCI_ERROR_INVALID_PARAM);
+        UCI_LOG_ERROR("parse_uci_packet: NULL packet pointer", UCI_ERROR_INVALID_PARAM);
         return;
     }
     
     if (packet_len < sizeof(struct uci_packet_header)) {
-        printf("Error: UCI packet too short to contain a header.\n");
-        UCI_LOG_ERROR("Packet too short", UCI_ERROR_INVALID_PARAM);
+        printf("Error: UCI packet too short to contain a header (got %zu, need at least %zu).\n", 
+               packet_len, sizeof(struct uci_packet_header));
+        UCI_LOG_ERROR("parse_uci_packet: Packet too short to contain header", UCI_ERROR_INVALID_PARAM);
         return;
     }
 
     // Validate packet length against maximum allowed size to prevent potential attacks
-    if (packet_len > UCI_MAX_DATA_PACKET_PAYLOAD_SIZE + sizeof(struct uci_packet_header)) {
-        printf("Error: UCI packet too large.\n");
-        UCI_LOG_ERROR("Packet too large", UCI_ERROR_INVALID_PARAM);
+    size_t max_packet_size = UCI_MAX_DATA_PACKET_PAYLOAD_SIZE + sizeof(struct uci_packet_header);
+    if (packet_len > max_packet_size) {
+        printf("Error: UCI packet too large (got %zu, max %zu).\n", packet_len, max_packet_size);
+        UCI_LOG_ERROR("parse_uci_packet: Packet too large", UCI_ERROR_INVALID_PARAM);
         return;
     }
 
@@ -3315,8 +3459,8 @@ void parse_uci_packet(uci_uint8* packet, size_t packet_len) {
     uci_header_fields_t header_fields;
     uci_error_t result = uci_extract_header_fields_safe(header, &header_fields);
     if (result != UCI_SUCCESS) {
-        printf("Error: Failed to extract header fields from UCI packet.\n");
-        UCI_LOG_ERROR("Header field extraction failed", result);
+        printf("Error: Failed to extract header fields from UCI packet (error code: %d).\n", result);
+        UCI_LOG_ERROR("parse_uci_packet: Header field extraction failed", result);
         return;
     }
 
@@ -3325,6 +3469,8 @@ void parse_uci_packet(uci_uint8* packet, size_t packet_len) {
     if (payload_len > available_payload) {
         printf("  Warning: Header payload length %zu exceeds available data %zu. Clamping.\n",
                payload_len, available_payload);
+        UCI_LOG_WARNING("parse_uci_packet: Payload length exceeds available data, clamping from %zu to %zu", 
+                        payload_len, available_payload);
         payload_len = available_payload;
     }
 
@@ -3351,6 +3497,11 @@ void parse_uci_packet(uci_uint8* packet, size_t packet_len) {
     // Use unified packet analyzer for consistent decoding across the codebase
     printf("\n");  // Add blank line before detailed analysis
     uci_analyze_packet_core(packet, packet_len);
+    
+    // Log detailed packet information for debugging
+    UCI_LOG_DEBUG("parse_uci_packet: Received packet - MT:0x%02X GID:0x%02X OID:0x%02X PBF:0x%02X Len:%zu", 
+                  header_fields.message_type, header_fields.group_id, header_fields.opcode_id,
+                  header_fields.packet_boundary, payload_len);
 }
 
 // === Payload Decoding Functions ===

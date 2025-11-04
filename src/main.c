@@ -897,6 +897,9 @@ void process_command(char *line) {
 }
 
 int main(int argc, char** argv) {
+    // Initialize logging system with info level and color output
+    uci_log_init(UCI_LOG_LEVEL_INFO, 1);
+    
     if (argc > 1) {
         // Non-interactive mode - process command line arguments directly
         cli_dispatch(argc - 1, &argv[1]);
@@ -904,7 +907,7 @@ int main(int argc, char** argv) {
     }
     
     if (uci_config_init() != 0) {
-        printf("Warning: Failed to initialize configuration manager\n");
+        UCI_LOG_WARNING("Failed to initialize configuration manager");
     }
 
     uci_cmd_hardware_init(&g_hardware_mode, &g_uwb_chardev);

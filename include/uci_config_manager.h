@@ -32,6 +32,7 @@ typedef struct {
 // Configuration manager functions
 int uci_config_init();
 void uci_config_cleanup();
+void uci_config_set_verbose(int verbose);
 
 // Application configuration management
 int uci_config_set_app_param(AppConfigTlvType cfg_id, const unsigned char* value, size_t value_len);

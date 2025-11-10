@@ -7,6 +7,7 @@
 #include "../include/uci_ui_packet_decoder.h"
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #ifndef ANDROID_GET_POWER_STATS
 #define ANDROID_GET_POWER_STATS 0x00
@@ -1705,6 +1706,89 @@ int main() {
 
         TEST_PASS();
     }
+
+    #undef test_case_end
+    /*
+     * QM SDK reference expectations:
+     *   Values cross-checked with uci_analysis/uwb/Samples/Python/UWB-Qorvo-Tools/
+     *   lib/uwb-uci/uci/qorvo_msg.py to ensure we follow the vendor implementation.
+     */
+#define test_case_end test_case_end_qm_sdk_vendor_gid
+    TEST_CASE(qm_sdk_vendor_gid_alignment);
+    {
+        size_t packet_len = 0;
+        const unsigned char payload[] = {0xAB};
+        unsigned char* packet = create_uci_packet(COMMAND, COMPLETE, QORVO_EXT2,
+                                                  QORVO_SESSION_GET, payload, sizeof(payload), &packet_len);
+        ASSERT_TRUE(packet != NULL);
+        ASSERT_EQUAL(sizeof(struct uci_packet_header) + sizeof(payload), packet_len);
+
+        const struct uci_packet_header* header = (const struct uci_packet_header*)packet;
+        ASSERT_EQUAL(QORVO_EXT2, get_gid(header));
+        ASSERT_EQUAL(COMMAND, get_mt(header));
+        ASSERT_EQUAL(COMPLETE, get_pbf(header));
+        ASSERT_EQUAL(QORVO_SESSION_GET, get_opcode(header));
+        ASSERT_EQUAL(sizeof(payload), header->payload_len);
+        free(packet);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_qm_sdk_ranging_ntf
+    TEST_CASE(qm_sdk_session_info_ntf_alignment);
+    {
+        size_t packet_len = 0;
+        const unsigned char payload[] = {0x00, 0x01, 0x02, 0x03};
+        unsigned char* packet = create_uci_packet(NOTIFICATION, COMPLETE, SESSION_CONTROL,
+                                                  SESSION_INFO_NTF_OPCODE, payload, sizeof(payload), &packet_len);
+        ASSERT_TRUE(packet != NULL);
+        ASSERT_EQUAL(sizeof(struct uci_packet_header) + sizeof(payload), packet_len);
+
+        const struct uci_packet_header* header = (const struct uci_packet_header*)packet;
+        ASSERT_EQUAL(SESSION_CONTROL, get_gid(header));
+        ASSERT_EQUAL(NOTIFICATION, get_mt(header));
+        ASSERT_EQUAL(COMPLETE, get_pbf(header));
+        ASSERT_EQUAL(SESSION_INFO_NTF_OPCODE, get_opcode(header));
+        free(packet);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_qm_sdk_opcode_table
+    TEST_CASE(qm_sdk_vendor_opcode_table);
+    {
+        const struct {
+            const char* name;
+            unsigned char value;
+            unsigned char expected;
+        } k_expectations[] = {
+            {"QORVO_TEST_DEBUG", QORVO_TEST_DEBUG, 0x00},
+            {"QORVO_TEST_TX_CW", QORVO_TEST_TX_CW, 0x01},
+            {"QORVO_TEST_PLLRF", QORVO_TEST_PLLRF, 0x02},
+            {"QORVO_FIRA_RANGE_DIAGNOSTICS", QORVO_FIRA_RANGE_DIAGNOSTICS, 0x03},
+            {"QORVO_SESSION_GET", QORVO_SESSION_GET, 0x07},
+            {"QORVO_FIRA_SET_ANT_FLEX_CONFIG", QORVO_FIRA_SET_ANT_FLEX_CONFIG, 0x08},
+            {"QORVO_FIRA_GET_ANT_FLEX_CONFIG", QORVO_FIRA_GET_ANT_FLEX_CONFIG, 0x09},
+            {"QORVO_CCC_SET_ANT_FLEX_CONFIG", QORVO_CCC_SET_ANT_FLEX_CONFIG, 0x0A},
+            {"QORVO_CCC_GET_ANT_FLEX_CONFIG", QORVO_CCC_GET_ANT_FLEX_CONFIG, 0x0B},
+            {"QORVO_CORE_DEVICE_BOOT", QORVO_CORE_DEVICE_BOOT, 0x31},
+        };
+
+        for (size_t i = 0; i < sizeof(k_expectations) / sizeof(k_expectations[0]); i++) {
+            if (k_expectations[i].value != k_expectations[i].expected) {
+                printf(" FAILED (%s expected 0x%02X, got 0x%02X)", k_expectations[i].name,
+                       k_expectations[i].expected, k_expectations[i].value);
+                total_tests_failed++;
+                goto test_case_end;
+            }
+        }
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
 
     TEST_SUITE_END();
 }

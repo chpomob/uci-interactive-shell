@@ -1790,5 +1790,104 @@ int main() {
     test_case_end:;
 #undef test_case_end
 
+#define test_case_end test_case_end_qm_sdk_device_boot_payload
+    TEST_CASE(qm_sdk_device_boot_payload);
+    {
+        const unsigned char device_boot_payload[] = {0x01}; // reset after fatal error per QM SDK doc
+        size_t packet_len = 0;
+        unsigned char* packet = create_uci_packet(
+            NOTIFICATION, COMPLETE, QORVO_EXT2, QORVO_CORE_DEVICE_BOOT,
+            device_boot_payload, sizeof(device_boot_payload), &packet_len);
+        ASSERT_TRUE(packet != NULL);
+        ASSERT_EQUAL(sizeof(struct uci_packet_header) + sizeof(device_boot_payload), packet_len);
+
+        const struct uci_packet_header* header = (const struct uci_packet_header*)packet;
+        ASSERT_EQUAL(NOTIFICATION, get_mt(header));
+        ASSERT_EQUAL(QORVO_EXT2, get_gid(header));
+        ASSERT_EQUAL(QORVO_CORE_DEVICE_BOOT, get_opcode(header));
+        ASSERT_EQUAL(sizeof(device_boot_payload), header->payload_len);
+
+        const unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
+        ASSERT_EQUAL(0x01, payload_ptr[0]); // QM SDK reason code (reset after fatal error)
+
+        free(packet);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_qm_sdk_psdu_dump
+    TEST_CASE(qm_sdk_psdu_dump_payload);
+    {
+        unsigned char payload[4 + (1 + 2 + 3) + (1 + 2 + 2)];
+        size_t offset = 0;
+
+        // Session handle from QM SDK sample (little-endian)
+        write_u32_le(&payload[offset], 0x0A0B0C0D);
+        offset += 4;
+
+        // Frame 0: length 3 bytes, PSDU 0x11 0x22 0x33
+        payload[offset++] = 0x00;
+        write_u16_le(&payload[offset], 3);
+        offset += 2;
+        payload[offset++] = 0x11;
+        payload[offset++] = 0x22;
+        payload[offset++] = 0x33;
+
+        // Frame 1: length 2 bytes, PSDU 0xAA 0xBB
+        payload[offset++] = 0x01;
+        write_u16_le(&payload[offset], 2);
+        offset += 2;
+        payload[offset++] = 0xAA;
+        payload[offset++] = 0xBB;
+
+        ASSERT_EQUAL(sizeof(payload), offset);
+
+        size_t packet_len = 0;
+        unsigned char* packet = create_uci_packet(
+            NOTIFICATION, COMPLETE, QORVO_EXT2, QORVO_CORE_PSDU_DUMP,
+            payload, sizeof(payload), &packet_len);
+        ASSERT_TRUE(packet != NULL);
+
+        const struct uci_packet_header* header = (const struct uci_packet_header*)packet;
+        ASSERT_EQUAL(QORVO_EXT2, get_gid(header));
+        ASSERT_EQUAL(QORVO_CORE_PSDU_DUMP, get_opcode(header));
+        ASSERT_EQUAL(sizeof(payload), header->payload_len);
+
+        const unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
+        size_t remaining = header->payload_len;
+        ASSERT_EQUAL(0x0A0B0C0D, read_u32_le(payload_ptr));
+
+        size_t cursor = 4;
+        int frame_index = 0;
+        while (cursor < remaining) {
+            unsigned char idx = payload_ptr[cursor++];
+            unsigned short length = read_u16_le(&payload_ptr[cursor]);
+            cursor += 2;
+            ASSERT_TRUE(cursor + length <= remaining);
+            if (frame_index == 0) {
+                ASSERT_EQUAL(0, idx);
+                ASSERT_EQUAL(3, length);
+                ASSERT_EQUAL(0x11, payload_ptr[cursor]);
+                ASSERT_EQUAL(0x22, payload_ptr[cursor + 1]);
+                ASSERT_EQUAL(0x33, payload_ptr[cursor + 2]);
+            } else if (frame_index == 1) {
+                ASSERT_EQUAL(1, idx);
+                ASSERT_EQUAL(2, length);
+                ASSERT_EQUAL(0xAA, payload_ptr[cursor]);
+                ASSERT_EQUAL(0xBB, payload_ptr[cursor + 1]);
+            }
+            cursor += length;
+            frame_index++;
+        }
+        ASSERT_EQUAL(2, frame_index);
+        ASSERT_EQUAL(remaining, cursor);
+
+        free(packet);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
     TEST_SUITE_END();
 }

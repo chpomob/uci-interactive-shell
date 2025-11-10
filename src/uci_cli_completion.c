@@ -1,6 +1,7 @@
 #include "../include/uci_cli_completion.h"
 #include "../include/uci_cli.h"
 #include "../include/uci_globals.h"
+#include "../include/uci_command_definitions.h"
 #include "../include/uci_ui.h"
 #include <stdio.h>
 #include <stdlib.h>

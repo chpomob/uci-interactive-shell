@@ -7,6 +7,7 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 #include "../include/uci_globals.h"
+#include "../include/uci_command_definitions.h"
 
 int cli_tokenize(char* line, char** argv, int max_tokens) {
     if (!line || !argv || max_tokens <= 0) {

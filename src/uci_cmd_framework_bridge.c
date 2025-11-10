@@ -3,6 +3,7 @@
 #include "../include/uci_cmd_core_new.h"
 #include "../include/uci_cmd_framework_bridge.h"
 #include "../include/uci_cmd_handlers.h"
+#include "../include/uci_cmd_handlers_simulation.h"
 #include "../include/uci_ui.h"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))

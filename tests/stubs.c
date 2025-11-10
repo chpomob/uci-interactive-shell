@@ -3,6 +3,8 @@
 
 #include "../include/uci.h"
 #include "../include/uci_cli.h"
+#include "../include/uci_cmd_handlers.h"
+#include "../include/uci_cmd_handlers_simulation.h"
 
 // Stub implementations that just return -1 (error)
 static int stub_cmd_handler(int argc, char** argv) {

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../include/uci_command_framework.h"
+#include "../include/uci_cmd_core_new.h"
 #include "../include/uci_cmd_core.h"
 #include "../include/uci_command_utils.h"
 

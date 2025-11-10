@@ -6,6 +6,7 @@
 #include "../include/uci_packet_analyzer.h"
 #include "../include/uci_ui_packet_decoder.h"
 #include "../include/uci_packet_utils.h"
+#include "../include/uci_qorvo_utils.h"
 
 static const char *dpf_to_string(unsigned char dpf)
 {
@@ -25,6 +26,16 @@ static const char *dpf_to_string(unsigned char dpf)
     }
 }
 
+static const char* qorvo_device_boot_reason_to_string(uint8_t reason) {
+    switch (reason) {
+        case 0:
+            return "unknown";
+        case 1:
+            return "fatal_reset";
+        default:
+            return "reserved";
+    }
+}
 
 
 static void analyze_data_message_payload(unsigned char dpf,
@@ -241,6 +252,8 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
     unsigned char opcode = header_fields.opcode_id;
     unsigned char opcode_reserved_bits = header_fields.reserved_opcode_bits;
     unsigned char payload_len_field = header_fields.payload_length;
+    unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
+    int payload_len_int = (int)payload_len_field;
 
     if (ui_color_enabled) {
         printf("  %s%sMessage Type (MT):%s 0x%01X", 
@@ -425,14 +438,31 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
                                 printf("\n  QORVO_SESSION_GET_NTF: Session retrieval notification\n");
                             }
                             break;
-                        case 0x22:  // QORVO_CORE_PSDU_DUMP
-                            if (ui_color_enabled) {
-                                printf("\n  %s%sQORVO_CORE_PSDU_DUMP_NTF:%s PSDU dump notification%s\n", 
-                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                        case QORVO_CORE_PSDU_DUMP:
+                        {
+                            uci_qorvo_psdu_report_t report;
+                            if (uci_qorvo_decode_psdu_report(payload_ptr, payload_len_field, &report) == 0) {
+                                if (ui_color_enabled) {
+                                    printf("\n  %s%sQORVO_CORE_PSDU_DUMP_NTF:%s PSDU dump notification%s\n",
+                                           ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                                } else {
+                                    printf("\n  QORVO_CORE_PSDU_DUMP_NTF: PSDU dump notification\n");
+                                }
+                                printf("    session_handle: 0x%08X\n", report.session_handle);
+                                printf("    frames: %u\n", report.frame_count);
+                                for (uint8_t i = 0; i < report.frame_count; i++) {
+                                    const uci_qorvo_psdu_frame_t* frame = &report.frames[i];
+                                    printf("      index %u length %u bytes:", frame->index, frame->length);
+                                    for (uint16_t b = 0; b < frame->length; b++) {
+                                        printf(" %02X", frame->data[b]);
+                                    }
+                                    printf("\n");
+                                }
                             } else {
-                                printf("\n  QORVO_CORE_PSDU_DUMP_NTF: PSDU dump notification\n");
+                                printf("\n  QORVO_CORE_PSDU_DUMP_NTF: PSDU dump notification (unable to decode)\n");
                             }
                             break;
+                        }
                         case 0x23:  // QORVO_CORE_GET_MEM_STATS
                             if (ui_color_enabled) {
                                 printf("\n  %s%sQORVO_CORE_GET_MEM_STATS_NTF:%s Memory statistics notification%s\n", 
@@ -564,14 +594,31 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
                                 printf("\n  QORVO_CCC_GET_ANT_FLEX_CONFIG_RSP: CCC antenna flexibility config retrieval response\n");
                             }
                             break;
-                        case 0x22:  // QORVO_CORE_PSDU_DUMP
-                            if (ui_color_enabled) {
-                                printf("\n  %s%sQORVO_CORE_PSDU_DUMP_RSP:%s PSDU dump response%s\n", 
-                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                        case QORVO_CORE_PSDU_DUMP:
+                        {
+                            uci_qorvo_psdu_report_t report;
+                            if (uci_qorvo_decode_psdu_report(payload_ptr, payload_len_field, &report) == 0) {
+                                if (ui_color_enabled) {
+                                    printf("\n  %s%sQORVO_CORE_PSDU_DUMP_RSP:%s PSDU dump response%s\n",
+                                           ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                                } else {
+                                    printf("\n  QORVO_CORE_PSDU_DUMP_RSP: PSDU dump response\n");
+                                }
+                                printf("    session_handle: 0x%08X\n", report.session_handle);
+                                printf("    frames: %u\n", report.frame_count);
+                                for (uint8_t i = 0; i < report.frame_count; i++) {
+                                    const uci_qorvo_psdu_frame_t* frame = &report.frames[i];
+                                    printf("      index %u length %u bytes:", frame->index, frame->length);
+                                    for (uint16_t b = 0; b < frame->length; b++) {
+                                        printf(" %02X", frame->data[b]);
+                                    }
+                                    printf("\n");
+                                }
                             } else {
-                                printf("\n  QORVO_CORE_PSDU_DUMP_RSP: PSDU dump response\n");
+                                printf("\n  QORVO_CORE_PSDU_DUMP_RSP: PSDU dump response (unable to decode)\n");
                             }
                             break;
+                        }
                         case 0x23:  // QORVO_CORE_GET_MEM_STATS
                             if (ui_color_enabled) {
                                 printf("\n  %s%sQORVO_CORE_GET_MEM_STATS_RSP:%s Memory statistics response%s\n", 
@@ -620,14 +667,25 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
                                 printf("\n  QORVO_CORE_ERASE_CERTS_RSP: Certificate erase response\n");
                             }
                             break;
-                        case 0x31:  // QORVO_CORE_DEVICE_BOOT
-                            if (ui_color_enabled) {
-                                printf("\n  %s%sQORVO_CORE_DEVICE_BOOT_RSP:%s Device boot response%s\n", 
-                                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ANSI_RESET);
+                        case QORVO_CORE_DEVICE_BOOT:
+                        {
+                            uci_qorvo_device_boot_t boot;
+
+                            if (uci_qorvo_decode_device_boot(payload_ptr, payload_len_field, &boot) == 0) {
+                                const char* reason = qorvo_device_boot_reason_to_string(boot.reason);
+                                if (ui_color_enabled) {
+                                    printf("\n  %s%sQORVO_CORE_DEVICE_BOOT_RSP:%s reason=%s (0x%02X)%s\n",
+                                           ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET,
+                                           reason, boot.reason, ANSI_RESET);
+                                } else {
+                                    printf("\n  QORVO_CORE_DEVICE_BOOT_RSP: reason=%s (0x%02X)\n",
+                                           reason, boot.reason);
+                                }
                             } else {
-                                printf("\n  QORVO_CORE_DEVICE_BOOT_RSP: Device boot response\n");
+                                printf("\n  QORVO_CORE_DEVICE_BOOT_RSP: Device boot response (unable to decode)\n");
                             }
                             break;
+                        }
                         case 0x35:  // QORVO_CORE_TOGGLE_GPIO_TIMESYNC
                             if (ui_color_enabled) {
                                 printf("\n  %s%sQORVO_CORE_TOGGLE_GPIO_TIMESYNC_RSP:%s GPIO timesync toggle response%s\n", 
@@ -672,7 +730,6 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
         }
         printf("\n");
     }
-
     if (ui_color_enabled) {
         printf("  %s%sOpcode:%s 0x%02X\n", 
                ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, opcode);
@@ -707,9 +764,9 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
         }
         for (size_t i = 0; i < payload_len_field && i < 32; i++) {
             if (ui_color_enabled) {
-                printf("%s%02X%s ", ANSI_COLOR_BRIGHT_CYAN, packet[sizeof(struct uci_packet_header) + i], ANSI_RESET);
+                printf("%s%02X%s ", ANSI_COLOR_BRIGHT_CYAN, payload_ptr[i], ANSI_RESET);
             } else {
-                printf("%02X ", packet[sizeof(struct uci_packet_header) + i]);
+                printf("%02X ", payload_ptr[i]);
             }
         }
         if (payload_len_field > 32) {
@@ -722,8 +779,6 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
         printf("\n\n");
 
         // Call appropriate decoder based on MT, GID, and Opcode
-        unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
-        int payload_len_int = (int)payload_len_field;
 
         if (mt == DATA) {
             analyze_data_message_payload(gid, pbf, payload_ptr, payload_len_int);
@@ -1054,4 +1109,5 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
     } else {
         printf("=== Packet Analysis Complete ===\n");
     }
+
 }

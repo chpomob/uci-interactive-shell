@@ -4,6 +4,7 @@
 #include "../include/uci_config_manager.h"
 #include "../include/uci_response_core.h"
 #include "../include/uci_packet_utils.h"
+#include "../include/uci_qorvo_utils.h"
 #include "../include/uci_ui_packet_decoder.h"
 #include <string.h>
 #include <stdint.h>
@@ -1808,7 +1809,10 @@ int main() {
         ASSERT_EQUAL(sizeof(device_boot_payload), header->payload_len);
 
         const unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
-        ASSERT_EQUAL(0x01, payload_ptr[0]); // QM SDK reason code (reset after fatal error)
+
+        uci_qorvo_device_boot_t decoded = {0};
+        ASSERT_EQUAL(0, uci_qorvo_decode_device_boot(payload_ptr, sizeof(device_boot_payload), &decoded));
+        ASSERT_EQUAL(0x01, decoded.reason);
 
         free(packet);
         TEST_PASS();
@@ -1855,33 +1859,19 @@ int main() {
         ASSERT_EQUAL(sizeof(payload), header->payload_len);
 
         const unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
-        size_t remaining = header->payload_len;
-        ASSERT_EQUAL(0x0A0B0C0D, read_u32_le(payload_ptr));
-
-        size_t cursor = 4;
-        int frame_index = 0;
-        while (cursor < remaining) {
-            unsigned char idx = payload_ptr[cursor++];
-            unsigned short length = read_u16_le(&payload_ptr[cursor]);
-            cursor += 2;
-            ASSERT_TRUE(cursor + length <= remaining);
-            if (frame_index == 0) {
-                ASSERT_EQUAL(0, idx);
-                ASSERT_EQUAL(3, length);
-                ASSERT_EQUAL(0x11, payload_ptr[cursor]);
-                ASSERT_EQUAL(0x22, payload_ptr[cursor + 1]);
-                ASSERT_EQUAL(0x33, payload_ptr[cursor + 2]);
-            } else if (frame_index == 1) {
-                ASSERT_EQUAL(1, idx);
-                ASSERT_EQUAL(2, length);
-                ASSERT_EQUAL(0xAA, payload_ptr[cursor]);
-                ASSERT_EQUAL(0xBB, payload_ptr[cursor + 1]);
-            }
-            cursor += length;
-            frame_index++;
-        }
-        ASSERT_EQUAL(2, frame_index);
-        ASSERT_EQUAL(remaining, cursor);
+        uci_qorvo_psdu_report_t report;
+        ASSERT_EQUAL(0, uci_qorvo_decode_psdu_report(payload_ptr, sizeof(payload), &report));
+        ASSERT_EQUAL(0x0A0B0C0D, report.session_handle);
+        ASSERT_EQUAL(2, report.frame_count);
+        ASSERT_EQUAL(0, report.frames[0].index);
+        ASSERT_EQUAL(3, report.frames[0].length);
+        ASSERT_EQUAL(0x11, report.frames[0].data[0]);
+        ASSERT_EQUAL(0x22, report.frames[0].data[1]);
+        ASSERT_EQUAL(0x33, report.frames[0].data[2]);
+        ASSERT_EQUAL(1, report.frames[1].index);
+        ASSERT_EQUAL(2, report.frames[1].length);
+        ASSERT_EQUAL(0xAA, report.frames[1].data[0]);
+        ASSERT_EQUAL(0xBB, report.frames[1].data[1]);
 
         free(packet);
         TEST_PASS();

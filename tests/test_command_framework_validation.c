@@ -146,5 +146,80 @@ int main(void) {
     test_case_end:;
 #undef test_case_end
 
+#define test_case_end test_case_end_send_data
+    TEST_CASE(session_send_data_validation);
+    {
+        const uci_param_def_t params[] = {
+            { "session_id", PARAM_TYPE_SESSION_ID, PARAM_FLAG_REQUIRED, 0, 0, 0, "session" },
+            { "destination", PARAM_TYPE_UINT64, PARAM_FLAG_REQUIRED, 0, 0, 0xFFFFFFFFFFFFFFFFULL, "destination" },
+            { "sequence", PARAM_TYPE_UINT16, PARAM_FLAG_REQUIRED, 0, 0, 0xFFFF, "sequence" },
+            { "payload", PARAM_TYPE_HEX_STRING, PARAM_FLAG_REQUIRED, 512, 0, 0, "payload" },
+        };
+        const uci_command_def_t def = {
+            .name = "session_send_data",
+            .aliases = { NULL },
+            .group = CLI_GROUP_SESSION,
+            .flags = CLI_CMD_FLAG_NONE,
+            .description = "validate session_send_data arguments",
+            .params = params,
+            .param_count = 4,
+            .handler = dummy_handler,
+        };
+
+        char* argv_valid[] = { "session_send_data", "1", "0x11223344", "15", "AABB" };
+        g_handler_calls = 0;
+        ASSERT_EQUAL(0, uci_cmd_dispatch(&def, 5, argv_valid));
+        ASSERT_EQUAL(1, g_handler_calls);
+
+        char* argv_bad_dest[] = { "session_send_data", "1", "not_hex", "15", "AABB" };
+        g_handler_calls = 0;
+        ASSERT_EQUAL(-1, uci_cmd_dispatch(&def, 5, argv_bad_dest));
+        ASSERT_EQUAL(0, g_handler_calls);
+
+        char* argv_bad_payload[] = { "session_send_data", "1", "0x12", "15", "ABC" };
+        g_handler_calls = 0;
+        ASSERT_EQUAL(-1, uci_cmd_dispatch(&def, 5, argv_bad_payload));
+        ASSERT_EQUAL(0, g_handler_calls);
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_multicast
+    TEST_CASE(multicast_validation);
+    {
+        const uci_param_def_t params[] = {
+            { "session_id", PARAM_TYPE_SESSION_ID, PARAM_FLAG_REQUIRED, 0, 0, 0, "session" },
+            { "action", PARAM_TYPE_STRING, PARAM_FLAG_REQUIRED, 16, 0, 0, "action" },
+            { "short_address", PARAM_TYPE_UINT16, PARAM_FLAG_REQUIRED, 0, 0, 0xFFFF, "short_address" },
+            { "subsession_id", PARAM_TYPE_UINT32, PARAM_FLAG_REQUIRED, 0, 0, 0xFFFFFFFFu, "subsession_id" },
+        };
+        const uci_command_def_t def = {
+            .name = "session_update_multicast_list",
+            .aliases = { NULL },
+            .group = CLI_GROUP_SESSION_CONFIG,
+            .flags = CLI_CMD_FLAG_NONE,
+            .description = "validate multicast args",
+            .params = params,
+            .param_count = 4,
+            .handler = dummy_handler,
+        };
+
+        char* argv_valid[] = { "session_update_multicast_list", "1", "add", "0x12", "0x20" };
+        g_handler_calls = 0;
+        ASSERT_EQUAL(0, uci_cmd_dispatch(&def, 5, argv_valid));
+        ASSERT_EQUAL(1, g_handler_calls);
+
+        char* argv_bad_short[] = { "session_update_multicast_list", "1", "add", "XYZ", "0x20" };
+        g_handler_calls = 0;
+        ASSERT_EQUAL(-1, uci_cmd_dispatch(&def, 5, argv_bad_short));
+        ASSERT_EQUAL(0, g_handler_calls);
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
     TEST_SUITE_END();
 }

@@ -11,7 +11,7 @@ int uci_cmd_validate_uint8(const char* str, unsigned char* value, unsigned char 
     }
 
     char* endptr;
-    unsigned long val = strtoul(str, &endptr, 10);
+    unsigned long val = strtoul(str, &endptr, 0);
 
     if (*endptr != '\0' || val < min_val || val > max_val) {
         return -1;
@@ -28,7 +28,7 @@ int uci_cmd_validate_uint16(const char* str, unsigned short* value, unsigned sho
     }
 
     char* endptr;
-    unsigned long val = strtoul(str, &endptr, 10);
+    unsigned long val = strtoul(str, &endptr, 0);
 
     if (*endptr != '\0' || val < min_val || val > max_val) {
         return -1;
@@ -45,7 +45,7 @@ int uci_cmd_validate_uint32(const char* str, unsigned int* value, unsigned int m
     }
 
     char* endptr;
-    unsigned long val = strtoul(str, &endptr, 10);
+    unsigned long val = strtoul(str, &endptr, 0);
 
     if (*endptr != '\0' || val < min_val || val > max_val) {
         return -1;
@@ -295,10 +295,13 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
             case PARAM_TYPE_UINT8:
             {
                 unsigned char val;
-                if (uci_cmd_validate_uint8(param_str, &val, param->min_value, param->max_value) != 0) {
+                unsigned char min_val = (unsigned char)param->min_value;
+                unsigned char max_val = (unsigned char)(param->max_value == 0 ? 0xFF : param->max_value);
+                if (uci_cmd_validate_uint8(param_str, &val, min_val, max_val) != 0) {
                     char error_msg[256];
-                    snprintf(error_msg, sizeof(error_msg), "Invalid parameter value for %s: %s (expected uint8 %d-%d)", 
-                                   param->name, param_str, param->min_value, param->max_value);
+                    snprintf(error_msg, sizeof(error_msg),
+                             "Invalid parameter value for %s: %s (expected uint8 %u-%u)",
+                             param->name, param_str, (unsigned int)min_val, (unsigned int)max_val);
                     ui_print_error(error_msg);
                     return -1;
                 }
@@ -321,7 +324,10 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
             case PARAM_TYPE_UINT16:
             {
                 unsigned short val;
-                if (uci_cmd_validate_uint16(param_str, &val, param->min_value, param->max_value) != 0) {
+                unsigned short max_val = (unsigned short)(param->max_value == 0 ? 0xFFFF : param->max_value);
+                if (uci_cmd_validate_uint16(param_str, &val,
+                                            (unsigned short)param->min_value,
+                                            max_val) != 0) {
                     char error_msg[256];
                     snprintf(error_msg, sizeof(error_msg), "Invalid parameter value for %s: %s (expected uint16)", 
                                    param->name, param_str);
@@ -333,9 +339,25 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
             case PARAM_TYPE_UINT32:
             {
                 unsigned int val;
-                if (uci_cmd_validate_uint32(param_str, &val, param->min_value, param->max_value) != 0) {
+                unsigned int max_val = (unsigned int)(param->max_value == 0 ? 0xFFFFFFFFu : param->max_value);
+                if (uci_cmd_validate_uint32(param_str, &val,
+                                            (unsigned int)param->min_value,
+                                            max_val) != 0) {
                     char error_msg[256];
                     snprintf(error_msg, sizeof(error_msg), "Invalid parameter value for %s: %s (expected uint32)", 
+                                   param->name, param_str);
+                    ui_print_error(error_msg);
+                    return -1;
+                }
+                break;
+            }
+            case PARAM_TYPE_UINT64:
+            {
+                unsigned long long max_val = (param->max_value == 0) ? 0xFFFFFFFFFFFFFFFFULL : param->max_value;
+                unsigned long long val;
+                if (uci_cmd_validate_uint64(param_str, &val, param->min_value, max_val) != 0) {
+                    char error_msg[256];
+                    snprintf(error_msg, sizeof(error_msg), "Invalid parameter value for %s: %s (expected uint64)", 
                                    param->name, param_str);
                     ui_print_error(error_msg);
                     return -1;
@@ -424,5 +446,20 @@ int uci_cmd_dispatch(const uci_command_def_t* cmd_def, int argc, char** argv) {
         return cmd_def->handler(cmd_def->name, argc, argv, cmd_def->params, cmd_def->param_count);
     }
 
+    return 0;
+}
+int uci_cmd_validate_uint64(const char* str, unsigned long long* value, unsigned long long min_val, unsigned long long max_val) {
+    if (!str || !value) {
+        return -1;
+    }
+
+    char* endptr;
+    unsigned long long val = strtoull(str, &endptr, 0);
+
+    if (*endptr != '\0' || val < min_val || val > max_val) {
+        return -1;
+    }
+
+    *value = val;
     return 0;
 }

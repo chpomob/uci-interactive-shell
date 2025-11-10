@@ -54,7 +54,7 @@ install: $(TARGET)
 	mkdir -p /usr/local/share/doc/uci-shell/uci_analysis
 	cp -r uci_analysis/* /usr/local/share/doc/uci-shell/uci_analysis/
 
-test: $(TEST_TARGET)
+test: $(TEST_TARGET) command-framework-validation-test
 
 $(TEST_TARGET): src/uci_hw_chardev.o
 	$(CC) $(CFLAGS) -o $(TEST_TARGET) test_chardev.c src/uci_hw_chardev.o

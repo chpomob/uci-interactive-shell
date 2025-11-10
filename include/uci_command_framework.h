@@ -34,8 +34,8 @@ typedef struct {
     uci_param_type_t type;      // Parameter data type
     uci_param_flags_t flags;    // Validation flags
     size_t max_len;            // Maximum length for string types
-    unsigned int min_value;    // Minimum value for integer types
-    unsigned int max_value;    // Maximum value for integer types
+    unsigned long long min_value;    // Minimum numeric value (when applicable)
+    unsigned long long max_value;    // Maximum numeric value (when applicable)
     const char* description;    // Description for help
 } uci_param_def_t;
 
@@ -66,6 +66,7 @@ typedef struct {
 int uci_cmd_validate_uint8(const char* str, unsigned char* value, unsigned char min_val, unsigned char max_val);
 int uci_cmd_validate_uint16(const char* str, unsigned short* value, unsigned short min_val, unsigned short max_val);
 int uci_cmd_validate_uint32(const char* str, unsigned int* value, unsigned int min_val, unsigned int max_val);
+int uci_cmd_validate_uint64(const char* str, unsigned long long* value, unsigned long long min_val, unsigned long long max_val);
 int uci_cmd_validate_session_id(const char* str, unsigned int* session_id);
 int uci_cmd_validate_hex_string(const char* str, unsigned char* buffer, size_t* len, size_t max_len);
 int uci_cmd_validate_device_state(const char* str, unsigned char* state);

@@ -304,6 +304,20 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
                 }
                 break;
             }
+            case PARAM_TYPE_HEX_BYTE:
+            {
+                char* endptr = NULL;
+                unsigned long val = strtoul(param_str, &endptr, 16);
+                if (!param_str || endptr == param_str || *endptr != '\0' || val > 0xFF) {
+                    char error_msg[256];
+                    snprintf(error_msg, sizeof(error_msg),
+                             "Invalid hex byte for %s: %s (expected 00-FF)",
+                             param->name, param_str ? param_str : "(null)");
+                    ui_print_error(error_msg);
+                    return -1;
+                }
+                break;
+            }
             case PARAM_TYPE_UINT16:
             {
                 unsigned short val;

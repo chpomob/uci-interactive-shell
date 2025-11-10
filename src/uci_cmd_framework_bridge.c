@@ -66,6 +66,45 @@ static const uci_param_def_t k_set_power_params[] = {
     },
 };
 
+static const uci_param_def_t k_hw_send_params[] = {
+    {
+        .name = "mt",
+        .type = PARAM_TYPE_HEX_BYTE,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 0,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Message Type byte (hex, e.g. 01)",
+    },
+    {
+        .name = "pbf",
+        .type = PARAM_TYPE_HEX_BYTE,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 0,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Packet Boundary Flag (hex)",
+    },
+    {
+        .name = "gid",
+        .type = PARAM_TYPE_HEX_BYTE,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 0,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Group Identifier (hex)",
+    },
+    {
+        .name = "oid",
+        .type = PARAM_TYPE_HEX_BYTE,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 0,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Opcode Identifier (hex)",
+    },
+};
+
 static const uci_param_def_t k_get_config_params[] = {
     {
         .name = "config_name",
@@ -396,39 +435,30 @@ static const uci_param_def_t k_session_data_phase_params[] = {
     },
     {
         .name = "repetition",
-        .type = PARAM_TYPE_STRING,
+        .type = PARAM_TYPE_UINT8,
         .flags = PARAM_FLAG_REQUIRED,
-        .max_len = 8,
+        .max_len = 0,
         .min_value = 0,
-        .max_value = 0,
-        .description = "Repetition count",
+        .max_value = 255,
+        .description = "Repetition count (0-255)",
     },
     {
         .name = "control",
-        .type = PARAM_TYPE_STRING,
+        .type = PARAM_TYPE_UINT8,
         .flags = PARAM_FLAG_REQUIRED,
-        .max_len = 8,
+        .max_len = 0,
         .min_value = 0,
-        .max_value = 0,
-        .description = "Control flags",
+        .max_value = 255,
+        .description = "Control flags byte",
     },
     {
         .name = "size",
-        .type = PARAM_TYPE_STRING,
+        .type = PARAM_TYPE_UINT8,
         .flags = PARAM_FLAG_REQUIRED,
-        .max_len = 8,
+        .max_len = 0,
         .min_value = 0,
-        .max_value = 0,
-        .description = "Payload size",
-    },
-    {
-        .name = "payload",
-        .type = PARAM_TYPE_HEX_STRING,
-        .flags = PARAM_FLAG_OPTIONAL,
-        .max_len = 512,
-        .min_value = 0,
-        .max_value = 0,
-        .description = "Hex payload bytes",
+        .max_value = 64,
+        .description = "Declared payload size (0-64 bytes)",
     },
 };
 
@@ -597,8 +627,8 @@ const uci_command_def_t g_uci_command_defs[] = {
         .group = CLI_GROUP_HARDWARE,
         .flags = CLI_CMD_FLAG_REQUIRES_HW_MODE,
         .description = "Send a raw packet to hardware",
-        .params = NULL,
-        .param_count = 0,
+        .params = k_hw_send_params,
+        .param_count = ARRAY_SIZE(k_hw_send_params),
         .handler = cmd_hw_send_framework_adapter,
     },
 

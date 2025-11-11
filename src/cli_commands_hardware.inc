@@ -1,0 +1,5 @@
+CLI_COMMAND_ENTRY("mode_sim", CLI_GROUP_HARDWARE, CLI_CMD_FLAG_NONE, "Switch to simulation mode", "sim_mode", NULL, NULL, NULL)
+CLI_COMMAND_ENTRY("mode_hw", CLI_GROUP_HARDWARE, CLI_CMD_FLAG_NONE, "Switch to hardware mode", "hw_mode", NULL, NULL, NULL)
+CLI_COMMAND_ENTRY("mode_info", CLI_GROUP_HARDWARE, CLI_CMD_FLAG_NONE, "Display current mode", "current_mode", NULL, NULL, NULL)
+CLI_COMMAND_ENTRY("hw_init", CLI_GROUP_HARDWARE, CLI_CMD_FLAG_NONE, "Initialize hardware mode and connect", "hw_connect", NULL, NULL, NULL)
+CLI_COMMAND_ENTRY("hw_send", CLI_GROUP_HARDWARE, CLI_CMD_FLAG_REQUIRES_HW_MODE, "Send a raw packet to hardware", NULL, NULL, NULL, NULL)

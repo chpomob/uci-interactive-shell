@@ -1,0 +1,7 @@
+CLI_COMMAND_ENTRY("simulate_notification", CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate device notification", NULL, NULL, NULL, NULL)
+CLI_COMMAND_ENTRY("simulate_session_status", CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate session status notification", NULL, NULL, NULL, NULL)
+CLI_COMMAND_ENTRY("simulate_data_credit", CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate session data credit notification", NULL, NULL, NULL, NULL)
+CLI_COMMAND_ENTRY("simulate_ranging", CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate single-target ranging notification", NULL, NULL, NULL, NULL)
+CLI_COMMAND_ENTRY("simulate_multi_target_ranging", CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate multi-target ranging notification", NULL, NULL, NULL, NULL)
+CLI_COMMAND_ENTRY("demo_session_flow", CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Demonstrate session flow", NULL, NULL, NULL, NULL)
+CLI_COMMAND_ENTRY("simulate_qm_sdk_vendor_command", CLI_GROUP_SIMULATION, CLI_CMD_FLAG_NONE, "Simulate QM SDK vendor-specific command (GID 0x0B)", NULL, NULL, NULL, NULL)

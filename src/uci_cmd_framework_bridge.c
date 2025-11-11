@@ -121,3 +121,40 @@ int uci_cmd_framework_handler(int argc, char** argv) {
 
     return uci_cmd_dispatch(cmd_def, argc, argv);
 }
+
+typedef struct {
+    const uci_command_def_t* defs;
+    const int* count;
+} uci_cmd_framework_list_t;
+
+static const uci_cmd_framework_list_t k_all_command_lists[] = {
+    { g_uci_command_defs, &g_uci_command_defs_count },
+    { g_uci_device_command_defs, &g_uci_device_command_defs_count },
+    { g_uci_session_command_defs, &g_uci_session_command_defs_count },
+    { g_uci_simulation_command_defs, &g_uci_simulation_command_defs_count },
+};
+
+void uci_cmd_framework_for_each_command(uci_cmd_framework_iter_cb cb, void* ctx) {
+    if (!cb) {
+        return;
+    }
+
+    for (size_t list_idx = 0; list_idx < ARRAY_SIZE(k_all_command_lists); list_idx++) {
+        const uci_cmd_framework_list_t* list = &k_all_command_lists[list_idx];
+        int count = list->count ? *list->count : 0;
+        for (int i = 0; i < count; i++) {
+            cb(&list->defs[i], ctx);
+        }
+    }
+}
+
+int uci_cmd_framework_total_command_count(void) {
+    int total = 0;
+    for (size_t list_idx = 0; list_idx < ARRAY_SIZE(k_all_command_lists); list_idx++) {
+        const uci_cmd_framework_list_t* list = &k_all_command_lists[list_idx];
+        if (list->count) {
+            total += *list->count;
+        }
+    }
+    return total;
+}

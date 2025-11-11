@@ -1,1 +1,0 @@
-CLI_COMMAND_ENTRY("help", CLI_GROUP_GENERAL, CLI_CMD_FLAG_NONE, "Show this help message", NULL, NULL, NULL, NULL)

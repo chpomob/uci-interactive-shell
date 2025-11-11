@@ -7,7 +7,6 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 #include "../include/uci_globals.h"
-#include "../include/uci_command_definitions.h"
 
 int cli_tokenize(char* line, char** argv, int max_tokens) {
     if (!line || !argv || max_tokens <= 0) {
@@ -38,28 +37,8 @@ int cli_tokenize(char* line, char** argv, int max_tokens) {
     return argc;
 }
 
-const cli_command_t* cli_find_command(const char* name) {
-    if (!name) {
-        return NULL;
-    }
-
-    for (int i = 0; i < g_cli_commands_count; i++) {
-        const cli_command_t* cmd = &g_cli_commands[i];
-        if (strcmp(name, cmd->name) == 0) {
-            return cmd;
-        }
-        for (size_t alias_idx = 0; alias_idx < ARRAY_SIZE(cmd->aliases); alias_idx++) {
-            const char* alias = cmd->aliases[alias_idx];
-            if (alias == NULL) {
-                break;
-            }
-            if (strcmp(name, alias) == 0) {
-                return cmd;
-            }
-        }
-    }
-
-    return NULL;
+const uci_command_def_t* cli_find_command(const char* name) {
+    return uci_cmd_framework_find(name);
 }
 
 int cli_dispatch(int argc, char** argv) {
@@ -67,7 +46,7 @@ int cli_dispatch(int argc, char** argv) {
         return 0;
     }
 
-    const cli_command_t* command = cli_find_command(argv[0]);
+    const uci_command_def_t* command = cli_find_command(argv[0]);
     if (!command) {
         ui_print_command_not_found(argv[0]);
         return -1;
@@ -78,7 +57,7 @@ int cli_dispatch(int argc, char** argv) {
         return -1;
     }
 
-    return command->handler(argc, argv);
+    return uci_cmd_framework_handler(argc, argv);
 }
 
 typedef struct {
@@ -97,7 +76,7 @@ static const cli_group_info_t k_group_info[] = {
     { CLI_GROUP_SIMULATION, "Simulation", "Demo and simulator-oriented commands" },
 };
 
-static size_t build_command_label(const cli_command_t* cmd, char* buffer, size_t buffer_len) {
+static size_t build_command_label(const uci_command_def_t* cmd, char* buffer, size_t buffer_len) {
     size_t written = 0;
     if (buffer_len > 0) {
         buffer[0] = '\0';
@@ -150,6 +129,49 @@ static size_t build_command_label(const cli_command_t* cmd, char* buffer, size_t
     return written;
 }
 
+typedef struct {
+    cli_command_group_t group;
+    bool has_commands;
+    size_t max_width;
+    char* buffer;
+    size_t buffer_len;
+} cli_group_measure_ctx_t;
+
+static void cli_measure_group_callback(const uci_command_def_t* def, void* ctx_void) {
+    cli_group_measure_ctx_t* ctx = ctx_void;
+    if (def->group != ctx->group) {
+        return;
+    }
+
+    ctx->has_commands = true;
+    size_t label_len = build_command_label(def, ctx->buffer, ctx->buffer_len);
+    if (label_len > ctx->max_width) {
+        ctx->max_width = label_len;
+    }
+}
+
+typedef struct {
+    cli_command_group_t group;
+    size_t max_width;
+    char* buffer;
+    size_t buffer_len;
+} cli_group_print_ctx_t;
+
+static void cli_print_group_callback(const uci_command_def_t* def, void* ctx_void) {
+    cli_group_print_ctx_t* ctx = ctx_void;
+    if (def->group != ctx->group) {
+        return;
+    }
+
+    build_command_label(def, ctx->buffer, ctx->buffer_len);
+    printf("  %-*s  %s", (int)ctx->max_width, ctx->buffer,
+           (def->description && def->description[0] != '\0') ? def->description : "-");
+    if (def->flags & CLI_CMD_FLAG_REQUIRES_HW_MODE) {
+        printf(" [requires hardware mode]");
+    }
+    printf("\n");
+}
+
 void cli_print_help(void) {
     enum { kLabelBufferSize = 256 };
     char label_buffer[kLabelBufferSize];
@@ -162,24 +184,16 @@ void cli_print_help(void) {
     for (size_t group_idx = 0; group_idx < ARRAY_SIZE(k_group_info); group_idx++) {
         const cli_group_info_t* group = &k_group_info[group_idx];
 
-        size_t max_label_width = 0;
-        bool group_has_commands = false;
+        cli_group_measure_ctx_t measure_ctx = {
+            .group = group->group,
+            .has_commands = false,
+            .max_width = 0,
+            .buffer = label_buffer,
+            .buffer_len = sizeof(label_buffer),
+        };
+        uci_cmd_framework_for_each_command(cli_measure_group_callback, &measure_ctx);
 
-        for (int cmd_idx = 0; cmd_idx < g_cli_commands_count; cmd_idx++) {
-            const cli_command_t* cmd = &g_cli_commands[cmd_idx];
-            if (cmd->group != group->group) {
-                continue;
-            }
-
-            group_has_commands = true;
-            build_command_label(cmd, label_buffer, sizeof(label_buffer));
-            size_t label_len = strlen(label_buffer);
-            if (label_len > max_label_width) {
-                max_label_width = label_len;
-            }
-        }
-
-        if (!group_has_commands) {
+        if (!measure_ctx.has_commands) {
             continue;
         }
 
@@ -197,20 +211,12 @@ void cli_print_help(void) {
             printf("  %s\n", group->summary);
         }
 
-        for (int cmd_idx = 0; cmd_idx < g_cli_commands_count; cmd_idx++) {
-            const cli_command_t* cmd = &g_cli_commands[cmd_idx];
-            if (cmd->group != group->group) {
-                continue;
-            }
-
-            build_command_label(cmd, label_buffer, sizeof(label_buffer));
-
-            printf("  %-*s  %s", (int)max_label_width, label_buffer,
-                   (cmd->description && cmd->description[0] != '\0') ? cmd->description : "-");
-            if (cmd->flags & CLI_CMD_FLAG_REQUIRES_HW_MODE) {
-                printf(" [requires hardware mode]");
-            }
-            printf("\n");
-        }
+        cli_group_print_ctx_t print_ctx = {
+            .group = group->group,
+            .max_width = measure_ctx.max_width,
+            .buffer = label_buffer,
+            .buffer_len = sizeof(label_buffer),
+        };
+        uci_cmd_framework_for_each_command(cli_print_group_callback, &print_ctx);
     }
 }

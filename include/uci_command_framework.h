@@ -1,11 +1,28 @@
 #ifndef UCI_COMMAND_FRAMEWORK_H
 #define UCI_COMMAND_FRAMEWORK_H
 
-#include "uci_cli.h"
 #include "uci.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stddef.h>
+
+// CLI command flags
+enum {
+    CLI_CMD_FLAG_NONE = 0,
+    CLI_CMD_FLAG_REQUIRES_HW_MODE = 1u << 0
+};
+
+// CLI command groups
+typedef enum {
+    CLI_GROUP_GENERAL = 0,
+    CLI_GROUP_HARDWARE,
+    CLI_GROUP_DEVICE,
+    CLI_GROUP_SESSION,
+    CLI_GROUP_SESSION_CONFIG,
+    CLI_GROUP_ANALYSIS,
+    CLI_GROUP_SIMULATION,
+} cli_command_group_t;
 
 // Parameter type definitions
 typedef enum {

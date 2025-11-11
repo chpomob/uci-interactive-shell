@@ -2,23 +2,10 @@
 
 #include "../include/uci_cmd_core_new.h"
 #include "../include/uci_cmd_framework_bridge.h"
+#include "../include/uci_cmd_framework_simulation.h"
+#include "../include/uci_cmd_framework_wrappers.h"
 #include "../include/uci_cmd_handlers.h"
-#include "../include/uci_cmd_handlers_simulation.h"
 #include "../include/uci_ui.h"
-
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-
-#define DEFINE_CMD_WRAPPER(fn)                                                          \
-    static int fn##_framework_adapter(const char* cmd_name,                             \
-                                      int argc,                                         \
-                                      char** argv,                                      \
-                                      const uci_param_def_t* params,                    \
-                                      int param_count) {                                \
-        (void)cmd_name;                                                                  \
-        (void)params;                                                                    \
-        (void)param_count;                                                               \
-        return fn(argc, argv);                                                           \
-    }
 
 DEFINE_CMD_WRAPPER(cmd_help)
 DEFINE_CMD_WRAPPER(cmd_mode_sim)
@@ -47,13 +34,6 @@ DEFINE_CMD_WRAPPER(cmd_session_set_hybrid_controller_config)
 DEFINE_CMD_WRAPPER(cmd_session_set_hybrid_controlee_config)
 DEFINE_CMD_WRAPPER(cmd_session_query_data_size_in_ranging)
 DEFINE_CMD_WRAPPER(cmd_analyze_packet)
-DEFINE_CMD_WRAPPER(cmd_simulate_notification)
-DEFINE_CMD_WRAPPER(cmd_simulate_session_status)
-DEFINE_CMD_WRAPPER(cmd_simulate_data_credit)
-DEFINE_CMD_WRAPPER(cmd_simulate_ranging)
-DEFINE_CMD_WRAPPER(cmd_simulate_multi_target_ranging)
-DEFINE_CMD_WRAPPER(cmd_demo_session_flow)
-DEFINE_CMD_WRAPPER(cmd_simulate_qm_sdk_vendor_command)
 
 static const uci_param_def_t k_set_power_params[] = {
     {
@@ -505,78 +485,6 @@ static const uci_param_def_t k_analyze_packet_params[] = {
     },
 };
 
-static const uci_param_def_t k_simulate_notification_params[] = {
-    {
-        .name = "type",
-        .type = PARAM_TYPE_STRING,
-        .flags = PARAM_FLAG_REQUIRED,
-        .max_len = 32,
-        .min_value = 0,
-        .max_value = 0,
-        .description = "Notification type (e.g. device_status)",
-    },
-    {
-        .name = "value",
-        .type = PARAM_TYPE_STRING,
-        .flags = PARAM_FLAG_REQUIRED,
-        .max_len = 32,
-        .min_value = 0,
-        .max_value = 0,
-        .description = "Value for the notification",
-    },
-};
-
-static const uci_param_def_t k_simulate_session_status_params[] = {
-    {
-        .name = "session_id",
-        .type = PARAM_TYPE_SESSION_ID,
-        .flags = PARAM_FLAG_REQUIRED,
-        .max_len = 0,
-        .min_value = 0,
-        .max_value = 0,
-        .description = "Numeric session identifier",
-    },
-    {
-        .name = "state",
-        .type = PARAM_TYPE_STRING,
-        .flags = PARAM_FLAG_REQUIRED,
-        .max_len = 16,
-        .min_value = 0,
-        .max_value = 0,
-        .description = "State (init|deinit|active|idle)",
-    },
-    {
-        .name = "reason",
-        .type = PARAM_TYPE_STRING,
-        .flags = PARAM_FLAG_REQUIRED,
-        .max_len = 16,
-        .min_value = 0,
-        .max_value = 0,
-        .description = "Reason (mgmt_cmd, ...)",
-    },
-};
-
-static const uci_param_def_t k_vendor_command_params[] = {
-    {
-        .name = "opcode",
-        .type = PARAM_TYPE_HEX_BYTE,
-        .flags = PARAM_FLAG_REQUIRED,
-        .max_len = 0,
-        .min_value = 0,
-        .max_value = 0,
-        .description = "Vendor opcode (hex or decimal)",
-    },
-    {
-        .name = "params",
-        .type = PARAM_TYPE_HEX_STRING,
-        .flags = PARAM_FLAG_OPTIONAL,
-        .max_len = 512,
-        .min_value = 0,
-        .max_value = 0,
-        .description = "Optional payload bytes",
-    },
-};
-
 const uci_command_def_t g_uci_command_defs[] = {
     // General
     {
@@ -990,88 +898,19 @@ const uci_command_def_t g_uci_command_defs[] = {
         .handler = cmd_analyze_packet_framework_adapter,
     },
 
-    // Simulation helpers
-    {
-        .name = "simulate_notification",
-        .aliases = { NULL },
-        .group = CLI_GROUP_SIMULATION,
-        .flags = CLI_CMD_FLAG_NONE,
-        .description = "Simulate device notification",
-        .params = k_simulate_notification_params,
-        .param_count = ARRAY_SIZE(k_simulate_notification_params),
-        .handler = cmd_simulate_notification_framework_adapter,
-    },
-    {
-        .name = "simulate_session_status",
-        .aliases = { NULL },
-        .group = CLI_GROUP_SIMULATION,
-        .flags = CLI_CMD_FLAG_NONE,
-        .description = "Simulate session status notification",
-        .params = k_simulate_session_status_params,
-        .param_count = ARRAY_SIZE(k_simulate_session_status_params),
-        .handler = cmd_simulate_session_status_framework_adapter,
-    },
-    {
-        .name = "simulate_data_credit",
-        .aliases = { NULL },
-        .group = CLI_GROUP_SIMULATION,
-        .flags = CLI_CMD_FLAG_NONE,
-        .description = "Simulate session data credit notification",
-        .params = NULL,
-        .param_count = 0,
-        .handler = cmd_simulate_data_credit_framework_adapter,
-    },
-    {
-        .name = "simulate_ranging",
-        .aliases = { NULL },
-        .group = CLI_GROUP_SIMULATION,
-        .flags = CLI_CMD_FLAG_NONE,
-        .description = "Simulate single-target ranging notification",
-        .params = NULL,
-        .param_count = 0,
-        .handler = cmd_simulate_ranging_framework_adapter,
-    },
-    {
-        .name = "simulate_multi_target_ranging",
-        .aliases = { NULL },
-        .group = CLI_GROUP_SIMULATION,
-        .flags = CLI_CMD_FLAG_NONE,
-        .description = "Simulate multi-target ranging notification",
-        .params = NULL,
-        .param_count = 0,
-        .handler = cmd_simulate_multi_target_ranging_framework_adapter,
-    },
-    {
-        .name = "demo_session_flow",
-        .aliases = { NULL },
-        .group = CLI_GROUP_SIMULATION,
-        .flags = CLI_CMD_FLAG_NONE,
-        .description = "Demonstrate session flow",
-        .params = NULL,
-        .param_count = 0,
-        .handler = cmd_demo_session_flow_framework_adapter,
-    },
-    {
-        .name = "simulate_qm_sdk_vendor_command",
-        .aliases = { NULL },
-        .group = CLI_GROUP_SIMULATION,
-        .flags = CLI_CMD_FLAG_NONE,
-        .description = "Simulate QM SDK vendor-specific command (GID 0x0B)",
-        .params = k_vendor_command_params,
-        .param_count = ARRAY_SIZE(k_vendor_command_params),
-        .handler = cmd_simulate_qm_sdk_vendor_command_framework_adapter,
-    },
 };
 
 const int g_uci_command_defs_count = (int)ARRAY_SIZE(g_uci_command_defs);
 
-const uci_command_def_t* uci_cmd_framework_find(const char* name) {
-    if (!name) {
+static const uci_command_def_t* uci_cmd_framework_find_in_defs(const uci_command_def_t* defs,
+                                                               int count,
+                                                               const char* name) {
+    if (!name || !defs || count <= 0) {
         return NULL;
     }
 
-    for (int idx = 0; idx < g_uci_command_defs_count; idx++) {
-        const uci_command_def_t* def = &g_uci_command_defs[idx];
+    for (int idx = 0; idx < count; idx++) {
+        const uci_command_def_t* def = &defs[idx];
         if (strcmp(name, def->name) == 0) {
             return def;
         }
@@ -1088,6 +927,19 @@ const uci_command_def_t* uci_cmd_framework_find(const char* name) {
     }
 
     return NULL;
+}
+
+const uci_command_def_t* uci_cmd_framework_find(const char* name) {
+    const uci_command_def_t* def = uci_cmd_framework_find_in_defs(g_uci_command_defs,
+                                                                  g_uci_command_defs_count,
+                                                                  name);
+    if (def) {
+        return def;
+    }
+
+    return uci_cmd_framework_find_in_defs(g_uci_simulation_command_defs,
+                                          g_uci_simulation_command_defs_count,
+                                          name);
 }
 
 int uci_cmd_framework_handler(int argc, char** argv) {

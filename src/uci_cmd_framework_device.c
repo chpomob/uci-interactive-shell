@@ -1,0 +1,343 @@
+#include "../include/uci_cmd_core_new.h"
+#include "../include/uci_cmd_framework_device.h"
+#include "../include/uci_cmd_framework_wrappers.h"
+#include "../include/uci_cmd_handlers.h"
+
+DEFINE_CMD_WRAPPER(cmd_mode_sim)
+DEFINE_CMD_WRAPPER(cmd_mode_hw)
+DEFINE_CMD_WRAPPER(cmd_mode_info)
+DEFINE_CMD_WRAPPER(cmd_hw_init)
+DEFINE_CMD_WRAPPER(cmd_hw_send)
+DEFINE_CMD_WRAPPER(cmd_get_caps_info)
+DEFINE_CMD_WRAPPER(cmd_show_device_configs)
+
+static const uci_param_def_t k_set_power_params[] = {
+    {
+        .name = "state",
+        .type = PARAM_TYPE_DEVICE_STATE,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 0,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Target device state (active|ready|sleep|suspend)",
+    },
+};
+
+static const uci_param_def_t k_hw_send_params[] = {
+    {
+        .name = "mt",
+        .type = PARAM_TYPE_HEX_BYTE,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 0,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Message Type byte (hex, e.g. 01)",
+    },
+    {
+        .name = "pbf",
+        .type = PARAM_TYPE_HEX_BYTE,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 0,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Packet Boundary Flag (hex)",
+    },
+    {
+        .name = "gid",
+        .type = PARAM_TYPE_HEX_BYTE,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 0,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Group Identifier (hex)",
+    },
+    {
+        .name = "oid",
+        .type = PARAM_TYPE_HEX_BYTE,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 0,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Opcode Identifier (hex)",
+    },
+};
+
+static const uci_param_def_t k_get_config_params[] = {
+    {
+        .name = "config_name",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 64,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Named device configuration parameter",
+    },
+};
+
+static const uci_param_def_t k_set_config_params[] = {
+    {
+        .name = "config_name",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 64,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Named device configuration parameter",
+    },
+    {
+        .name = "value",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 128,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "String representation of the desired value",
+    },
+};
+
+static const uci_param_def_t k_validate_arguments_params[] = {
+    {
+        .name = "integer_value",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 32,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Signed integer that will be validated by the handler",
+    },
+    {
+        .name = "hex_payload",
+        .type = PARAM_TYPE_HEX_STRING,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 64,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Hex string (even number of characters)",
+    },
+    {
+        .name = "session_id",
+        .type = PARAM_TYPE_SESSION_ID,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 0,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Session identifier",
+    },
+};
+
+static const uci_param_def_t k_device_path_param[] = {
+    {
+        .name = "device_path",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 255,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "Serial or char device path (e.g. /dev/uwb0)",
+    },
+};
+
+const uci_command_def_t g_uci_device_command_defs[] = {
+    {
+        .name = "mode_sim",
+        .aliases = { "sim_mode", NULL, NULL, NULL },
+        .group = CLI_GROUP_HARDWARE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Switch to simulation mode",
+        .params = NULL,
+        .param_count = 0,
+        .handler = cmd_mode_sim_framework_adapter,
+    },
+    {
+        .name = "mode_hw",
+        .aliases = { "hw_mode", NULL, NULL, NULL },
+        .group = CLI_GROUP_HARDWARE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Switch to hardware mode",
+        .params = k_device_path_param,
+        .param_count = ARRAY_SIZE(k_device_path_param),
+        .handler = cmd_mode_hw_framework_adapter,
+    },
+    {
+        .name = "mode_info",
+        .aliases = { "current_mode", NULL, NULL, NULL },
+        .group = CLI_GROUP_HARDWARE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Display current mode",
+        .params = NULL,
+        .param_count = 0,
+        .handler = cmd_mode_info_framework_adapter,
+    },
+    {
+        .name = "hw_init",
+        .aliases = { "hw_connect", NULL, NULL, NULL },
+        .group = CLI_GROUP_HARDWARE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Initialize hardware mode and connect",
+        .params = k_device_path_param,
+        .param_count = ARRAY_SIZE(k_device_path_param),
+        .handler = cmd_hw_init_framework_adapter,
+    },
+    {
+        .name = "hw_send",
+        .aliases = { NULL },
+        .group = CLI_GROUP_HARDWARE,
+        .flags = CLI_CMD_FLAG_REQUIRES_HW_MODE,
+        .description = "Send a raw packet to hardware",
+        .params = k_hw_send_params,
+        .param_count = ARRAY_SIZE(k_hw_send_params),
+        .handler = cmd_hw_send_framework_adapter,
+    },
+    {
+        .name = "get_device_info",
+        .aliases = { "device_info", NULL, NULL, NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Query device information",
+        .params = NULL,
+        .param_count = 0,
+        .handler = handle_get_device_info_command_new,
+    },
+    {
+        .name = "device_reset",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Reset the connected device",
+        .params = NULL,
+        .param_count = 0,
+        .handler = handle_device_reset_command_new,
+    },
+    {
+        .name = "set_power",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Set device power state",
+        .params = k_set_power_params,
+        .param_count = ARRAY_SIZE(k_set_power_params),
+        .handler = handle_set_power_command_new,
+    },
+    {
+        .name = "device_on",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Power on the device",
+        .params = NULL,
+        .param_count = 0,
+        .handler = handle_device_on_command_new,
+    },
+    {
+        .name = "device_off",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Power off the device",
+        .params = NULL,
+        .param_count = 0,
+        .handler = handle_device_off_command_new,
+    },
+    {
+        .name = "get_caps_info",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Query capability information",
+        .params = NULL,
+        .param_count = 0,
+        .handler = cmd_get_caps_info_framework_adapter,
+    },
+    {
+        .name = "get_config",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Read a device configuration parameter",
+        .params = k_get_config_params,
+        .param_count = ARRAY_SIZE(k_get_config_params),
+        .handler = handle_get_config_command_new,
+    },
+    {
+        .name = "get_device_state",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Report current device state",
+        .params = NULL,
+        .param_count = 0,
+        .handler = handle_get_device_state_command_new,
+    },
+    {
+        .name = "set_device_active",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Force device Active state",
+        .params = NULL,
+        .param_count = 0,
+        .handler = handle_set_device_active_command_new,
+    },
+    {
+        .name = "set_device_ready",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Force device Ready state",
+        .params = NULL,
+        .param_count = 0,
+        .handler = handle_set_device_ready_command_new,
+    },
+    {
+        .name = "set_config",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Update a device configuration parameter",
+        .params = k_set_config_params,
+        .param_count = ARRAY_SIZE(k_set_config_params),
+        .handler = handle_set_config_command_new,
+    },
+    {
+        .name = "show_device_configs",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "List supported device configuration parameters",
+        .params = NULL,
+        .param_count = 0,
+        .handler = cmd_show_device_configs_framework_adapter,
+    },
+    {
+        .name = "device_suspend",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Suspend device operation",
+        .params = NULL,
+        .param_count = 0,
+        .handler = handle_device_suspend_command_new,
+    },
+    {
+        .name = "query_timestamp",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Query device timestamp",
+        .params = NULL,
+        .param_count = 0,
+        .handler = handle_query_timestamp_command_new,
+    },
+    {
+        .name = "validate_arguments",
+        .aliases = { NULL },
+        .group = CLI_GROUP_DEVICE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Demo new command framework argument validation",
+        .params = k_validate_arguments_params,
+        .param_count = ARRAY_SIZE(k_validate_arguments_params),
+        .handler = handle_validate_arguments_command_new,
+    },
+};
+
+const int g_uci_device_command_defs_count = (int)ARRAY_SIZE(g_uci_device_command_defs);

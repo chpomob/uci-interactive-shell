@@ -48,3 +48,9 @@ parameter validation rules before handing control to the legacy handlers in
   `src/uci_cmd_core_new.c` (and similar files) that read from `argv` instead of
   the parsed values. The next step is to migrate handlers to typed parameters so
   the legacy parsing code can be deleted.
+- Session lifecycle, data-transfer, and multicast handlers now consume the
+  validated values supplied by the framework. For example,
+  `session_update_dt_tag_rounds` accepts either individual integers or a single
+  hex blob, logical-link identifiers are parsed as bytes (0-255), and
+  application configuration setters reuse the typed session ID that was already
+  checked at dispatch time.

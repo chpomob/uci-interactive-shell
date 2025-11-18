@@ -44,7 +44,7 @@ Once the shell is running, you can use the following commands:
 - `session_start <id>`, `session_stop <id>`, `get_session_state <id>`
 - `set_app_config <id> <param> <value>`, `get_app_config <id> <param>`
 - `session_update_multicast_list <id> <action> <short> <subsession>`
-- `session_update_dt_tag_rounds <id> [round_index ...]`
+- `session_update_dt_tag_rounds <id> [round_index ... | hex_bytes]`
 - `session_data_transfer_phase_config <id> <repetition> <control> <size> [payload...]`
 - `session_query_data_size_in_ranging <id>`
 - `session_set_hybrid_controller_config <id> [hex-config]`
@@ -74,7 +74,7 @@ Once the shell is running, you can use the following commands:
 ### Session Management
 - Initialize a session: `session_init 1 fira_ranging`
 - Configure session parameters: `set_app_config 1 channel 5`
-- Update DT-Tag rounds: `session_update_dt_tag_rounds 1 0 1 2`
+- Update DT-Tag rounds: `session_update_dt_tag_rounds 1 0 1 2` (or `session_update_dt_tag_rounds 1 000102` for hex bytes)
 - Configure data transfer: `session_data_transfer_phase_config 1 1 0x02 4 AA BB CC DD`
 - Start ranging: `session_start 1`
 - Get session status: `get_session_state 1`
@@ -167,7 +167,7 @@ The UCI Interactive Shell can communicate with real UWB hardware through charact
 > set_app_config 1 channel 5       # Set to channel 5
 > set_app_config 1 ranging_usage ranging   # Set ranging usage
 > session_update_multicast_list 1 add 0x1234 0x00000001
-> session_update_dt_tag_rounds 1 0 1
+> session_update_dt_tag_rounds 1 0 1          # or session_update_dt_tag_rounds 1 0001
 > session_data_transfer_phase_config 1 1 0x02 0
 > session_start 1                  # Start the session
 > simulate_ranging                 # Simulate ranging measurement

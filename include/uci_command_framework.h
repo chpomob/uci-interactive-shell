@@ -2,10 +2,23 @@
 #define UCI_COMMAND_FRAMEWORK_H
 
 #include "uci.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
+
+#ifndef UCI_CMD_MAX_PARAMS
+#define UCI_CMD_MAX_PARAMS 16
+#endif
+
+#ifndef UCI_CMD_MAX_HEX_PARAM_LEN
+#define UCI_CMD_MAX_HEX_PARAM_LEN 1024
+#endif
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#endif
 
 // CLI command flags
 enum {
@@ -97,6 +110,27 @@ int uci_cmd_add_bytes_to_payload(uci_command_context_t* ctx, const unsigned char
 
 // Unified command execution function
 int uci_cmd_execute_unified(uci_command_context_t* ctx);
+
+typedef struct {
+    bool present;
+    uci_param_type_t type;
+    const char* raw_value;
+    size_t raw_length;
+    size_t parsed_length;
+    union {
+        unsigned char u8;
+        unsigned short u16;
+        unsigned int u32;
+        unsigned long long u64;
+        unsigned int session_id;
+        unsigned char device_state;
+        unsigned char session_type;
+        unsigned char hex_bytes[UCI_CMD_MAX_HEX_PARAM_LEN];
+    } value;
+} uci_cmd_parsed_param_t;
+
+const uci_cmd_parsed_param_t* uci_cmd_get_parsed_param(int index);
+int uci_cmd_get_parsed_param_count(void);
 
 // Command dispatch function
 int uci_cmd_dispatch(const uci_command_def_t* cmd_def, int argc, char** argv);

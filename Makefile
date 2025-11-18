@@ -104,8 +104,8 @@ $(COMMAND_HANDLER_TEST_TARGET): tests/test_command_handlers.c $(filter-out src/m
 command-framework-validation-test: $(COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET)
 	./$(COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET)
 
-$(COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET): tests/test_command_framework_validation.c src/uci_command_framework.o
-	$(CC) $(CFLAGS) -o $(COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET) tests/test_command_framework_validation.c src/uci_command_framework.o
+$(COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET): tests/test_command_framework_validation.c $(filter-out src/main.o,$(OBJ))
+	$(CC) $(CFLAGS) -o $(COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET) tests/test_command_framework_validation.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
 
 
 

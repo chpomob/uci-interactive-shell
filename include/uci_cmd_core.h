@@ -8,6 +8,7 @@ void handle_get_caps_info_command(void);
 
 // Power/state management commands
 int handle_set_power_command(char* power_state);
+int handle_set_power_state_from_value(unsigned char device_state_value);
 void handle_device_on_command(void);
 void handle_device_off_command(void);
 

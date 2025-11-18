@@ -1,56 +1,7 @@
 #include "test_runner.h"
 #include "../include/uci_command_framework.h"
+#include "../include/uci_pdl.h"
 #include <stddef.h>
-
-// --- Stubs required by uci_command_framework.c ---
-int uci_is_hardware_mode_enabled(void) { return 0; }
-int uci_hw_interface_is_connected(void) { return 0; }
-int uci_hw_interface_send_command(unsigned char mt,
-                                  unsigned char pbf,
-                                  unsigned char gid,
-                                  unsigned char oid,
-                                  unsigned char* payload,
-                                  int payload_len) {
-    (void)mt;
-    (void)pbf;
-    (void)gid;
-    (void)oid;
-    (void)payload;
-    (void)payload_len;
-    return -1;
-}
-
-int uci_hw_interface_receive_response(unsigned char* buffer,
-                                      size_t buffer_size,
-                                      int timeout_ms) {
-    (void)buffer;
-    (void)buffer_size;
-    (void)timeout_ms;
-    return -1;
-}
-
-void ui_print_error(const char* message) { (void)message; }
-void ui_print_warning(const char* message) { (void)message; }
-void ui_print_info(const char* message) { (void)message; }
-void ui_print_success(const char* message) { (void)message; }
-void send_uci_command(unsigned char mt,
-                      unsigned char pbf,
-                      unsigned char gid,
-                      unsigned char oid,
-                      const unsigned char* payload,
-                      int payload_len) {
-    (void)mt;
-    (void)pbf;
-    (void)gid;
-    (void)oid;
-    (void)payload;
-    (void)payload_len;
-}
-void parse_uci_packet(const unsigned char* packet, size_t len) {
-    (void)packet;
-    (void)len;
-}
-// --- End stubs ---
 
 static int g_handler_calls = 0;
 
@@ -65,6 +16,44 @@ static int dummy_handler(const char* cmd_name,
     (void)params;
     (void)param_count;
     g_handler_calls++;
+    return 0;
+}
+
+static unsigned int g_captured_session_id = 0;
+static unsigned char g_captured_session_type = 0;
+static size_t g_captured_hex_len = 0;
+static unsigned char g_captured_hex_bytes[8];
+static int g_capture_handler_calls = 0;
+
+static int capture_handler(const char* cmd_name,
+                           int argc,
+                           char** argv,
+                           const uci_param_def_t* params,
+                           int param_count) {
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* type_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* hex_param = uci_cmd_get_parsed_param(2);
+
+    if (session_param && session_param->present) {
+        g_captured_session_id = session_param->value.session_id;
+    }
+    if (type_param && type_param->present) {
+        g_captured_session_type = type_param->value.session_type;
+    }
+    if (hex_param && hex_param->present) {
+        g_captured_hex_len = hex_param->parsed_length;
+        size_t copy_len = (g_captured_hex_len < sizeof(g_captured_hex_bytes))
+                              ? g_captured_hex_len
+                              : sizeof(g_captured_hex_bytes);
+        memcpy(g_captured_hex_bytes, hex_param->value.hex_bytes, copy_len);
+    }
+    g_capture_handler_calls++;
     return 0;
 }
 
@@ -215,6 +204,56 @@ int main(void) {
         g_handler_calls = 0;
         ASSERT_EQUAL(-1, uci_cmd_dispatch(&def, 5, argv_bad_short));
         ASSERT_EQUAL(0, g_handler_calls);
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_alias_lookup
+    TEST_CASE(alias_lookup);
+    {
+        const uci_command_def_t* primary = uci_cmd_framework_find("get_device_info");
+        const uci_command_def_t* alias = uci_cmd_framework_find("device_info");
+        ASSERT_TRUE(primary != NULL);
+        ASSERT_TRUE(alias != NULL);
+        ASSERT_TRUE(primary == alias);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_parsed_storage
+    TEST_CASE(parsed_parameter_storage);
+    {
+        const uci_param_def_t params[] = {
+            { "session_id", PARAM_TYPE_SESSION_ID, PARAM_FLAG_REQUIRED, 0, 0, 0, "session" },
+            { "session_type", PARAM_TYPE_SESSION_TYPE, PARAM_FLAG_REQUIRED, 0, 0, 0, "type" },
+            { "payload", PARAM_TYPE_HEX_STRING, PARAM_FLAG_REQUIRED, 8, 0, 0, "hex payload" },
+        };
+        const uci_command_def_t def = {
+            .name = "typed_demo",
+            .aliases = { NULL },
+            .group = CLI_GROUP_SESSION,
+            .flags = CLI_CMD_FLAG_NONE,
+            .description = "verify parsed storage",
+            .params = params,
+            .param_count = 3,
+            .handler = capture_handler,
+        };
+
+        char* argv_valid[] = { "typed_demo", "7", "fira_ranging", "AABBCCDD" };
+        g_capture_handler_calls = 0;
+        g_captured_hex_len = 0;
+        ASSERT_EQUAL(0, uci_cmd_dispatch(&def, 4, argv_valid));
+        ASSERT_EQUAL(1, g_capture_handler_calls);
+        ASSERT_EQUAL(7, (int)g_captured_session_id);
+        ASSERT_EQUAL((int)FIRA_RANGING_SESSION, (int)g_captured_session_type);
+        ASSERT_EQUAL(4, (int)g_captured_hex_len);
+        ASSERT_EQUAL(0xAA, g_captured_hex_bytes[0]);
+        ASSERT_EQUAL(0xBB, g_captured_hex_bytes[1]);
+        ASSERT_EQUAL(0xCC, g_captured_hex_bytes[2]);
+        ASSERT_EQUAL(0xDD, g_captured_hex_bytes[3]);
 
         TEST_PASS();
     }

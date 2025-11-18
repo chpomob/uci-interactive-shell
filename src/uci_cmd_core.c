@@ -8,6 +8,7 @@
 #include "../include/uci_packet_utils.h"
 #include "../include/uci_config_manager.h"
 #include "../include/uci_command_framework.h"
+#include "../include/uci_cmd_core.h"
 
 #define CORE_CMD_MAX_PAYLOAD 512
 
@@ -89,6 +90,25 @@ int handle_set_power_command(char* power_state) {
 
     unsigned char payload[] = {0x01, cfg_id, 0x01, value};
     return send_core_command(COMMAND, COMPLETE, CORE, CORE_SET_CONFIG, payload, sizeof(payload));
+}
+
+int handle_set_power_state_from_value(unsigned char device_state_value) {
+    if (device_state_value == DEVICE_STATE_ACTIVE) {
+        handle_set_device_active_command();
+        return 0;
+    }
+    if (device_state_value == DEVICE_STATE_READY) {
+        handle_set_device_ready_command();
+        return 0;
+    }
+    if (device_state_value == 0x02) { // Sleep/suspend shared literal
+        handle_device_suspend_command();
+        return 0;
+    }
+
+    printf("Invalid power state value: 0x%02X. Use 'active', 'ready', or 'sleep'.\n",
+           device_state_value);
+    return -1;
 }
 
 void handle_device_on_command(void) {

@@ -42,6 +42,11 @@ int handle_set_power_command_new(const char* cmd_name, int argc, char** argv,
     (void)params;
     (void)param_count;
     
+    const uci_cmd_parsed_param_t* state_param = uci_cmd_get_parsed_param(0);
+    if (state_param && state_param->present && state_param->type == PARAM_TYPE_DEVICE_STATE) {
+        return handle_set_power_state_from_value(state_param->value.device_state);
+    }
+
     if (argc < 2) {
         handle_set_power_command(NULL);
         return -1;

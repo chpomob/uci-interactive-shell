@@ -4,6 +4,14 @@
 #include "../include/uci_functions.h"
 #include "../include/uci_pdl.h"
 
+static uci_cmd_parsed_param_t g_parsed_params[UCI_CMD_MAX_PARAMS];
+static int g_parsed_param_count = 0;
+
+static void uci_cmd_reset_parsed_params(void) {
+    memset(g_parsed_params, 0, sizeof(g_parsed_params));
+    g_parsed_param_count = 0;
+}
+
 // Helper function to convert string to unsigned char (uint8_t)
 int uci_cmd_validate_uint8(const char* str, unsigned char* value, unsigned char min_val, unsigned char max_val) {
     if (!str || !value) {
@@ -253,6 +261,17 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
         return -1;
     }
 
+    if (cmd_def->param_count > UCI_CMD_MAX_PARAMS) {
+        printf("Internal error: command '%s' defines %d parameters (max supported %d)\n",
+               cmd_def->name ? cmd_def->name : "(unknown)",
+               cmd_def->param_count,
+               UCI_CMD_MAX_PARAMS);
+        return -1;
+    }
+
+    uci_cmd_reset_parsed_params();
+    g_parsed_param_count = cmd_def->param_count;
+
     // Check if required number of arguments matches
     int required_params = 0;
     for (int i = 0; i < cmd_def->param_count; i++) {
@@ -279,17 +298,26 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
     }
 
     // Validate each parameter based on its type
-    for (int i = 0; i < cmd_def->param_count && i + 1 < argc; i++) {
+    for (int i = 0; i < cmd_def->param_count; i++) {
         const uci_param_def_t* param = &cmd_def->params[i];
-        const char* param_str = argv[i + 1]; // Skip command name
+        const char* param_str = (i + 1 < argc) ? argv[i + 1] : NULL; // Skip command name
+        size_t param_len = param_str ? strlen(param_str) : 0;
+        uci_cmd_parsed_param_t* parsed = &g_parsed_params[i];
+        parsed->type = param->type;
+        parsed->raw_value = param_str;
+        parsed->raw_length = param_len;
+        parsed->parsed_length = 0;
+        parsed->present = false;
 
-        if (!param_str) {
+        if (!param_str || param_len == 0) {
             if (param->flags & PARAM_FLAG_REQUIRED) {
                 ui_print_error("Missing required parameter");
                 return -1;
             }
             continue;
         }
+
+        parsed->present = true;
 
         switch (param->type) {
             case PARAM_TYPE_UINT8:
@@ -305,6 +333,7 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
                     ui_print_error(error_msg);
                     return -1;
                 }
+                parsed->value.u8 = val;
                 break;
             }
             case PARAM_TYPE_HEX_BYTE:
@@ -319,6 +348,7 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
                     ui_print_error(error_msg);
                     return -1;
                 }
+                parsed->value.u8 = (unsigned char)val;
                 break;
             }
             case PARAM_TYPE_UINT16:
@@ -334,6 +364,7 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
                     ui_print_error(error_msg);
                     return -1;
                 }
+                parsed->value.u16 = val;
                 break;
             }
             case PARAM_TYPE_UINT32:
@@ -349,6 +380,7 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
                     ui_print_error(error_msg);
                     return -1;
                 }
+                parsed->value.u32 = val;
                 break;
             }
             case PARAM_TYPE_UINT64:
@@ -362,6 +394,7 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
                     ui_print_error(error_msg);
                     return -1;
                 }
+                parsed->value.u64 = val;
                 break;
             }
             case PARAM_TYPE_SESSION_ID:
@@ -373,18 +406,26 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
                     ui_print_error(error_msg);
                     return -1;
                 }
+                parsed->value.session_id = session_id;
                 break;
             }
             case PARAM_TYPE_HEX_STRING:
             {
-                unsigned char buffer[255];
-                size_t len = sizeof(buffer);
-                if (uci_cmd_validate_hex_string(param_str, buffer, &len, param->max_len) != 0) {
+                size_t allowed_len = (param->max_len > 0) ? param->max_len : UCI_CMD_MAX_HEX_PARAM_LEN;
+                if (allowed_len > UCI_CMD_MAX_HEX_PARAM_LEN) {
+                    allowed_len = UCI_CMD_MAX_HEX_PARAM_LEN;
+                }
+                size_t parsed_len = UCI_CMD_MAX_HEX_PARAM_LEN;
+                if (uci_cmd_validate_hex_string(param_str,
+                                                parsed->value.hex_bytes,
+                                                &parsed_len,
+                                                allowed_len) != 0) {
                     char error_msg[256];
                     snprintf(error_msg, sizeof(error_msg), "Invalid hex string: %s", param_str);
                     ui_print_error(error_msg);
                     return -1;
                 }
+                parsed->parsed_length = parsed_len;
                 break;
             }
             case PARAM_TYPE_DEVICE_STATE:
@@ -396,6 +437,7 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
                     ui_print_error(error_msg);
                     return -1;
                 }
+                parsed->value.device_state = state;
                 break;
             }
             case PARAM_TYPE_SESSION_TYPE:
@@ -404,6 +446,19 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
                 if (uci_cmd_validate_session_type(param_str, &type) != 0) {
                     char error_msg[256];
                     snprintf(error_msg, sizeof(error_msg), "Invalid session type: %s", param_str);
+                    ui_print_error(error_msg);
+                    return -1;
+                }
+                parsed->value.session_type = type;
+                break;
+            }
+            case PARAM_TYPE_STRING:
+            {
+                if (param->max_len > 0 && parsed->raw_length > param->max_len) {
+                    char error_msg[256];
+                    snprintf(error_msg, sizeof(error_msg),
+                             "Parameter %s exceeds max length (%zu > %zu)",
+                             param->name, parsed->raw_length, param->max_len);
                     ui_print_error(error_msg);
                     return -1;
                 }
@@ -447,6 +502,17 @@ int uci_cmd_dispatch(const uci_command_def_t* cmd_def, int argc, char** argv) {
     }
 
     return 0;
+}
+
+const uci_cmd_parsed_param_t* uci_cmd_get_parsed_param(int index) {
+    if (index < 0 || index >= g_parsed_param_count) {
+        return NULL;
+    }
+    return &g_parsed_params[index];
+}
+
+int uci_cmd_get_parsed_param_count(void) {
+    return g_parsed_param_count;
 }
 int uci_cmd_validate_uint64(const char* str, unsigned long long* value, unsigned long long min_val, unsigned long long max_val) {
     if (!str || !value) {

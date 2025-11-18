@@ -7,6 +7,7 @@
 #include "../include/uci_pdl.h"
 #include "uci_command_utils.h"
 #include "../include/uci_config_manager.h"
+#include "../include/uci_cmd_session.h"
 
 // Helper function to encode session_id in little-endian format
 static void encode_session_id_le(unsigned char* payload, uint32_t session_id) {
@@ -146,9 +147,13 @@ int handle_session_init_command(char* session_id_str, char* session_type_str) {
         return -1;
     }
 
+    return handle_session_init_command_values(session_id, session_type);
+}
+
+int handle_session_init_command_values(uint32_t session_id, SessionType session_type) {
     unsigned char payload[5];
     encode_session_id_le(payload, session_id);
-    payload[4] = session_type;
+    payload[4] = (unsigned char)session_type;
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_INIT, payload, sizeof(payload));
     return 0;
 }

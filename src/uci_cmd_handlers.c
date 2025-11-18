@@ -6,6 +6,8 @@
 #include "../include/uci_cmd_hardware.h"
 #include "../include/uci_cmd_session.h"
 #include "../include/uci_cmd_session_config.h"
+#include "../include/uci_command_framework.h"
+#include "../include/uci_pdl.h"
 
 int cmd_hw_init(int argc, char** argv) {
     char* device_path = (argc > 1) ? argv[1] : NULL;
@@ -131,6 +133,16 @@ int cmd_query_timestamp(int argc, char** argv) {
 }
 
 int cmd_session_init(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* type_param = uci_cmd_get_parsed_param(1);
+
+    if (session_param && session_param->present &&
+        type_param && type_param->present &&
+        type_param->type == PARAM_TYPE_SESSION_TYPE) {
+        return handle_session_init_command_values(session_param->value.session_id,
+                                                  (SessionType)type_param->value.session_type);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* session_type_str = (argc > 2) ? argv[2] : NULL;
     return handle_session_init_command(session_id_str, session_type_str);

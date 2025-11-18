@@ -105,7 +105,17 @@ The UCI protocol is a communication interface used for Ultra-Wideband (UWB) devi
 
 ## Project Status
 
-This project has been enhanced from a simple UCI protocol simulation to a comprehensive UWB communication tool that supports both simulation mode and real hardware communication.
+The `master` branch currently points to `39eac10 (2025-11-11)` and contains the declarative command framework that now powers help text, tab completion, and dispatching (see `src/uci_cmd_framework_*` and `src/uci_command_framework.c`). The working tree is clean and aligned with `origin/master`. A living snapshot of recent commits and outstanding work is tracked in `docs/PROJECT_STATUS.md`.
+
+### Current Highlights
+- CLI help/command discovery now shares the same metadata tables, keeping aliases, descriptions, and completion results in sync across the shell (`src/uci_cli.c`, `src/uci_cli_completion.c`).
+- Device, session, and simulation commands all flow through the same validation layer, so argument ranges are checked before handlers run (`src/uci_cmd_framework_device.c`, `src/uci_cmd_framework_session.c`, `src/uci_cmd_framework_simulation.c`).
+- Hardware and simulation transports execute through the same `uci_cmd_execute_unified` path, keeping feature parity between character-device hardware use and protocol simulation.
+
+### Next Tasks
+1. Consume the validated parameters inside each handler (for example the wrappers in `src/uci_cmd_core_new.c` still re-parse `argv`) so the framework can fully replace the legacy CLI parsing path.
+2. Add regression tests that load the command definition tables, walk aliases, and exercise `uci_cmd_dispatch`/`uci_cmd_framework_handler` to guard against accidental regressions.
+3. Provide an automated hardware-mode smoke test or loopback harness so commands that require hardware mode (`CLI_CMD_FLAG_REQUIRES_HW_MODE`) are exercised in CI rather than only manually.
 
 ### Complete Feature Set
 - **Protocol Compliance**: Fully aligned with Android UWB specification
@@ -196,7 +206,8 @@ The UCI Interactive Shell can communicate with real UWB hardware through charact
 ```
 
 For complete technical details of all improvements, see:
-- `FINAL_SUMMARY.md` - Comprehensive feature summary and usage guide
+- `docs/PROJECT_STATUS.md` - Current branch snapshot, recent commits, and next steps
+- `docs/UCI_STATE_OF_THE_ART_SECURITY_FINAL_SUMMARY.md` - End-to-end security hardening summary
 - `uci_analysis/UCI_PROTOCOL_ANALYSIS.md` - Detailed UCI protocol specification
 - `uci_analysis/SUMMARY.md` - Deep dive into protocol elements
 - `uci_analysis/uci_packet_generator.py` - Python script for generating UCI packets
@@ -210,6 +221,8 @@ For complete technical details of all improvements, see:
 - `src/uci_pdl.h` - UCI protocol definitions and constants
 - `src/uci_hw_interface.h/c` - Hardware interface layer
 - `src/uci_hw_chardev.h/c` - Character device communication layer
+- `src/uci_command_framework.c` - Parameter validation and unified dispatcher shared by simulation/hardware modes
+- `src/uci_cmd_framework_{bridge,device,session,simulation}.c` - Declarative command definition tables that power CLI help, completion, and handlers
 
 ## UCI Protocol Analysis
 

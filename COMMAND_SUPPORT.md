@@ -30,3 +30,21 @@ Key limitations to keep in mind:
 When adding new features, ensure the corresponding command path returns a
 well-formed status payload and, where practical, validates incoming buffers to
 match the patterns documented in the Android UCI manager.
+
+## Declarative Command Framework
+
+The CLI is now driven by declarative command definitions stored in
+`src/uci_cmd_framework_{bridge,device,session,simulation}.c`. Each entry
+describes the command name, aliases, help text, parameter metadata, and hardware
+requirements. `uci_cli.c` and `uci_cli_completion.c` read those tables through
+`uci_cmd_framework_bridge.c`, while `uci_command_framework.c` enforces the
+parameter validation rules before handing control to the legacy handlers in
+`src/uci_cmd_*`.
+
+### Migration Status
+- Help output and readline completion already use the shared definitions, so any
+  change to a command name/alias instantly propagates.
+- Most handlers still rely on transitional wrappers in
+  `src/uci_cmd_core_new.c` (and similar files) that read from `argv` instead of
+  the parsed values. The next step is to migrate handlers to typed parameters so
+  the legacy parsing code can be deleted.

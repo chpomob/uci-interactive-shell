@@ -40,27 +40,8 @@ int handle_session_set_hybrid_controller_config_command(char* session_id_str, un
         return -1;
     }
 
-    unsigned char payload[MAX_PAYLOAD_LENGTH];
-    int payload_len = 4; // Start with 4 bytes for session_id
-    
-    // Add session_id in little-endian format
-    payload[0] = session_id & 0xFF;
-    payload[1] = (session_id >> 8) & 0xFF;
-    payload[2] = (session_id >> 16) & 0xFF;
-    payload[3] = (session_id >> 24) & 0xFF;
-    
-    // Add configuration data if provided
-    if (config_data && config_len > 0) {
-        if (config_len > MAX_PAYLOAD_LENGTH - 4) {
-            printf("Error: Configuration data too long. Maximum %d bytes allowed.\n", MAX_PAYLOAD_LENGTH - 4);
-            return -1;
-        }
-        memcpy(&payload[4], config_data, config_len);
-        payload_len += config_len;
-    }
-
-    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_SET_HYBRID_CONTROLLER_CONFIG, payload, payload_len);
-    return 0;
+    return handle_session_set_hybrid_controller_config_command_value(
+        session_id, (const char*)config_data, (size_t)config_len);
 }
 
 /**
@@ -87,27 +68,8 @@ int handle_session_set_hybrid_controlee_config_command(char* session_id_str, uns
         return -1;
     }
 
-    unsigned char payload[MAX_PAYLOAD_LENGTH];
-    int payload_len = 4; // Start with 4 bytes for session_id
-    
-    // Add session_id in little-endian format
-    payload[0] = session_id & 0xFF;
-    payload[1] = (session_id >> 8) & 0xFF;
-    payload[2] = (session_id >> 16) & 0xFF;
-    payload[3] = (session_id >> 24) & 0xFF;
-    
-    // Add configuration data if provided
-    if (config_data && config_len > 0) {
-        if (config_len > MAX_PAYLOAD_LENGTH - 4) {
-            printf("Error: Configuration data too long. Maximum %d bytes allowed.\n", MAX_PAYLOAD_LENGTH - 4);
-            return -1;
-        }
-        memcpy(&payload[4], config_data, config_len);
-        payload_len += config_len;
-    }
-
-    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_SET_HYBRID_CONTROLEE_CONFIG, payload, payload_len);
-    return 0;
+    return handle_session_set_hybrid_controlee_config_command_value(
+        session_id, (const char*)config_data, (size_t)config_len);
 }
 
 /**
@@ -142,5 +104,55 @@ int handle_session_query_data_size_in_ranging_command_value(uint32_t session_id)
     payload[3] = (session_id >> 24) & 0xFF;
 
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_QUERY_DATA_SIZE_IN_RANGING, payload, sizeof(payload));
+    return 0;
+}
+
+int handle_session_set_hybrid_controller_config_command_value(uint32_t session_id,
+                                                              const char* config_data,
+                                                              size_t config_len) {
+    unsigned char payload[MAX_PAYLOAD_LENGTH];
+    size_t payload_len = 4;
+
+    payload[0] = session_id & 0xFF;
+    payload[1] = (session_id >> 8) & 0xFF;
+    payload[2] = (session_id >> 16) & 0xFF;
+    payload[3] = (session_id >> 24) & 0xFF;
+
+    if (config_data && config_len > 0) {
+        if (config_len > MAX_PAYLOAD_LENGTH - 4) {
+            printf("Error: Configuration data too long. Maximum %d bytes allowed.\n", MAX_PAYLOAD_LENGTH - 4);
+            return -1;
+        }
+        memcpy(&payload[4], config_data, config_len);
+        payload_len += config_len;
+    }
+
+    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_SET_HYBRID_CONTROLLER_CONFIG,
+                     payload, (int)payload_len);
+    return 0;
+}
+
+int handle_session_set_hybrid_controlee_config_command_value(uint32_t session_id,
+                                                             const char* config_data,
+                                                             size_t config_len) {
+    unsigned char payload[MAX_PAYLOAD_LENGTH];
+    size_t payload_len = 4;
+
+    payload[0] = session_id & 0xFF;
+    payload[1] = (session_id >> 8) & 0xFF;
+    payload[2] = (session_id >> 16) & 0xFF;
+    payload[3] = (session_id >> 24) & 0xFF;
+
+    if (config_data && config_len > 0) {
+        if (config_len > MAX_PAYLOAD_LENGTH - 4) {
+            printf("Error: Configuration data too long. Maximum %d bytes allowed.\n", MAX_PAYLOAD_LENGTH - 4);
+            return -1;
+        }
+        memcpy(&payload[4], config_data, config_len);
+        payload_len += config_len;
+    }
+
+    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_SET_HYBRID_CONTROLEE_CONFIG,
+                     payload, (int)payload_len);
     return 0;
 }

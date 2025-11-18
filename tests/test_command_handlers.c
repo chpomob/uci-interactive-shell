@@ -155,6 +155,68 @@ int main(void) {
     }
 #undef test_case_end
 
+#define test_case_end test_case_end_multicast_values
+    TEST_CASE(session_multicast_values);
+    {
+        reset_command_capture();
+        int rc = handle_update_multicast_list_command_values(7, "add", 0x4321, 0x01020304);
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+        ASSERT_EQUAL(SESSION_UPDATE_CONTROLLER_MULTICAST_LIST, g_captured_command.oid);
+        ASSERT_EQUAL(12, g_captured_command.payload_len);
+
+        const unsigned char expected[] = {
+            0x07, 0x00, 0x00, 0x00, // session_id
+            0x01,                   // num entries
+            MULTICAST_ACTION_ADD_SHORT_KEY,
+            0x21, 0x43,             // short address
+            0x04, 0x03, 0x02, 0x01  // subsession_id
+        };
+        ASSERT_TRUE(payload_matches(expected, sizeof(expected)));
+
+        rc = handle_update_multicast_list_command_values(7, "unknown", 0x1234, 0);
+        ASSERT_EQUAL(-1, rc);
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
+#define test_case_end test_case_end_dtp_values
+    TEST_CASE(session_dtp_values_handler);
+    {
+        reset_command_capture();
+        unsigned char payload_bytes[] = {0xAA, 0xBB, 0xCC};
+        int rc = handle_session_data_transfer_phase_config_command_values(9,
+                                                                          1,
+                                                                          2,
+                                                                          3,
+                                                                          payload_bytes,
+                                                                          sizeof(payload_bytes));
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+        ASSERT_EQUAL(SESSION_DATA_TRANSFER_PHASE_CONFIG, g_captured_command.oid);
+
+        const unsigned char expected[] = {
+            0x09, 0x00, 0x00, 0x00,
+            0x01, 0x02, 0x03,
+            0xAA, 0xBB, 0xCC
+        };
+        ASSERT_TRUE(payload_matches(expected, sizeof(expected)));
+
+        rc = handle_session_data_transfer_phase_config_command_values(9, 1, 2, 0, payload_bytes, sizeof(payload_bytes));
+        ASSERT_EQUAL(-1, rc);
+
+        rc = handle_session_data_transfer_phase_config_command_values(9, 1, 2, 3, NULL, 0);
+        ASSERT_EQUAL(-1, rc);
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
 #define test_case_end test_case_end_core_device_reset
     TEST_CASE(core_device_reset);
     {
@@ -732,6 +794,30 @@ int main(void) {
                                                      0,
                                                      payload_bytes,
                                                      0);
+        ASSERT_EQUAL(-1, rc);
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
+#define test_case_end test_case_end_hybrid_value
+    TEST_CASE(session_hybrid_config_value_handler);
+    {
+        reset_command_capture();
+        const char config_str[] = "AB";
+        int rc = handle_session_set_hybrid_controller_config_command_value(4,
+                                                                           config_str,
+                                                                           strlen(config_str));
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+        ASSERT_EQUAL(SESSION_SET_HYBRID_CONTROLLER_CONFIG, g_captured_command.oid);
+        ASSERT_EQUAL(6, g_captured_command.payload_len);
+        ASSERT_EQUAL('A', g_captured_command.payload[4]);
+        ASSERT_EQUAL('B', g_captured_command.payload[5]);
+
+        rc = handle_session_set_hybrid_controller_config_command_value(4, config_str, sizeof(config_str) + 300);
         ASSERT_EQUAL(-1, rc);
 
         TEST_PASS();

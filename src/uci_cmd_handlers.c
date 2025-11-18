@@ -247,6 +247,20 @@ int cmd_get_app_config(int argc, char** argv) {
 }
 
 int cmd_session_update_multicast_list(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* action_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* short_param = uci_cmd_get_parsed_param(2);
+    const uci_cmd_parsed_param_t* subsession_param = uci_cmd_get_parsed_param(3);
+    if (session_param && session_param->present &&
+        action_param && action_param->present && action_param->raw_value &&
+        short_param && short_param->present &&
+        subsession_param && subsession_param->present) {
+        return handle_update_multicast_list_command_values(session_param->value.session_id,
+                                                           action_param->raw_value,
+                                                           short_param->value.u16,
+                                                           subsession_param->value.u32);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* action_str = (argc > 2) ? argv[2] : NULL;
     char* short_address_str = (argc > 3) ? argv[3] : NULL;
@@ -262,6 +276,36 @@ int cmd_session_update_dt_tag_rounds(int argc, char** argv) {
 }
 
 int cmd_session_data_transfer_phase_config(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* repetition_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* control_param = uci_cmd_get_parsed_param(2);
+    const uci_cmd_parsed_param_t* size_param = uci_cmd_get_parsed_param(3);
+    const uci_cmd_parsed_param_t* payload_param = uci_cmd_get_parsed_param(4);
+    int legacy_payload_count = (argc > 5) ? (argc - 5) : 0;
+
+    if (session_param && session_param->present &&
+        repetition_param && repetition_param->present &&
+        control_param && control_param->present &&
+        size_param && size_param->present) {
+        if ((payload_param && payload_param->present) ||
+            (size_param->value.u8 == 0 && legacy_payload_count == 0)) {
+            const unsigned char* payload_bytes = NULL;
+            size_t payload_len = 0;
+            if (payload_param && payload_param->present) {
+                payload_bytes = payload_param->value.hex_bytes;
+                payload_len = payload_param->parsed_length;
+            }
+
+            return handle_session_data_transfer_phase_config_command_values(
+                session_param->value.session_id,
+                repetition_param->value.u8,
+                control_param->value.u8,
+                size_param->value.u8,
+                payload_bytes,
+                payload_len);
+        }
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* repetition_str = (argc > 2) ? argv[2] : NULL;
     char* control_str = (argc > 3) ? argv[3] : NULL;
@@ -277,6 +321,15 @@ int cmd_session_data_transfer_phase_config(int argc, char** argv) {
 }
 
 int cmd_session_set_hybrid_controller_config(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* data_param = uci_cmd_get_parsed_param(1);
+    if (session_param && session_param->present && data_param && data_param->present) {
+        return handle_session_set_hybrid_controller_config_command_value(
+            session_param->value.session_id,
+            data_param->raw_value,
+            data_param->raw_length);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* config_data_str = (argc > 2) ? argv[2] : NULL;
     int config_len = config_data_str ? (int)strlen(config_data_str) : 0;
@@ -286,6 +339,15 @@ int cmd_session_set_hybrid_controller_config(int argc, char** argv) {
 }
 
 int cmd_session_set_hybrid_controlee_config(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* data_param = uci_cmd_get_parsed_param(1);
+    if (session_param && session_param->present && data_param && data_param->present) {
+        return handle_session_set_hybrid_controlee_config_command_value(
+            session_param->value.session_id,
+            data_param->raw_value,
+            data_param->raw_length);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* config_data_str = (argc > 2) ? argv[2] : NULL;
     int config_len = config_data_str ? (int)strlen(config_data_str) : 0;

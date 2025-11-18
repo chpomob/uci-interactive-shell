@@ -1,6 +1,9 @@
 #ifndef UCI_CMD_SESSION_CONFIG_H
 #define UCI_CMD_SESSION_CONFIG_H
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include <stdint.h>
 
 /**
@@ -41,6 +44,10 @@ int handle_update_multicast_list_command(char* session_id_str,
                                          char* action_str,
                                          char* address_str,
                                          char* subsession_id_str);
+int handle_update_multicast_list_command_values(uint32_t session_id,
+                                                const char* action_str,
+                                                unsigned short short_address,
+                                                uint32_t subsession_id);
 
 /**
  * @brief Handle session_set_hybrid_controller_config command
@@ -95,5 +102,18 @@ int handle_session_data_transfer_phase_config_command(char* session_id_str,
                                                       char* size_str,
                                                       char** payload_values,
                                                       int payload_count);
+int handle_session_data_transfer_phase_config_command_values(uint32_t session_id,
+                                                             unsigned char repetition,
+                                                             unsigned char control,
+                                                             unsigned char size,
+                                                             const unsigned char* payload,
+                                                             size_t payload_len);
+
+int handle_session_set_hybrid_controller_config_command_value(uint32_t session_id,
+                                                              const char* config_data,
+                                                              size_t config_len);
+int handle_session_set_hybrid_controlee_config_command_value(uint32_t session_id,
+                                                             const char* config_data,
+                                                             size_t config_len);
 
 #endif /* UCI_CMD_SESSION_CONFIG_H */

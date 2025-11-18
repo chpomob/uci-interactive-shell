@@ -141,9 +141,25 @@ int handle_update_multicast_list_command(char* session_id_str,
     }
 
     unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
-    UpdateMulticastListAction action;
+    unsigned short short_address = (unsigned short)strtoul(short_address_str, NULL, 0);
+    unsigned int subsession_id = (unsigned int)strtoul(subsession_id_str, NULL, 0);
 
-    // Support both technical and friendly names for actions
+    return handle_update_multicast_list_command_values(session_id,
+                                                       action_str,
+                                                       short_address,
+                                                       subsession_id);
+}
+
+int handle_update_multicast_list_command_values(uint32_t session_id,
+                                                const char* action_str,
+                                                unsigned short short_address,
+                                                uint32_t subsession_id) {
+    if (!action_str) {
+        printf("Error: action string is required for multicast updates.\n");
+        return -1;
+    }
+
+    UpdateMulticastListAction action;
     if (strcmp(action_str, "add") == 0 || strcmp(action_str, "add_short_key") == 0) {
         action = MULTICAST_ACTION_ADD_SHORT_KEY;
     } else if (strcmp(action_str, "remove") == 0) {
@@ -159,25 +175,19 @@ int handle_update_multicast_list_command(char* session_id_str,
         return -1;
     }
 
-    unsigned short short_address = (unsigned short)strtoul(short_address_str, NULL, 0);
-    unsigned int subsession_id = (unsigned int)strtoul(subsession_id_str, NULL, 0);
-
     unsigned char payload[12];
-    // Send session_id in little-endian format to match UCI spec and read_u32_le parsing
-    payload[0] = session_id & 0xFF;           // LSB first
+    payload[0] = session_id & 0xFF;
     payload[1] = (session_id >> 8) & 0xFF;
     payload[2] = (session_id >> 16) & 0xFF;
-    payload[3] = (session_id >> 24) & 0xFF;   // MSB last
+    payload[3] = (session_id >> 24) & 0xFF;
     payload[4] = 1; // Number of entries
     payload[5] = action;
-    // Send short_address in little-endian format to match UCI spec and read_u16_le parsing
-    payload[6] = short_address & 0xFF;        // LSB first
-    payload[7] = (short_address >> 8) & 0xFF; // MSB last
-    // Send subsession_id in little-endian format to match UCI spec and read_u32_le parsing
-    payload[8] = subsession_id & 0xFF;           // LSB first
+    payload[6] = short_address & 0xFF;
+    payload[7] = (short_address >> 8) & 0xFF;
+    payload[8] = subsession_id & 0xFF;
     payload[9] = (subsession_id >> 8) & 0xFF;
     payload[10] = (subsession_id >> 16) & 0xFF;
-    payload[11] = (subsession_id >> 24) & 0xFF;  // MSB last
+    payload[11] = (subsession_id >> 24) & 0xFF;
 
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_UPDATE_CONTROLLER_MULTICAST_LIST, payload, sizeof(payload));
     return 0;
@@ -294,16 +304,7 @@ int handle_session_data_transfer_phase_config_command(char* session_id_str,
         return -1;
     }
 
-    unsigned char payload[7 + 64];
-    unsigned int session_id = (unsigned int)session_id_ul;
-    payload[0] = session_id & 0xFF;
-    payload[1] = (session_id >> 8) & 0xFF;
-    payload[2] = (session_id >> 16) & 0xFF;
-    payload[3] = (session_id >> 24) & 0xFF;
-    payload[4] = (unsigned char)repetition_val;
-    payload[5] = (unsigned char)control_val;
-    payload[6] = (unsigned char)size_val;
-
+    unsigned char payload_bytes[64];
     for (int i = 0; i < payload_count; i++) {
         char* arg = payload_values[i];
         char* local_endptr = NULL;
@@ -312,10 +313,56 @@ int handle_session_data_transfer_phase_config_command(char* session_id_str,
             printf("Error: Invalid payload byte '%s'. Provide values between 0 and 255 (decimal or hex).\n", arg);
             return -1;
         }
-        payload[7 + i] = (unsigned char)value;
+        payload_bytes[i] = (unsigned char)value;
     }
 
-    int payload_len = 7 + payload_count;
-    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_DATA_TRANSFER_PHASE_CONFIG, payload, payload_len);
+    return handle_session_data_transfer_phase_config_command_values(
+        (uint32_t)session_id_ul,
+        (unsigned char)repetition_val,
+        (unsigned char)control_val,
+        (unsigned char)size_val,
+        payload_count > 0 ? payload_bytes : NULL,
+        (size_t)payload_count);
+}
+
+int handle_session_data_transfer_phase_config_command_values(uint32_t session_id,
+                                                             unsigned char repetition,
+                                                             unsigned char control,
+                                                             unsigned char size,
+                                                             const unsigned char* payload,
+                                                             size_t payload_len) {
+    if (size > 64) {
+        printf("Error: Declared payload size exceeds maximum supported length (64 bytes).\n");
+        return -1;
+    }
+
+    if (size == 0) {
+        if (payload && payload_len > 0) {
+            printf("Error: Payload bytes provided but size is zero.\n");
+            return -1;
+        }
+    } else {
+        if (!payload || payload_len != size) {
+            printf("Error: Provided payload length (%zu) does not match declared size (%u).\n",
+                   payload_len, size);
+            return -1;
+        }
+    }
+
+    unsigned char buffer[7 + 64];
+    buffer[0] = session_id & 0xFF;
+    buffer[1] = (session_id >> 8) & 0xFF;
+    buffer[2] = (session_id >> 16) & 0xFF;
+    buffer[3] = (session_id >> 24) & 0xFF;
+    buffer[4] = repetition;
+    buffer[5] = control;
+    buffer[6] = size;
+
+    if (payload && payload_len > 0) {
+        memcpy(&buffer[7], payload, payload_len);
+    }
+
+    int payload_size = 7 + (int)((payload && payload_len > 0) ? payload_len : 0);
+    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_DATA_TRANSFER_PHASE_CONFIG, buffer, payload_size);
     return 0;
 }

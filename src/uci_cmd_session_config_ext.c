@@ -11,89 +11,9 @@
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define MAX_PAYLOAD_LENGTH 255
-
-/**
- * @brief Handle session_set_hybrid_controller_config command
- * @param session_id_str String representation of session ID
- * @param config_data Configuration data for hybrid controller
- * @param config_len Length of configuration data
- * @return 0 on success, -1 on error
- */
-int handle_session_set_hybrid_controller_config_command(char* session_id_str, unsigned char* config_data, int config_len) {
-    if (!session_id_str) {
-        printf("Usage: session_set_hybrid_controller_config <session_id> [config_data]\n");
-        printf("  Examples:\n");
-        printf("    session_set_hybrid_controller_config 1\n");
-        printf("    session_set_hybrid_controller_config 1 01020304\n");
-        return -1;
-    }
-
-    unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
-    
-    // Validate session_id
-    if (session_id == 0) {
-        printf("Error: Invalid session ID. Must be a positive integer.\n");
-        return -1;
-    }
-
-    return handle_session_set_hybrid_controller_config_command_value(
-        session_id, (const char*)config_data, (size_t)config_len);
-}
-
-/**
- * @brief Handle session_set_hybrid_controlee_config command
- * @param session_id_str String representation of session ID
- * @param config_data Configuration data for hybrid controlee
- * @param config_len Length of configuration data
- * @return 0 on success, -1 on error
- */
-int handle_session_set_hybrid_controlee_config_command(char* session_id_str, unsigned char* config_data, int config_len) {
-    if (!session_id_str) {
-        printf("Usage: session_set_hybrid_controlee_config <session_id> [config_data]\n");
-        printf("  Examples:\n");
-        printf("    session_set_hybrid_controlee_config 1\n");
-        printf("    session_set_hybrid_controlee_config 1 01020304\n");
-        return -1;
-    }
-
-    unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
-    
-    // Validate session_id
-    if (session_id == 0) {
-        printf("Error: Invalid session ID. Must be a positive integer.\n");
-        return -1;
-    }
-
-    return handle_session_set_hybrid_controlee_config_command_value(
-        session_id, (const char*)config_data, (size_t)config_len);
-}
-
-/**
- * @brief Handle session_query_data_size_in_ranging command
- * @param session_id_str String representation of session ID
- * @return 0 on success, -1 on error
- */
-int handle_session_query_data_size_in_ranging_command(char* session_id_str) {
-    if (!session_id_str) {
-        printf("Usage: session_query_data_size_in_ranging <session_id>\n");
-        printf("  Example: session_query_data_size_in_ranging 1\n");
-        return -1;
-    }
-
-    unsigned int session_id = (unsigned int)strtoul(session_id_str, NULL, 10);
-    
-    // Validate session_id
-    if (session_id == 0) {
-        printf("Error: Invalid session ID. Must be a positive integer.\n");
-        return -1;
-    }
-
-    return handle_session_query_data_size_in_ranging_command_value(session_id);
-}
 
 int handle_session_query_data_size_in_ranging_command_value(uint32_t session_id) {
     unsigned char payload[4];

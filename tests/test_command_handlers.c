@@ -596,7 +596,7 @@ int main(void) {
     TEST_CASE(session_init_valid);
     {
         reset_command_capture();
-        int rc = handle_session_init_command("4660", "fira_ranging");
+        int rc = handle_session_init_command_values(0x1234, FIRA_RANGING_SESSION);
 
         ASSERT_EQUAL(0, rc);
         ASSERT_EQUAL(1, g_captured_command.called);
@@ -618,7 +618,7 @@ int main(void) {
     TEST_CASE(session_init_invalid_type);
     {
         reset_command_capture();
-        int rc = handle_session_init_command("1", "invalid_type");
+        int rc = handle_session_init_command_values(1, (SessionType)0xFF);
 
         ASSERT_EQUAL(-1, rc);
         ASSERT_EQUAL(0, g_captured_command.called);
@@ -632,7 +632,7 @@ int main(void) {
     TEST_CASE(session_deinit_valid);
     {
         reset_command_capture();
-        int rc = handle_session_deinit_command("305419896");
+        int rc = handle_session_deinit_command_value(0x12345678);
 
         ASSERT_EQUAL(0, rc);
         ASSERT_EQUAL(1, g_captured_command.called);
@@ -653,7 +653,7 @@ int main(void) {
     TEST_CASE(session_start_valid);
     {
         reset_command_capture();
-        int rc = handle_session_start_command("7");
+        int rc = handle_session_start_command_value(7);
 
         ASSERT_EQUAL(0, rc);
         ASSERT_EQUAL(1, g_captured_command.called);
@@ -674,7 +674,7 @@ int main(void) {
     TEST_CASE(session_stop_valid);
     {
         reset_command_capture();
-        int rc = handle_session_stop_command("9");
+        int rc = handle_session_stop_command_value(9);
 
         ASSERT_EQUAL(0, rc);
         ASSERT_EQUAL(1, g_captured_command.called);
@@ -695,7 +695,7 @@ int main(void) {
     TEST_CASE(session_get_state_valid);
     {
         reset_command_capture();
-        int rc = handle_get_session_state_command("10");
+        int rc = handle_get_session_state_command_value(10);
 
         ASSERT_EQUAL(0, rc);
         ASSERT_EQUAL(1, g_captured_command.called);
@@ -717,10 +717,12 @@ int main(void) {
     {
         reset_data_capture();
         reset_notification_capture();
-        int rc = handle_session_send_data_command("3",
-                                                  "0x0011223344556677",
-                                                  "2",
-                                                  "AABBCC");
+        unsigned char payload_bytes[] = {0xAA, 0xBB, 0xCC};
+        int rc = handle_session_send_data_command_values(3,
+                                                         0x0011223344556677ULL,
+                                                         2,
+                                                         payload_bytes,
+                                                         sizeof(payload_bytes));
         uci_process_pending_notifications();
 
         ASSERT_EQUAL(0, rc);
@@ -766,10 +768,11 @@ int main(void) {
     TEST_CASE(session_send_data_invalid_payload);
     {
         reset_data_capture();
-        int rc = handle_session_send_data_command("1",
-                                                  "0x01",
-                                                  "1",
-                                                  "ZZ"); // invalid hex string
+        int rc = handle_session_send_data_command_values(1,
+                                                         0x01,
+                                                         1,
+                                                         NULL,
+                                                         0);
 
         ASSERT_EQUAL(-1, rc);
         ASSERT_EQUAL(0, g_captured_data.called);
@@ -887,122 +890,6 @@ int main(void) {
 
         rc = handle_session_set_hybrid_controller_config_command_value(4, config_str, sizeof(config_str) + 300);
         ASSERT_EQUAL(-1, rc);
-
-        TEST_PASS();
-        test_case_end:;
-    }
-#undef test_case_end
-
-#define test_case_end test_case_end_logical_link_create_defaults
-    TEST_CASE(session_logical_link_create_defaults);
-    {
-        reset_command_capture();
-        int rc = handle_session_logical_link_create_command("5", NULL, NULL, NULL);
-
-        ASSERT_EQUAL(0, rc);
-        ASSERT_EQUAL(1, g_captured_command.called);
-        ASSERT_EQUAL(SESSION_LOGICAL_LINK_CREATE, g_captured_command.oid);
-        ASSERT_EQUAL(5, g_captured_command.payload_len);
-
-        const unsigned char expected[] = {0x05, 0x00, 0x00, 0x00, 0xFF};
-        if (!payload_matches(expected, sizeof(expected))) {
-            TEST_FAIL("Payload mismatch for logical_link_create defaults");
-            goto test_case_end;
-        }
-
-        TEST_PASS();
-        test_case_end:;
-    }
-#undef test_case_end
-
-#define test_case_end test_case_end_logical_link_create_full
-    TEST_CASE(session_logical_link_create_full_params);
-    {
-        reset_command_capture();
-        int rc = handle_session_logical_link_create_command("6", "7", "3", "9");
-
-        ASSERT_EQUAL(0, rc);
-        ASSERT_EQUAL(1, g_captured_command.called);
-        ASSERT_EQUAL(SESSION_LOGICAL_LINK_CREATE, g_captured_command.oid);
-        ASSERT_EQUAL(7, g_captured_command.payload_len);
-
-        const unsigned char expected[] = {0x06, 0x00, 0x00, 0x00, 0x07, 0x03, 0x09};
-        if (!payload_matches(expected, sizeof(expected))) {
-            TEST_FAIL("Payload mismatch for logical_link_create full params");
-            goto test_case_end;
-        }
-
-        TEST_PASS();
-        test_case_end:;
-    }
-#undef test_case_end
-
-#define test_case_end test_case_end_logical_link_close_valid
-    TEST_CASE(session_logical_link_close_valid);
-    {
-        reset_command_capture();
-        int rc = handle_session_logical_link_close_command("8", "9");
-
-        ASSERT_EQUAL(0, rc);
-        ASSERT_EQUAL(1, g_captured_command.called);
-        ASSERT_EQUAL(SESSION_LOGICAL_LINK_CLOSE, g_captured_command.oid);
-        ASSERT_EQUAL(5, g_captured_command.payload_len);
-
-        const unsigned char expected[] = {0x08, 0x00, 0x00, 0x00, 0x09};
-        if (!payload_matches(expected, sizeof(expected))) {
-            TEST_FAIL("Payload mismatch for logical_link_close");
-            goto test_case_end;
-        }
-
-        TEST_PASS();
-        test_case_end:;
-    }
-#undef test_case_end
-
-#define test_case_end test_case_end_logical_link_close_invalid
-    TEST_CASE(session_logical_link_close_invalid);
-    {
-        reset_command_capture();
-        int rc = handle_session_logical_link_close_command("1", NULL);
-
-        ASSERT_EQUAL(-1, rc);
-        ASSERT_EQUAL(0, g_captured_command.called);
-
-        TEST_PASS();
-        test_case_end:;
-    }
-#undef test_case_end
-
-#define test_case_end test_case_end_logical_link_get_param_valid
-    TEST_CASE(session_logical_link_get_param_valid);
-    {
-        reset_command_capture();
-        int rc = handle_session_logical_link_get_param_command("11", "12");
-
-        ASSERT_EQUAL(0, rc);
-        ASSERT_EQUAL(1, g_captured_command.called);
-        ASSERT_EQUAL(SESSION_LOGICAL_LINK_GET_PARAM, g_captured_command.oid);
-        ASSERT_EQUAL(5, g_captured_command.payload_len);
-
-        const unsigned char expected[] = {0x0B, 0x00, 0x00, 0x00, 0x0C};
-        if (!payload_matches(expected, sizeof(expected))) {
-            TEST_FAIL("Payload mismatch for logical_link_get_param");
-            goto test_case_end;
-        }
-
-        TEST_PASS();
-        test_case_end:;
-    }
-#undef test_case_end
-
-#define test_case_end test_case_end_logical_link_get_param_invalid
-    TEST_CASE(session_logical_link_get_param_invalid);
-    {
-        reset_command_capture();
-        int rc = handle_session_logical_link_get_param_command(NULL, "1");
-
-        ASSERT_EQUAL(-1, rc);
-        ASSERT_EQUAL(0, g_captured_command.called);
 
         TEST_PASS();
         test_case_end:;

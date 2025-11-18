@@ -149,21 +149,52 @@ int cmd_session_init(int argc, char** argv) {
 }
 
 int cmd_session_deinit(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    if (session_param && session_param->present) {
+        return handle_session_deinit_command_value(session_param->value.session_id);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     return handle_session_deinit_command(session_id_str);
 }
 
 int cmd_session_start(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    if (session_param && session_param->present) {
+        return handle_session_start_command_value(session_param->value.session_id);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     return handle_session_start_command(session_id_str);
 }
 
 int cmd_session_stop(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    if (session_param && session_param->present) {
+        return handle_session_stop_command_value(session_param->value.session_id);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     return handle_session_stop_command(session_id_str);
 }
 
 int cmd_session_send_data(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* dest_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* seq_param = uci_cmd_get_parsed_param(2);
+    const uci_cmd_parsed_param_t* payload_param = uci_cmd_get_parsed_param(3);
+    if (session_param && session_param->present &&
+        dest_param && dest_param->present &&
+        seq_param && seq_param->present &&
+        payload_param && payload_param->present) {
+        return handle_session_send_data_command_values(
+            session_param->value.session_id,
+            dest_param->value.u64,
+            seq_param->value.u16,
+            payload_param->value.hex_bytes,
+            payload_param->parsed_length);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* destination_str = (argc > 2) ? argv[2] : NULL;
     char* sequence_str = (argc > 3) ? argv[3] : NULL;
@@ -192,6 +223,11 @@ int cmd_session_logical_link_get_param(int argc, char** argv) {
 }
 
 int cmd_get_session_state(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    if (session_param && session_param->present) {
+        return handle_get_session_state_command_value(session_param->value.session_id);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     return handle_get_session_state_command(session_id_str);
 }
@@ -259,6 +295,11 @@ int cmd_session_set_hybrid_controlee_config(int argc, char** argv) {
 }
 
 int cmd_session_query_data_size_in_ranging(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    if (session_param && session_param->present) {
+        return handle_session_query_data_size_in_ranging_command_value(session_param->value.session_id);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     return handle_session_query_data_size_in_ranging_command(session_id_str);
 }

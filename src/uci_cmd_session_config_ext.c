@@ -130,9 +130,12 @@ int handle_session_query_data_size_in_ranging_command(char* session_id_str) {
         return -1;
     }
 
+    return handle_session_query_data_size_in_ranging_command_value(session_id);
+}
+
+int handle_session_query_data_size_in_ranging_command_value(uint32_t session_id) {
     unsigned char payload[4];
-    
-    // Add session_id in little-endian format
+
     payload[0] = session_id & 0xFF;
     payload[1] = (session_id >> 8) & 0xFF;
     payload[2] = (session_id >> 16) & 0xFF;

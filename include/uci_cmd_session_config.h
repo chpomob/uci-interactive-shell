@@ -1,6 +1,8 @@
 #ifndef UCI_CMD_SESSION_CONFIG_H
 #define UCI_CMD_SESSION_CONFIG_H
 
+#include <stdint.h>
+
 /**
  * @file uci_cmd_session_config.h
  * @brief Session configuration command handlers
@@ -64,6 +66,7 @@ int handle_session_set_hybrid_controlee_config_command(char* session_id_str, uns
  * @return 0 on success, -1 on error
  */
 int handle_session_query_data_size_in_ranging_command(char* session_id_str);
+int handle_session_query_data_size_in_ranging_command_value(uint32_t session_id);
 
 /**
  * @brief Handle session_update_dt_tag_rounds command to configure DT-Tag active rounds

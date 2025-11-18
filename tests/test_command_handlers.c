@@ -695,6 +695,50 @@ int main(void) {
     }
 #undef test_case_end
 
+#define test_case_end test_case_end_session_send_data_values
+    TEST_CASE(session_send_data_values_path);
+    {
+        reset_data_capture();
+        reset_notification_capture();
+        unsigned char payload_bytes[] = {0xDE, 0xAD};
+        int rc = handle_session_send_data_command_values(2,
+                                                         0x0102030405060708ULL,
+                                                         5,
+                                                         payload_bytes,
+                                                         sizeof(payload_bytes));
+        uci_process_pending_notifications();
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_data.called);
+        ASSERT_TRUE(g_captured_data.payload_len >= UCI_DATA_MESSAGE_SND_HEADER);
+
+        const unsigned char* payload = g_captured_data.payload;
+        ASSERT_EQUAL(0x02, payload[0]);
+        ASSERT_EQUAL(0x00, payload[1]);
+        ASSERT_EQUAL(0x00, payload[2]);
+
+        uint64_t destination = read_u64_le(payload + 4);
+        ASSERT_UINT64_EQUAL(0x0102030405060708ULL, destination);
+
+        ASSERT_EQUAL(5, payload[12]);
+
+        uint16_t data_len = read_u16_le(payload + 14);
+        ASSERT_EQUAL(2, data_len);
+        ASSERT_EQUAL(0xDE, payload[16]);
+        ASSERT_EQUAL(0xAD, payload[17]);
+
+        rc = handle_session_send_data_command_values(2,
+                                                     0,
+                                                     0,
+                                                     payload_bytes,
+                                                     0);
+        ASSERT_EQUAL(-1, rc);
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
 #define test_case_end test_case_end_logical_link_create_defaults
     TEST_CASE(session_logical_link_create_defaults);
     {

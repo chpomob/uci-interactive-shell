@@ -165,6 +165,10 @@ int handle_session_deinit_command(char* session_id_str) {
         return -1;
     }
 
+    return handle_session_deinit_command_value(session_id);
+}
+
+int handle_session_deinit_command_value(uint32_t session_id) {
     unsigned char payload[4];
     encode_session_id_le(payload, session_id);
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_DEINIT, payload, sizeof(payload));
@@ -179,6 +183,10 @@ int handle_session_start_command(char* session_id_str) {
         return -1;
     }
 
+    return handle_session_start_command_value(session_id);
+}
+
+int handle_session_start_command_value(uint32_t session_id) {
     unsigned char payload[4];
     encode_session_id_le(payload, session_id);
     send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_START, payload, sizeof(payload));
@@ -193,6 +201,10 @@ int handle_session_stop_command(char* session_id_str) {
         return -1;
     }
 
+    return handle_session_stop_command_value(session_id);
+}
+
+int handle_session_stop_command_value(uint32_t session_id) {
     unsigned char payload[4];
     encode_session_id_le(payload, session_id);
     send_uci_command(COMMAND, 0, SESSION_CONTROL, SESSION_STOP, payload, sizeof(payload));
@@ -207,6 +219,10 @@ int handle_get_session_state_command(char* session_id_str) {
         return -1;
     }
 
+    return handle_get_session_state_command_value(session_id);
+}
+
+int handle_get_session_state_command_value(uint32_t session_id) {
     unsigned char payload[4];
     encode_session_id_le(payload, session_id);
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_STATE, payload, sizeof(payload));
@@ -244,8 +260,29 @@ int handle_session_send_data_command(char* session_id_str,
         return -1;
     }
 
-    uci_send_data_message(session_id, destination,
-                          (uint16_t)sequence_ul, data_buffer, data_len);
+    return handle_session_send_data_command_values(session_id,
+                                                   destination,
+                                                   (uint16_t)sequence_ul,
+                                                   data_buffer,
+                                                   data_len);
+}
+
+int handle_session_send_data_command_values(uint32_t session_id,
+                                            uint64_t destination,
+                                            uint16_t sequence,
+                                            const unsigned char* payload,
+                                            size_t payload_len) {
+    if (!payload || payload_len == 0) {
+        printf("Error: payload must contain at least one byte.\n");
+        return -1;
+    }
+    if (payload_len > 512) {
+        printf("Error: payload length %zu exceeds maximum supported size (512 bytes).\n",
+               payload_len);
+        return -1;
+    }
+
+    uci_send_data_message(session_id, destination, sequence, payload, payload_len);
     return 0;
 }
 

@@ -22,6 +22,7 @@
  * @return 0 on success, -1 on error
  */
 int handle_set_app_config_command(char* session_id_str, char* config_name, char* value_str);
+int handle_set_app_config_command_value(uint32_t session_id, const char* config_name, const char* value_str);
 
 /**
  * @brief Handle get_app_config command to retrieve session parameters
@@ -31,6 +32,7 @@ int handle_set_app_config_command(char* session_id_str, char* config_name, char*
  * @return 0 on success, -1 on error
  */
 int handle_get_app_config_command(char* session_id_str, char** config_names, int config_count);
+int handle_get_app_config_command_value(uint32_t session_id, const char* config_name);
 
 /**
  * @brief Handle session_update_multicast_list command
@@ -85,6 +87,9 @@ int handle_session_query_data_size_in_ranging_command_value(uint32_t session_id)
 int handle_session_update_dt_tag_rounds_command(char* session_id_str,
                                                char** round_values,
                                                int round_count);
+int handle_session_update_dt_tag_rounds_command_values(uint32_t session_id,
+                                                       const unsigned char* round_bytes,
+                                                       size_t round_count);
 
 /**
  * @brief Handle session_data_transfer_phase_config command to configure DTP settings

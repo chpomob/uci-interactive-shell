@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include "uci.h"
 
 // Session management command handlers
@@ -30,11 +31,21 @@ int handle_session_logical_link_create_command(char* session_id_str,
                                                char* link_id_str,
                                                char* mode_str,
                                                char* credit_str);
+int handle_session_logical_link_create_command_values(uint32_t session_id,
+                                                      unsigned char link_id,
+                                                      bool mode_present,
+                                                      unsigned char mode,
+                                                      bool credit_present,
+                                                      unsigned char credit);
 
 int handle_session_logical_link_close_command(char* session_id_str,
                                               char* link_id_str);
+int handle_session_logical_link_close_command_value(uint32_t session_id,
+                                                    unsigned char link_id);
 
 int handle_session_logical_link_get_param_command(char* session_id_str,
                                                   char* link_id_str);
+int handle_session_logical_link_get_param_command_value(uint32_t session_id,
+                                                        unsigned char link_id);
 
 #endif // UCI_CMD_SESSION_H

@@ -183,6 +183,28 @@ int main(void) {
     }
 #undef test_case_end
 
+#define test_case_end test_case_end_dt_tag_values
+    TEST_CASE(session_dt_tag_rounds_values);
+    {
+        reset_command_capture();
+        unsigned char rounds[] = {0x01, 0x02, 0x03};
+        int rc = handle_session_update_dt_tag_rounds_command_values(10, rounds, sizeof(rounds));
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+        ASSERT_EQUAL(SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG, g_captured_command.oid);
+
+        const unsigned char expected[] = {0x0A, 0x00, 0x00, 0x00, 0x03, 0x01, 0x02, 0x03};
+        ASSERT_TRUE(payload_matches(expected, sizeof(expected)));
+
+        rc = handle_session_update_dt_tag_rounds_command_values(10, NULL, 1);
+        ASSERT_EQUAL(-1, rc);
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
 #define test_case_end test_case_end_dtp_values
     TEST_CASE(session_dtp_values_handler);
     {
@@ -795,6 +817,52 @@ int main(void) {
                                                      payload_bytes,
                                                      0);
         ASSERT_EQUAL(-1, rc);
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
+#define test_case_end test_case_end_logical_link_create_values
+    TEST_CASE(session_logical_link_create_values);
+    {
+        reset_command_capture();
+        int rc = handle_session_logical_link_create_command_values(8, 0x12, true, 0x77, true, 0x05);
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+        ASSERT_EQUAL(SESSION_LOGICAL_LINK_CREATE, g_captured_command.oid);
+        ASSERT_EQUAL(7, g_captured_command.payload_len);
+
+        const unsigned char expected[] = {0x08, 0x00, 0x00, 0x00, 0x12, 0x77, 0x05};
+        ASSERT_TRUE(payload_matches(expected, sizeof(expected)));
+
+        rc = handle_session_logical_link_create_command_values(8, 0x12, true, 0x77, false, 0);
+        ASSERT_EQUAL(0, rc);
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
+#define test_case_end test_case_end_logical_link_close_values
+    TEST_CASE(session_logical_link_close_values);
+    {
+        reset_command_capture();
+        int rc = handle_session_logical_link_close_command_value(9, 0x34);
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+        ASSERT_EQUAL(SESSION_LOGICAL_LINK_CLOSE, g_captured_command.oid);
+        const unsigned char expected_close[] = {0x09, 0x00, 0x00, 0x00, 0x34};
+        ASSERT_TRUE(payload_matches(expected_close, sizeof(expected_close)));
+
+        reset_command_capture();
+        rc = handle_session_logical_link_get_param_command_value(9, 0x34);
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+        ASSERT_EQUAL(SESSION_LOGICAL_LINK_GET_PARAM, g_captured_command.oid);
 
         TEST_PASS();
         test_case_end:;

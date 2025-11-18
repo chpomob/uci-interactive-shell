@@ -203,6 +203,24 @@ int cmd_session_send_data(int argc, char** argv) {
 }
 
 int cmd_session_logical_link_create(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* link_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* mode_param = uci_cmd_get_parsed_param(2);
+    const uci_cmd_parsed_param_t* credit_param = uci_cmd_get_parsed_param(3);
+    if (session_param && session_param->present && link_param && link_param->present) {
+        bool mode_present = (mode_param && mode_param->present);
+        bool credit_present = (credit_param && credit_param->present);
+        unsigned char mode_value = mode_present ? mode_param->value.u8 : 0;
+        unsigned char credit_value = credit_present ? credit_param->value.u8 : 0;
+        return handle_session_logical_link_create_command_values(
+            session_param->value.session_id,
+            link_param->value.u8,
+            mode_present,
+            mode_value,
+            credit_present,
+            credit_value);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* link_id_str = (argc > 2) ? argv[2] : NULL;
     char* mode_str = (argc > 3) ? argv[3] : NULL;
@@ -211,12 +229,26 @@ int cmd_session_logical_link_create(int argc, char** argv) {
 }
 
 int cmd_session_logical_link_close(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* link_param = uci_cmd_get_parsed_param(1);
+    if (session_param && session_param->present && link_param && link_param->present) {
+        return handle_session_logical_link_close_command_value(session_param->value.session_id,
+                                                               link_param->value.u8);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* link_id_str = (argc > 2) ? argv[2] : NULL;
     return handle_session_logical_link_close_command(session_id_str, link_id_str);
 }
 
 int cmd_session_logical_link_get_param(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* link_param = uci_cmd_get_parsed_param(1);
+    if (session_param && session_param->present && link_param && link_param->present) {
+        return handle_session_logical_link_get_param_command_value(session_param->value.session_id,
+                                                                   link_param->value.u8);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* link_id_str = (argc > 2) ? argv[2] : NULL;
     return handle_session_logical_link_get_param_command(session_id_str, link_id_str);
@@ -233,6 +265,17 @@ int cmd_get_session_state(int argc, char** argv) {
 }
 
 int cmd_set_app_config(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* name_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* value_param = uci_cmd_get_parsed_param(2);
+    if (session_param && session_param->present &&
+        name_param && name_param->present && name_param->raw_value &&
+        value_param && value_param->present && value_param->raw_value) {
+        return handle_set_app_config_command_value(session_param->value.session_id,
+                                                   name_param->raw_value,
+                                                   value_param->raw_value);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char* config_name = (argc > 2) ? argv[2] : NULL;
     char* value_str = (argc > 3) ? argv[3] : NULL;
@@ -240,6 +283,14 @@ int cmd_set_app_config(int argc, char** argv) {
 }
 
 int cmd_get_app_config(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* config_param = uci_cmd_get_parsed_param(1);
+    if (session_param && session_param->present &&
+        config_param && config_param->present && config_param->raw_value) {
+        return handle_get_app_config_command_value(session_param->value.session_id,
+                                                   config_param->raw_value);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char** config_names = (argc > 2) ? &argv[2] : NULL;
     int config_count = (argc > 2) ? (argc - 2) : 0;
@@ -269,6 +320,17 @@ int cmd_session_update_multicast_list(int argc, char** argv) {
 }
 
 int cmd_session_update_dt_tag_rounds(int argc, char** argv) {
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* rounds_param = uci_cmd_get_parsed_param(1);
+    if (session_param && session_param->present && rounds_param && rounds_param->present) {
+        const unsigned char* round_bytes =
+            (rounds_param->parsed_length > 0) ? rounds_param->value.hex_bytes : NULL;
+        return handle_session_update_dt_tag_rounds_command_values(
+            session_param->value.session_id,
+            round_bytes,
+            rounds_param->parsed_length);
+    }
+
     char* session_id_str = (argc > 1) ? argv[1] : NULL;
     char** round_values = (argc > 2) ? &argv[2] : NULL;
     int round_count = (argc > 2) ? (argc - 2) : 0;

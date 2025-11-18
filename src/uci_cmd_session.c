@@ -2,6 +2,7 @@
 #include <string.h>
 #include <strings.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "../include/uci.h"
 #include "../include/uci_functions.h"
 #include "../include/uci_pdl.h"
@@ -296,35 +297,65 @@ int handle_session_logical_link_create_command(char* session_id_str,
         return -1;
     }
 
-    unsigned char payload[7];
-    encode_session_id_le(payload, session_id);
-
-    size_t payload_len = 5;
     unsigned long link_id = 0xFFUL;
     if (link_id_str) {
         if (parse_uint_in_range(link_id_str, 0xFF, "link_id", &link_id) != 0) {
             return -1;
         }
     }
-    payload[4] = (unsigned char)link_id;
 
+    bool mode_present = false;
+    unsigned char mode_val = 0;
     if (mode_str) {
-        unsigned long mode_val = 0;
-        if (parse_uint_in_range(mode_str, 0xFF, "mode", &mode_val) != 0) {
+        unsigned long mode_tmp = 0;
+        if (parse_uint_in_range(mode_str, 0xFF, "mode", &mode_tmp) != 0) {
             return -1;
         }
-        payload[5] = (unsigned char)mode_val;
+        mode_val = (unsigned char)mode_tmp;
+        mode_present = true;
+    }
+
+    bool credit_present = false;
+    unsigned char credit_val = 0;
+    if (credit_str) {
+        unsigned long credit_tmp = 0;
+        if (parse_uint_in_range(credit_str, 0xFF, "credit", &credit_tmp) != 0) {
+            return -1;
+        }
+        credit_val = (unsigned char)credit_tmp;
+        credit_present = true;
+    }
+
+    return handle_session_logical_link_create_command_values(
+        session_id,
+        (unsigned char)link_id,
+        mode_present,
+        mode_val,
+        credit_present,
+        credit_val);
+}
+
+int handle_session_logical_link_create_command_values(uint32_t session_id,
+                                                      unsigned char link_id,
+                                                      bool mode_present,
+                                                      unsigned char mode,
+                                                      bool credit_present,
+                                                      unsigned char credit) {
+    unsigned char payload[7];
+    encode_session_id_le(payload, session_id);
+
+    size_t payload_len = 5;
+    payload[4] = link_id;
+
+    if (mode_present) {
+        payload[5] = mode;
         payload_len = 6;
     }
 
-    if (credit_str) {
-        unsigned long credit_val = 0;
-        if (parse_uint_in_range(credit_str, 0xFF, "credit", &credit_val) != 0) {
-            return -1;
-        }
-        payload[6] = (unsigned char)credit_val;
+    if (credit_present) {
+        payload[6] = credit;
         payload_len = 7;
-    } else if (mode_str) {
+    } else if (mode_present) {
         payload[6] = 1;
         payload_len = 7;
     }
@@ -343,6 +374,11 @@ int handle_session_logical_link_close_command(char* session_id_str,
         return -1;
     }
 
+    return handle_session_logical_link_close_command_value(session_id, link_id);
+}
+
+int handle_session_logical_link_close_command_value(uint32_t session_id,
+                                                    unsigned char link_id) {
     unsigned char payload[5];
     encode_session_id_le(payload, session_id);
     payload[4] = link_id;
@@ -361,6 +397,11 @@ int handle_session_logical_link_get_param_command(char* session_id_str,
         return -1;
     }
 
+    return handle_session_logical_link_get_param_command_value(session_id, link_id);
+}
+
+int handle_session_logical_link_get_param_command_value(uint32_t session_id,
+                                                        unsigned char link_id) {
     unsigned char payload[5];
     encode_session_id_le(payload, session_id);
     payload[4] = link_id;

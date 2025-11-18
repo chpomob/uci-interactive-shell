@@ -32,6 +32,17 @@ int handle_set_app_config_command(char* session_id_str, char* config_name, char*
         return -1;
     }
 
+    return handle_set_app_config_command_value(session_id, config_name, value_str);
+}
+
+int handle_set_app_config_command_value(uint32_t session_id,
+                                        const char* config_name,
+                                        const char* value_str) {
+    if (!config_name || !value_str) {
+        printf("Usage: set_app_config <session_id> <config_name> <value>\n");
+        return -1;
+    }
+
     AppConfigTlvType cfg_id = 0;
     const config_param_info_t* info = NULL;
     if (uci_config_lookup_app_param(config_name, &cfg_id, &info) != 0) {
@@ -80,6 +91,11 @@ int handle_get_app_config_command(char* session_id_str, char** config_names, int
         return -1;
     }
 
+    if (config_count == 1) {
+        const char* single_name = config_names ? config_names[0] : NULL;
+        return handle_get_app_config_command_value(session_id, single_name);
+    }
+
     unsigned char payload[MAX_PAYLOAD_LENGTH];
     size_t offset = 0;
     payload[offset++] = session_id & 0xFF;
@@ -119,6 +135,30 @@ int handle_get_app_config_command(char* session_id_str, char** config_names, int
 
     payload[count_index] = (unsigned char)num_configs;
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_APP_CONFIG, payload, (int)offset);
+    return 0;
+}
+
+int handle_get_app_config_command_value(uint32_t session_id, const char* config_name) {
+    if (!config_name) {
+        printf("Usage: get_app_config <session_id> <config_name>\n");
+        return -1;
+    }
+
+    AppConfigTlvType cfg_id = 0;
+    if (uci_config_lookup_app_param(config_name, &cfg_id, NULL) != 0) {
+        printf("Unknown config_name: %s. Use 'show_app_configs' to list supported parameters.\n", config_name);
+        return -1;
+    }
+
+    unsigned char payload[6];
+    payload[0] = session_id & 0xFF;
+    payload[1] = (session_id >> 8) & 0xFF;
+    payload[2] = (session_id >> 16) & 0xFF;
+    payload[3] = (session_id >> 24) & 0xFF;
+    payload[4] = 1; // Number of configs
+    payload[5] = (unsigned char)cfg_id;
+
+    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_APP_CONFIG, payload, sizeof(payload));
     return 0;
 }
 
@@ -242,6 +282,34 @@ int handle_session_update_dt_tag_rounds_command(char* session_id_str,
     }
 
     int payload_len = 5 + round_count;
+    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG, payload, payload_len);
+    return 0;
+}
+
+int handle_session_update_dt_tag_rounds_command_values(uint32_t session_id,
+                                                       const unsigned char* round_bytes,
+                                                       size_t round_count) {
+    if (round_count > 255) {
+        printf("Error: Too many round indexes (%zu). Maximum is 255.\n", round_count);
+        return -1;
+    }
+    if (round_count > 0 && !round_bytes) {
+        printf("Error: Round byte buffer is NULL.\n");
+        return -1;
+    }
+
+    unsigned char payload[5 + 255];
+    payload[0] = session_id & 0xFF;
+    payload[1] = (session_id >> 8) & 0xFF;
+    payload[2] = (session_id >> 16) & 0xFF;
+    payload[3] = (session_id >> 24) & 0xFF;
+    payload[4] = (unsigned char)round_count;
+
+    if (round_count > 0) {
+        memcpy(&payload[5], round_bytes, round_count);
+    }
+
+    int payload_len = 5 + (int)round_count;
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG, payload, payload_len);
     return 0;
 }

@@ -389,11 +389,13 @@ int main(void) {
         ASSERT_EQUAL(0, dispatch_and_capture_output(def, 3, argv_key_value,
                                                     capture_buffer, sizeof(capture_buffer)));
         ASSERT_TRUE(strstr(capture_buffer, "device_state") != NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "Total matches: 1") != NULL);
 
         char* argv_legacy_flags[] = { "show_device_configs", "--filter", "state", "--full" };
         ASSERT_EQUAL(0, dispatch_and_capture_output(def, 4, argv_legacy_flags,
                                                     capture_buffer, sizeof(capture_buffer)));
         ASSERT_TRUE(strstr(capture_buffer, "device_state") != NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "Total matches: 1") != NULL);
 
         char* argv_invalid_detail[] = { "show_device_configs", "detail=advanced" };
         ASSERT_EQUAL(-1, uci_cmd_dispatch(def, 2, argv_invalid_detail));
@@ -425,11 +427,13 @@ int main(void) {
         ASSERT_EQUAL(0, dispatch_and_capture_output(def, 3, argv_key_value,
                                                     capture_buffer, sizeof(capture_buffer)));
         ASSERT_TRUE(strstr(capture_buffer, "device_type") != NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "Total matches: 1") != NULL);
 
         char* argv_legacy_flags[] = { "show_app_configs", "--filter", "device", "--id", "0x00" };
         ASSERT_EQUAL(0, dispatch_and_capture_output(def, 5, argv_legacy_flags,
                                                     capture_buffer, sizeof(capture_buffer)));
         ASSERT_TRUE(strstr(capture_buffer, "device_type") != NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "Total matches: 1") != NULL);
 
         char* argv_invalid_id[] = { "show_app_configs", "id=not_a_number" };
         ASSERT_EQUAL(-1, uci_cmd_dispatch(def, 2, argv_invalid_id));

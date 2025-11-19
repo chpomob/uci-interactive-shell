@@ -998,6 +998,7 @@ int main(void) {
         capture_output_from_command(show_device_configs_with_filters, "0x00", NULL, 1,
                                     buffer, sizeof(buffer));
         ASSERT_TRUE(strstr(buffer, "device_state") != NULL);
+        ASSERT_TRUE(strstr(buffer, "Total matches: 1") != NULL);
 
         capture_output_from_command(show_device_configs_with_filters, "0xFF", NULL, 0,
                                     buffer, sizeof(buffer));
@@ -1018,6 +1019,7 @@ int main(void) {
         capture_output_from_command(show_app_configs_with_filters, "0x00", NULL, 1,
                                     buffer, sizeof(buffer));
         ASSERT_TRUE(strstr(buffer, "device_type") != NULL);
+        ASSERT_TRUE(strstr(buffer, "Total matches: 1") != NULL);
 
         capture_output_from_command(show_app_configs_with_filters, "0xFF", NULL, 0,
                                     buffer, sizeof(buffer));

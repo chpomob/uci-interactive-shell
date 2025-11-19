@@ -1,5 +1,6 @@
 #include "test_runner.h"
 #include "../include/uci_cmd_core.h"
+#include "../include/uci_config_manager.h"
 #include "../include/uci_cmd_session.h"
 #include "../include/uci_functions.h"
 #include "../include/uci_packet_utils.h"
@@ -7,6 +8,7 @@
 #include "../include/uci.h"
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 typedef struct {
     int called;
@@ -47,6 +49,50 @@ static void reset_data_capture(void) {
 
 static void reset_notification_capture(void) {
     memset(&g_captured_notification, 0, sizeof(g_captured_notification));
+}
+
+static size_t capture_output_from_command(int (*command_fn)(const char*, const char*, int),
+                                          const char* id_filter,
+                                          const char* name_filter,
+                                          int detail_full,
+                                          char* buffer,
+                                          size_t buffer_len) {
+    FILE* tmp = tmpfile();
+    if (!tmp) {
+        return 0;
+    }
+    int tmp_fd = fileno(tmp);
+    int saved_stdout = dup(STDOUT_FILENO);
+    if (saved_stdout < 0) {
+        fclose(tmp);
+        return 0;
+    }
+
+    fflush(stdout);
+    if (dup2(tmp_fd, STDOUT_FILENO) < 0) {
+        close(saved_stdout);
+        fclose(tmp);
+        return 0;
+    }
+
+    command_fn(id_filter, name_filter, detail_full);
+
+    fflush(stdout);
+    fflush(tmp);
+    long size = ftell(tmp);
+    if (size < 0) {
+        size = 0;
+    }
+    rewind(tmp);
+
+    size_t to_read = (size_t)((size < (long)(buffer_len - 1)) ? size : (long)(buffer_len - 1));
+    size_t read_bytes = fread(buffer, 1, to_read, tmp);
+    buffer[read_bytes] = '\0';
+
+    dup2(saved_stdout, STDOUT_FILENO);
+    close(saved_stdout);
+    fclose(tmp);
+    return read_bytes;
 }
 
 static int command_capture_hook(uci_uint8 mt,
@@ -936,6 +982,46 @@ int main(void) {
         char* argv_bad_id[] = { "show_app_configs", "--id", "not_a_number" };
         ASSERT_EQUAL(-1, cmd_show_app_configs(3, argv_bad_id));
 
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_show_device_configs_filters
+    TEST_CASE(core_show_device_configs_filters);
+    {
+        char buffer[2048];
+        capture_output_from_command(show_device_configs_with_filters, NULL, NULL, 0,
+                                    buffer, sizeof(buffer));
+        ASSERT_TRUE(strstr(buffer, "device_state") != NULL);
+
+        capture_output_from_command(show_device_configs_with_filters, "0x00", NULL, 1,
+                                    buffer, sizeof(buffer));
+        ASSERT_TRUE(strstr(buffer, "device_state") != NULL);
+
+        capture_output_from_command(show_device_configs_with_filters, "0xFF", NULL, 0,
+                                    buffer, sizeof(buffer));
+        ASSERT_TRUE(strstr(buffer, "No device configuration matches") != NULL);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_show_app_configs_filters
+    TEST_CASE(core_show_app_configs_filters);
+    {
+        char buffer[2048];
+        capture_output_from_command(show_app_configs_with_filters, NULL, NULL, 0,
+                                    buffer, sizeof(buffer));
+        ASSERT_TRUE(strstr(buffer, "device_type") != NULL);
+
+        capture_output_from_command(show_app_configs_with_filters, "0x00", NULL, 1,
+                                    buffer, sizeof(buffer));
+        ASSERT_TRUE(strstr(buffer, "device_type") != NULL);
+
+        capture_output_from_command(show_app_configs_with_filters, "0xFF", NULL, 0,
+                                    buffer, sizeof(buffer));
+        ASSERT_TRUE(strstr(buffer, "No application configuration matches") != NULL);
         TEST_PASS();
     }
     test_case_end:;

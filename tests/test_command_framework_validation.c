@@ -1,5 +1,6 @@
 #include "test_runner.h"
 #include "../include/uci_command_framework.h"
+#include "../include/uci_cli.h"
 #include "../include/uci_cmd_framework_bridge.h"
 #include "../include/uci_cmd_framework_device.h"
 #include "../include/uci_cmd_framework_session.h"
@@ -104,6 +105,49 @@ static int dispatch_and_capture_output(const uci_command_def_t* def,
     }
 
     int rc = uci_cmd_dispatch(def, argc, argv);
+
+    fflush(stdout);
+    fflush(tmp);
+    long size = ftell(tmp);
+    if (size < 0) {
+        size = 0;
+    }
+    rewind(tmp);
+
+    size_t to_read = (size_t)((size < (long)(buffer_len - 1)) ? size : (long)(buffer_len - 1));
+    size_t read_bytes = fread(buffer, 1, to_read, tmp);
+    buffer[read_bytes] = '\0';
+
+    dup2(saved_stdout, STDOUT_FILENO);
+    close(saved_stdout);
+    fclose(tmp);
+    return rc;
+}
+
+static int capture_cli_output(char** argv, int argc, char* buffer, size_t buffer_len) {
+    if (!argv || argc <= 0 || !buffer || buffer_len == 0) {
+        return -1;
+    }
+
+    FILE* tmp = tmpfile();
+    if (!tmp) {
+        return -1;
+    }
+    int tmp_fd = fileno(tmp);
+    int saved_stdout = dup(STDOUT_FILENO);
+    if (saved_stdout < 0) {
+        fclose(tmp);
+        return -1;
+    }
+
+    fflush(stdout);
+    if (dup2(tmp_fd, STDOUT_FILENO) < 0) {
+        close(saved_stdout);
+        fclose(tmp);
+        return -1;
+    }
+
+    int rc = cli_dispatch(argc, argv);
 
     fflush(stdout);
     fflush(tmp);
@@ -393,6 +437,35 @@ int main(void) {
         char* argv_missing_filter_value[] = { "show_app_configs", "--filter" };
         ASSERT_EQUAL(-1, uci_cmd_dispatch(def, 2, argv_missing_filter_value));
 
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_cli_help_output
+    TEST_CASE(cli_help_output);
+    {
+        char buffer[4096];
+        char* argv[] = { "help" };
+        ASSERT_EQUAL(0, capture_cli_output(argv, 1, buffer, sizeof(buffer)));
+        ASSERT_TRUE(strstr(buffer, "UCI Shell Commands") != NULL);
+        ASSERT_TRUE(strstr(buffer, "mode_hw") != NULL);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_cli_analyze_examples
+    TEST_CASE(cli_analyze_examples_flag);
+    {
+        char buffer[4096];
+        char* argv_examples[] = { "analyze_packet", "--examples" };
+        ASSERT_EQUAL(0, capture_cli_output(argv_examples, 2, buffer, sizeof(buffer)));
+        ASSERT_TRUE(strstr(buffer, "UCI Enhanced Packet Analysis Examples") != NULL);
+
+        char* argv_help[] = { "analyze_packet", "--help" };
+        ASSERT_EQUAL(0, capture_cli_output(argv_help, 2, buffer, sizeof(buffer)));
+        ASSERT_TRUE(strstr(buffer, "Usage: analyze_packet") != NULL);
         TEST_PASS();
     }
     test_case_end:;

@@ -42,13 +42,18 @@ parameter validation rules before handing control to the legacy handlers in
 `src/uci_cmd_*`.
 
 ### Migration Status
-- Help output and readline completion already use the shared definitions, so any
-  change to a command name/alias instantly propagates.
-- Most handlers still rely on transitional wrappers in
-  `src/uci_cmd_core_new.c` (and similar files) that read from `argv` instead of
-  the parsed values. The next step is to migrate handlers to typed parameters so
-  the legacy parsing code can be deleted.
-- Session lifecycle, data-transfer, and multicast handlers now consume the
+- Help output, readline completion, and the `help` command itself all read from
+  the shared definitions. Updating a command name/alias instantly propagates to
+  discovery, help text, and validation.
+- Device/session/hardware commands now rely on typed handlers in
+  `src/uci_cmd_core_new.c`, `src/uci_cmd_hardware_new.c`, and
+  `src/uci_cmd_handlers_session.c`. The legacy `src/uci_cmd_handlers.c`
+  bridge—previously responsible for argc/argv parsing—has been deleted.
+- General utilities such as `analyze_packet` and `show_*_configs` use the typed
+  framework, enabling richer option parsing (e.g., `filter=...`, `id=...`,
+  `detail=summary|full`) while retaining backward-compatible `--filter`/`--id`
+  flags.
+- Session lifecycle, data-transfer, and multicast handlers consume the
   validated values supplied by the framework. For example,
   `session_update_dt_tag_rounds` accepts either individual integers or a single
   hex blob, logical-link identifiers are parsed as bytes (0-255), and

@@ -29,8 +29,8 @@ To run the interactive shell:
 Once the shell is running, you can use the following commands:
 
 ### General / UI
-- `help` – Discover commands and their usage
-- `analyze_packet [flags] <bytes...>` – Run the enhanced packet analyzer on hex input
+- `help` – Discover commands and their usage (now backed by the typed framework, so the output always mirrors the active command tables)
+- `analyze_packet [--verbose] [--tlv] [--compare] [--examples] [--help] <bytes...>` – Run the enhanced packet analyzer on hex input
 - `quit` – Exit the shell
 
 ### Core Device Management
@@ -82,6 +82,14 @@ Once the shell is running, you can use the following commands:
 - Deinitialize session: `session_deinit 1`
 
 ### Configuration Management
+- Discover device configs (supports both modern and legacy syntax):
+  - `show_device_configs filter=state detail=full`
+  - `show_device_configs --filter state --full`
+  - `show_device_configs id=0x25`
+- Discover application configs for a particular session:
+  - `show_app_configs filter=channel`
+  - `show_app_configs id=0x00 detail=summary`
+  - `show_app_configs --id 0x00 --filter device`
 - Set device configuration: `set_config device_state active`
 - Get device configuration: `get_config device_state`
 - Set application configuration: `set_app_config 1 device_type responder`

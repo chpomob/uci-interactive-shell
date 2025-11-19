@@ -61,16 +61,19 @@ The shell provides tab completion and command history:
 
 ### Device Configuration
 ```bash
-# Set device configuration
+# Inspect device configuration catalog (new key=value syntax or legacy flags)
+> show_device_configs                         # summary of everything
+> show_device_configs filter=power            # substring match
+> show_device_configs id=0x25 detail=full     # focus on a single TLV
+> show_device_configs --filter device --full  # legacy spelling still works
+
+# Set device configuration values
 > set_config device_state active
 > set_config low_power_mode on
 
-# Get specific configuration
+# Get a specific configuration value
 > get_config device_state
 > get_config low_power_mode
-
-# Get all configurations
-> get_config
 ```
 
 ## Session Management
@@ -86,6 +89,12 @@ The shell provides tab completion and command history:
 > set_app_config 1 device_type responder
 > set_app_config 1 channel 5
 > set_app_config 1 ranging_usage ranging
+
+# Explore available application configuration parameters
+> show_app_configs                          # summary list
+> show_app_configs filter=channel           # substring match
+> show_app_configs id=0x00 detail=full      # inspect a single TLV in detail
+> show_app_configs --id 0x00 --full         # backward-compatible flag syntax
 
 # Start ranging session
 > session_start 1

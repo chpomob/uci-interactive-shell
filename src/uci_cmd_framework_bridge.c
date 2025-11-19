@@ -7,22 +7,40 @@
 #include "../include/uci_cmd_framework_session.h"
 #include "../include/uci_cmd_framework_wrappers.h"
 #include "../include/uci_cmd_handlers.h"
+#include "../include/uci_cmd_analysis.h"
+#include "../include/uci_cli.h"
 #include "../include/uci_ui.h"
 
-DEFINE_CMD_WRAPPER(cmd_help)
-DEFINE_CMD_WRAPPER(cmd_analyze_packet)
+static int handle_help_command_new(const char* cmd_name,
+                                   int argc,
+                                   char** argv,
+                                   const uci_param_def_t* params,
+                                   int param_count) {
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    cli_print_help();
+    return 0;
+}
 
-static const uci_param_def_t k_analyze_packet_params[] = {
-    {
-        .name = "packet_bytes",
-        .type = PARAM_TYPE_HEX_STRING,
-        .flags = PARAM_FLAG_REQUIRED,
-        .max_len = 1024,
-        .min_value = 0,
-        .max_value = 0,
-        .description = "Hex encoded packet bytes",
-    },
-};
+static int handle_analyze_packet_command_new(const char* cmd_name,
+                                             int argc,
+                                             char** argv,
+                                             const uci_param_def_t* params,
+                                             int param_count) {
+    (void)cmd_name;
+    (void)params;
+    (void)param_count;
+
+    if (argc <= 1) {
+        handle_analyze_command(0, NULL);
+    } else {
+        handle_analyze_command(argc - 1, &argv[1]);
+    }
+    return 0;
+}
 
 const uci_command_def_t g_uci_command_defs[] = {
     // General
@@ -34,7 +52,7 @@ const uci_command_def_t g_uci_command_defs[] = {
         .description = "Show this help message",
         .params = NULL,
         .param_count = 0,
-        .handler = cmd_help_framework_adapter,
+        .handler = handle_help_command_new,
     },
 
     // Analysis
@@ -44,9 +62,9 @@ const uci_command_def_t g_uci_command_defs[] = {
         .group = CLI_GROUP_ANALYSIS,
         .flags = CLI_CMD_FLAG_NONE,
         .description = "Analyze packet bytes with enhanced decoder",
-        .params = k_analyze_packet_params,
-        .param_count = ARRAY_SIZE(k_analyze_packet_params),
-        .handler = cmd_analyze_packet_framework_adapter,
+        .params = NULL,
+        .param_count = 0,
+        .handler = handle_analyze_packet_command_new,
     },
 
 };

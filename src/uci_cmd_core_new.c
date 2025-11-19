@@ -1,8 +1,137 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 #include "../include/uci_cmd_core_new.h"
 #include "../include/uci_cmd_core.h"
 #include "../include/uci_command_utils.h"
+#include "../include/uci_ui.h"
+
+static const char* get_raw_param_value(int index) {
+    const uci_cmd_parsed_param_t* param = uci_cmd_get_parsed_param(index);
+    if (!param || !param->present || !param->raw_value || param->raw_value[0] == '\0') {
+        return NULL;
+    }
+    return param->raw_value;
+}
+
+static int parse_detail_option(const char* value, int* detail_full) {
+    if (!value || value[0] == '\0' || strcasecmp(value, "summary") == 0) {
+        *detail_full = 0;
+        return 0;
+    }
+    if (strcasecmp(value, "full") == 0 || strcasecmp(value, "detailed") == 0 || strcasecmp(value, "details") == 0) {
+        *detail_full = 1;
+        return 0;
+    }
+    char buffer[128];
+    snprintf(buffer, sizeof(buffer), "Invalid detail option '%s' (expected summary or full)", value);
+    ui_print_error(buffer);
+    return -1;
+}
+
+static int parse_config_list_options(int param_count,
+                                     const char** id_filter,
+                                     const char** name_filter,
+                                     int* detail_full) {
+    for (int i = 0; i < param_count; i++) {
+        const uci_cmd_parsed_param_t* param = uci_cmd_get_parsed_param(i);
+        if (!param || !param->present || !param->raw_value) {
+            continue;
+        }
+
+        const char* raw = param->raw_value;
+        if (!raw || raw[0] == '\0') {
+            continue;
+        }
+
+        if (strcmp(raw, "--full") == 0 || strcmp(raw, "-f") == 0) {
+            *detail_full = 1;
+            continue;
+        }
+
+        if (strcmp(raw, "--summary") == 0) {
+            *detail_full = 0;
+            continue;
+        }
+
+        if (strcmp(raw, "--filter") == 0) {
+            const char* value = get_raw_param_value(i + 1);
+            if (!value) {
+                ui_print_error("Missing value for --filter");
+                return -1;
+            }
+            *name_filter = value;
+            i++;
+            continue;
+        }
+
+        if (strcmp(raw, "--id") == 0) {
+            const char* value = get_raw_param_value(i + 1);
+            if (!value) {
+                ui_print_error("Missing value for --id");
+                return -1;
+            }
+            *id_filter = value;
+            i++;
+            continue;
+        }
+
+        const char* equals = strchr(raw, '=');
+        if (equals) {
+            size_t key_len = (size_t)(equals - raw);
+            if (key_len == 0) {
+                ui_print_error("Invalid option syntax (expected key=value)");
+                return -1;
+            }
+            const char* value = equals + 1;
+            if (key_len == 6 && strncasecmp(raw, "filter", key_len) == 0) {
+                *name_filter = (value && value[0] != '\0') ? value : NULL;
+                continue;
+            }
+            if (key_len == 2 && strncasecmp(raw, "id", key_len) == 0) {
+                if (!value || value[0] == '\0') {
+                    ui_print_error("Missing id value");
+                    return -1;
+                }
+                *id_filter = value;
+                continue;
+            }
+            if (key_len == 6 && strncasecmp(raw, "detail", key_len) == 0) {
+                if (parse_detail_option(value, detail_full) != 0) {
+                    return -1;
+                }
+                continue;
+            }
+            char buffer[128];
+            snprintf(buffer, sizeof(buffer), "Unknown option key '%.*s'", (int)key_len, raw);
+            ui_print_error(buffer);
+            return -1;
+        }
+
+        if (raw[0] == '-') {
+            char buffer[128];
+            snprintf(buffer, sizeof(buffer), "Unknown flag '%s'", raw);
+            ui_print_error(buffer);
+            return -1;
+        }
+
+        if (!*name_filter) {
+            *name_filter = raw;
+            continue;
+        }
+
+        if (!*id_filter) {
+            *id_filter = raw;
+            continue;
+        }
+
+        ui_print_error("Too many positional arguments. Use up to three options (filter, id, detail).");
+        return -1;
+    }
+    return 0;
+}
 
 // Handler for get_device_info command using framework
 int handle_get_device_info_command_new(const char* cmd_name, int argc, char** argv, 
@@ -250,4 +379,44 @@ int handle_validate_arguments_command_new(const char* cmd_name, int argc, char**
     printf("  Session ID: %u\n", session_id);
     
     return 0;
+}
+
+int handle_show_device_configs_command_new(const char* cmd_name,
+                                           int argc,
+                                           char** argv,
+                                           const uci_param_def_t* params,
+                                           int param_count) {
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+
+    const char* id_filter = NULL;
+    const char* name_filter = NULL;
+    int full = 0;
+
+    if (parse_config_list_options(param_count, &id_filter, &name_filter, &full) != 0) {
+        return -1;
+    }
+    return show_device_configs_with_filters(id_filter, name_filter, full);
+}
+
+int handle_show_app_configs_command_new(const char* cmd_name,
+                                        int argc,
+                                        char** argv,
+                                        const uci_param_def_t* params,
+                                        int param_count) {
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+
+    const char* id_filter = NULL;
+    const char* name_filter = NULL;
+    int full = 0;
+
+    if (parse_config_list_options(param_count, &id_filter, &name_filter, &full) != 0) {
+        return -1;
+    }
+    return show_app_configs_with_filters(id_filter, name_filter, full);
 }

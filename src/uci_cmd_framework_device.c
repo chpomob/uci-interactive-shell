@@ -1,10 +1,7 @@
 #include "../include/uci_cmd_core.h"
 #include "../include/uci_cmd_core_new.h"
 #include "../include/uci_cmd_framework_device.h"
-#include "../include/uci_cmd_framework_wrappers.h"
 #include "../include/uci_cmd_hardware_new.h"
-
-DEFINE_CMD_WRAPPER(cmd_show_device_configs)
 
 static const uci_param_def_t k_set_power_params[] = {
     {
@@ -87,6 +84,51 @@ static const uci_param_def_t k_set_config_params[] = {
         .min_value = 0,
         .max_value = 0,
         .description = "String representation of the desired value",
+    },
+};
+
+static const uci_param_def_t k_config_list_option_params[] = {
+    {
+        .name = "option1",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Option (filter=..., id=..., detail=summary|full) or legacy flag",
+    },
+    {
+        .name = "option2",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Additional option (filter/id/detail or legacy flag/value)",
+    },
+    {
+        .name = "option3",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Additional option (filter/id/detail or legacy flag/value)",
+    },
+    {
+        .name = "option4",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Additional option (filter/id/detail or legacy flag/value)",
+    },
+    {
+        .name = "option5",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Additional option (filter/id/detail or legacy flag/value)",
+    },
+    {
+        .name = "option6",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Additional option (filter/id/detail or legacy flag/value)",
     },
 };
 
@@ -298,10 +340,10 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .aliases = { NULL },
         .group = CLI_GROUP_DEVICE,
         .flags = CLI_CMD_FLAG_NONE,
-        .description = "List supported device configuration parameters",
-        .params = NULL,
-        .param_count = 0,
-        .handler = cmd_show_device_configs_framework_adapter,
+        .description = "List device configs (use filter=..., id=..., detail=full)",
+        .params = k_config_list_option_params,
+        .param_count = ARRAY_SIZE(k_config_list_option_params),
+        .handler = handle_show_device_configs_command_new,
     },
     {
         .name = "device_suspend",

@@ -26,5 +26,7 @@ void handle_query_timestamp_command(void);
 // CLI helpers for configuration discovery
 int cmd_show_device_configs(int argc, char** argv);
 int cmd_show_app_configs(int argc, char** argv);
+int show_device_configs_with_filters(const char* id_filter, const char* name_filter, int full);
+int show_app_configs_with_filters(const char* id_filter, const char* name_filter, int full);
 
 #endif // UCI_CMD_CORE_H

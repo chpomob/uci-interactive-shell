@@ -1,6 +1,7 @@
 #include "../include/uci_cmd_framework_session.h"
 #include "../include/uci_cmd_framework_wrappers.h"
 #include "../include/uci_cmd_handlers.h"
+#include "../include/uci_cmd_core_new.h"
 
 DEFINE_CMD_WRAPPER(cmd_session_init)
 DEFINE_CMD_WRAPPER(cmd_session_deinit)
@@ -13,7 +14,6 @@ DEFINE_CMD_WRAPPER(cmd_session_logical_link_get_param)
 DEFINE_CMD_WRAPPER(cmd_get_session_state)
 DEFINE_CMD_WRAPPER(cmd_set_app_config)
 DEFINE_CMD_WRAPPER(cmd_get_app_config)
-DEFINE_CMD_WRAPPER(cmd_show_app_configs)
 DEFINE_CMD_WRAPPER(cmd_session_update_multicast_list)
 DEFINE_CMD_WRAPPER(cmd_session_update_dt_tag_rounds)
 DEFINE_CMD_WRAPPER(cmd_session_data_transfer_phase_config)
@@ -201,6 +201,51 @@ static const uci_param_def_t k_get_app_config_params[] = {
         .min_value = 0,
         .max_value = 0,
         .description = "Optional parameter filter",
+    },
+};
+
+static const uci_param_def_t k_app_config_option_params[] = {
+    {
+        .name = "option1",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Option (filter=..., id=..., detail=summary|full) or legacy flag",
+    },
+    {
+        .name = "option2",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Additional option (filter/id/detail or legacy flag/value)",
+    },
+    {
+        .name = "option3",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Additional option (filter/id/detail or legacy flag/value)",
+    },
+    {
+        .name = "option4",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Additional option (filter/id/detail or legacy flag/value)",
+    },
+    {
+        .name = "option5",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Additional option (filter/id/detail or legacy flag/value)",
+    },
+    {
+        .name = "option6",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_OPTIONAL,
+        .max_len = 64,
+        .description = "Additional option (filter/id/detail or legacy flag/value)",
     },
 };
 
@@ -452,10 +497,10 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .aliases = { NULL },
         .group = CLI_GROUP_SESSION_CONFIG,
         .flags = CLI_CMD_FLAG_NONE,
-        .description = "List supported session application parameters",
-        .params = NULL,
-        .param_count = 0,
-        .handler = cmd_show_app_configs_framework_adapter,
+        .description = "List session app configs (filter=..., id=..., detail=full)",
+        .params = k_app_config_option_params,
+        .param_count = ARRAY_SIZE(k_app_config_option_params),
+        .handler = handle_show_app_configs_command_new,
     },
     {
         .name = "session_update_multicast_list",

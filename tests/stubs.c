@@ -37,6 +37,4 @@ int cmd_simulate_data_credit(int argc, char** argv) { return stub_cmd_handler(ar
 int cmd_simulate_ranging(int argc, char** argv) { return stub_cmd_handler(argc, argv); }
 int cmd_simulate_multi_target_ranging(int argc, char** argv) { return stub_cmd_handler(argc, argv); }
 int cmd_demo_session_flow(int argc, char** argv) { return stub_cmd_handler(argc, argv); }
-int cmd_analyze_packet(int argc, char** argv) { return stub_cmd_handler(argc, argv); }
-int cmd_help(int argc, char** argv) { return stub_cmd_handler(argc, argv); }
 int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv) { return stub_cmd_handler(argc, argv); }

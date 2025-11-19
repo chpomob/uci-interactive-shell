@@ -17,6 +17,10 @@ int handle_get_config_command_new(const char* cmd_name, int argc, char** argv,
                                   const uci_param_def_t* params, int param_count);
 int handle_get_caps_info_command_new(const char* cmd_name, int argc, char** argv,
                                      const uci_param_def_t* params, int param_count);
+int handle_show_device_configs_command_new(const char* cmd_name, int argc, char** argv,
+                                           const uci_param_def_t* params, int param_count);
+int handle_show_app_configs_command_new(const char* cmd_name, int argc, char** argv,
+                                        const uci_param_def_t* params, int param_count);
 int handle_get_device_state_command_new(const char* cmd_name, int argc, char** argv,
                                         const uci_param_def_t* params, int param_count);
 int handle_set_device_active_command_new(const char* cmd_name, int argc, char** argv,

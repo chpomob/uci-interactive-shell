@@ -14,15 +14,16 @@
 - `6ba33f5` – added typed session-config handlers, wiring each parameterized command into shared TLV parsing utilities.
 - `7a4c52f` – switched the original session handlers to reuse typed values, reducing duplicated validation logic.
 - _Uncommitted_ – routed all hardware/mode CLI commands through typed handlers (`src/uci_cmd_hardware_new.c`) and deleted the redundant argc/argv shims.
+- _Uncommitted_ – moved `help`, `analyze_packet`, and the config-listing commands onto typed handlers, added key=value option parsing for `show_*_configs`, and removed the obsolete `src/uci_cmd_handlers.c`.
 
 ## Current Focus
-The interactive shell now resolves command metadata exclusively through `uci_command_framework.c`. Session/session-config and hardware/device commands execute via typed handlers (`src/uci_cmd_handlers_session.c`, `src/uci_cmd_hardware_new.c`, `src/uci_cmd_core_new.c`), and the legacy argc/argv shims in `src/uci_cmd_handlers.c` have been pruned down to the help/analyze utilities. Remaining cleanup is centered on general/analysis commands plus lingering helper duplication around documentation-oriented commands.
+The interactive shell now resolves command metadata exclusively through `uci_command_framework.c`. Session/session-config, hardware/device, and general CLI commands execute via typed handlers (`src/uci_cmd_handlers_session.c`, `src/uci_cmd_hardware_new.c`, `src/uci_cmd_core_new.c`, `src/uci_cmd_framework_bridge.c`). The last legacy argc/argv bridge (`src/uci_cmd_handlers.c`) has been deleted, and configuration-listing commands accept structured key=value options while still tolerating legacy flags for compatibility.
 
 ## Outstanding Work / Next Tasks
-1. **Finish migrating general/analysis helpers** – move `help`/`analyze_packet` to typed handlers and push flag-style commands (`show_device_configs`, `show_app_configs`) into consistent parameter definitions.
+1. **Document the new option syntax** – refresh CLI help/docs so `show_*_configs` users know they can pass `filter=...`, `id=...`, and `detail=full` (while legacy `--id`/`--filter` continue to work).
 2. **Prune remaining dead artifacts** – search for unused `.before_fix` files, duplicate CLI tables, and unused helper declarations in headers/tests.
-3. **Harmonize CLI flag parsing** – design a lightweight flag parser (or structured params) so config-listing commands no longer parse `argv` manually and can participate in validation/completion.
-4. **Extend automated coverage** – add regression tests targeting the typed hardware commands and the remaining general commands to guard against regressions as the CLI surface continues to evolve.
+3. **Extend automated coverage** – add regression tests targeting the typed hardware/general commands and the new config-listing option parser.
+4. **Audit for further consolidation** – now that `src/uci_cmd_handlers.c` is gone, look for other duplicated helpers (key parsing, error reporting) that can move into shared utilities.
 
 ## Testing Status
 `make -j`, `./test_command_handlers`, and `./test_command_framework_validation` were executed on 2025-11-19 after the typed hardware migration; all builds/tests passed. No other suites (e.g., `tests/test_final.sh`) have been run in this workspace since commit `74cfd77`.

@@ -18,7 +18,5 @@ int cmd_session_data_transfer_phase_config(int argc, char** argv);
 int cmd_session_set_hybrid_controller_config(int argc, char** argv);
 int cmd_session_set_hybrid_controlee_config(int argc, char** argv);
 int cmd_session_query_data_size_in_ranging(int argc, char** argv);
-int cmd_analyze_packet(int argc, char** argv);
-int cmd_help(int argc, char** argv);
 
 #endif // UCI_CMD_HANDLERS_H

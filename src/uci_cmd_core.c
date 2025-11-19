@@ -397,6 +397,10 @@ static int filter_device_configs(const char* id_filter, const char* name_filter,
     return 0;
 }
 
+int show_device_configs_with_filters(const char* id_filter, const char* name_filter, int full) {
+    return filter_device_configs(id_filter, name_filter, full);
+}
+
 int cmd_show_device_configs(int argc, char** argv) {
     const char* id_filter = NULL;
     const char* name_filter = NULL;
@@ -405,7 +409,11 @@ int cmd_show_device_configs(int argc, char** argv) {
         return -1;
     }
 
-    return filter_device_configs(id_filter, name_filter, full);
+    return show_device_configs_with_filters(id_filter, name_filter, full);
+}
+
+int show_app_configs_with_filters(const char* id_filter, const char* name_filter, int full) {
+    return filter_app_configs(id_filter, name_filter, full);
 }
 
 int cmd_show_app_configs(int argc, char** argv) {
@@ -416,5 +424,5 @@ int cmd_show_app_configs(int argc, char** argv) {
         return -1;
     }
 
-    return filter_app_configs(id_filter, name_filter, full);
+    return show_app_configs_with_filters(id_filter, name_filter, full);
 }

@@ -1,7 +1,12 @@
 #include "test_runner.h"
 #include "../include/uci_command_framework.h"
+#include "../include/uci_cmd_framework_bridge.h"
+#include "../include/uci_cmd_framework_device.h"
+#include "../include/uci_cmd_framework_session.h"
 #include "../include/uci_pdl.h"
 #include <stddef.h>
+#include <string.h>
+#include <unistd.h>
 
 static int g_handler_calls = 0;
 
@@ -55,6 +60,67 @@ static int capture_handler(const char* cmd_name,
     }
     g_capture_handler_calls++;
     return 0;
+}
+
+static const uci_command_def_t* find_command_by_name(const uci_command_def_t* defs,
+                                                     int count,
+                                                     const char* name) {
+    if (!defs || count <= 0 || !name) {
+        return NULL;
+    }
+    for (int i = 0; i < count; i++) {
+        if (strcmp(defs[i].name, name) == 0) {
+            return &defs[i];
+        }
+    }
+    return NULL;
+}
+
+static int dispatch_and_capture_output(const uci_command_def_t* def,
+                                       int argc,
+                                       char** argv,
+                                       char* buffer,
+                                       size_t buffer_len) {
+    if (!def || !buffer || buffer_len == 0) {
+        return -1;
+    }
+
+    FILE* tmp = tmpfile();
+    if (!tmp) {
+        return -1;
+    }
+    int tmp_fd = fileno(tmp);
+    int saved_stdout = dup(STDOUT_FILENO);
+    if (saved_stdout < 0) {
+        fclose(tmp);
+        return -1;
+    }
+
+    fflush(stdout);
+    if (dup2(tmp_fd, STDOUT_FILENO) < 0) {
+        close(saved_stdout);
+        fclose(tmp);
+        return -1;
+    }
+
+    int rc = uci_cmd_dispatch(def, argc, argv);
+
+    fflush(stdout);
+    fflush(tmp);
+    long size = ftell(tmp);
+    if (size < 0) {
+        size = 0;
+    }
+    rewind(tmp);
+
+    size_t to_read = (size_t)((size < (long)(buffer_len - 1)) ? size : (long)(buffer_len - 1));
+    size_t read_bytes = fread(buffer, 1, to_read, tmp);
+    buffer[read_bytes] = '\0';
+
+    dup2(saved_stdout, STDOUT_FILENO);
+    close(saved_stdout);
+    fclose(tmp);
+    return rc;
 }
 
 int main(void) {
@@ -254,6 +320,78 @@ int main(void) {
         ASSERT_EQUAL(0xBB, g_captured_hex_bytes[1]);
         ASSERT_EQUAL(0xCC, g_captured_hex_bytes[2]);
         ASSERT_EQUAL(0xDD, g_captured_hex_bytes[3]);
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_show_device_configs
+    TEST_CASE(show_device_config_option_parsing);
+    {
+        char capture_buffer[4096];
+        const uci_command_def_t* def =
+            find_command_by_name(g_uci_device_command_defs,
+                                 g_uci_device_command_defs_count,
+                                 "show_device_configs");
+        ASSERT_TRUE(def != NULL);
+
+        char* argv_summary[] = { "show_device_configs" };
+        ASSERT_EQUAL(0, dispatch_and_capture_output(def, 1, argv_summary,
+                                                    capture_buffer, sizeof(capture_buffer)));
+        ASSERT_TRUE(strstr(capture_buffer, "device_state") != NULL);
+
+        char* argv_key_value[] = { "show_device_configs", "filter=state", "detail=full" };
+        ASSERT_EQUAL(0, dispatch_and_capture_output(def, 3, argv_key_value,
+                                                    capture_buffer, sizeof(capture_buffer)));
+        ASSERT_TRUE(strstr(capture_buffer, "device_state") != NULL);
+
+        char* argv_legacy_flags[] = { "show_device_configs", "--filter", "state", "--full" };
+        ASSERT_EQUAL(0, dispatch_and_capture_output(def, 4, argv_legacy_flags,
+                                                    capture_buffer, sizeof(capture_buffer)));
+        ASSERT_TRUE(strstr(capture_buffer, "device_state") != NULL);
+
+        char* argv_invalid_detail[] = { "show_device_configs", "detail=advanced" };
+        ASSERT_EQUAL(-1, uci_cmd_dispatch(def, 2, argv_invalid_detail));
+
+        char* argv_missing_id_value[] = { "show_device_configs", "--id" };
+        ASSERT_EQUAL(-1, uci_cmd_dispatch(def, 2, argv_missing_id_value));
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_show_app_configs
+    TEST_CASE(show_app_config_option_parsing);
+    {
+        char capture_buffer[4096];
+        const uci_command_def_t* def =
+            find_command_by_name(g_uci_session_command_defs,
+                                 g_uci_session_command_defs_count,
+                                 "show_app_configs");
+        ASSERT_TRUE(def != NULL);
+
+        char* argv_summary[] = { "show_app_configs" };
+        ASSERT_EQUAL(0, dispatch_and_capture_output(def, 1, argv_summary,
+                                                    capture_buffer, sizeof(capture_buffer)));
+        ASSERT_TRUE(strstr(capture_buffer, "device_type") != NULL);
+
+        char* argv_key_value[] = { "show_app_configs", "filter=device", "id=0x00" };
+        ASSERT_EQUAL(0, dispatch_and_capture_output(def, 3, argv_key_value,
+                                                    capture_buffer, sizeof(capture_buffer)));
+        ASSERT_TRUE(strstr(capture_buffer, "device_type") != NULL);
+
+        char* argv_legacy_flags[] = { "show_app_configs", "--filter", "device", "--id", "0x00" };
+        ASSERT_EQUAL(0, dispatch_and_capture_output(def, 5, argv_legacy_flags,
+                                                    capture_buffer, sizeof(capture_buffer)));
+        ASSERT_TRUE(strstr(capture_buffer, "device_type") != NULL);
+
+        char* argv_invalid_id[] = { "show_app_configs", "id=not_a_number" };
+        ASSERT_EQUAL(-1, uci_cmd_dispatch(def, 2, argv_invalid_id));
+
+        char* argv_missing_filter_value[] = { "show_app_configs", "--filter" };
+        ASSERT_EQUAL(-1, uci_cmd_dispatch(def, 2, argv_missing_filter_value));
 
         TEST_PASS();
     }

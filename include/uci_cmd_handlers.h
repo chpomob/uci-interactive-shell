@@ -1,24 +1,6 @@
 #ifndef UCI_CMD_HANDLERS_H
 #define UCI_CMD_HANDLERS_H
 
-int cmd_hw_init(int argc, char** argv);
-int cmd_hw_send(int argc, char** argv);
-int cmd_mode_sim(int argc, char** argv);
-int cmd_mode_hw(int argc, char** argv);
-int cmd_mode_info(int argc, char** argv);
-int cmd_get_device_info(int argc, char** argv);
-int cmd_device_reset(int argc, char** argv);
-int cmd_set_power(int argc, char** argv);
-int cmd_device_on(int argc, char** argv);
-int cmd_device_off(int argc, char** argv);
-int cmd_get_caps_info(int argc, char** argv);
-int cmd_get_config(int argc, char** argv);
-int cmd_get_device_state(int argc, char** argv);
-int cmd_set_device_active(int argc, char** argv);
-int cmd_set_device_ready(int argc, char** argv);
-int cmd_set_config(int argc, char** argv);
-int cmd_device_suspend(int argc, char** argv);
-int cmd_query_timestamp(int argc, char** argv);
 int cmd_session_init(int argc, char** argv);
 int cmd_session_deinit(int argc, char** argv);
 int cmd_session_start(int argc, char** argv);
@@ -38,7 +20,5 @@ int cmd_session_set_hybrid_controlee_config(int argc, char** argv);
 int cmd_session_query_data_size_in_ranging(int argc, char** argv);
 int cmd_analyze_packet(int argc, char** argv);
 int cmd_help(int argc, char** argv);
-int cmd_show_device_configs(int argc, char** argv);
-int cmd_show_app_configs(int argc, char** argv);
 
 #endif // UCI_CMD_HANDLERS_H

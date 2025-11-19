@@ -99,6 +99,17 @@ int handle_get_config_command_new(const char* cmd_name, int argc, char** argv,
     return handle_get_config_command(argv[1]);
 }
 
+int handle_get_caps_info_command_new(const char* cmd_name, int argc, char** argv,
+                                     const uci_param_def_t* params, int param_count) {
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+    handle_get_caps_info_command();
+    return 0;
+}
+
 // Handler for get_device_state command using framework
 int handle_get_device_state_command_new(const char* cmd_name, int argc, char** argv, 
                                         const uci_param_def_t* params, int param_count) {

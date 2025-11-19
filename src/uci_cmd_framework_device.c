@@ -1,14 +1,9 @@
+#include "../include/uci_cmd_core.h"
 #include "../include/uci_cmd_core_new.h"
 #include "../include/uci_cmd_framework_device.h"
 #include "../include/uci_cmd_framework_wrappers.h"
-#include "../include/uci_cmd_handlers.h"
+#include "../include/uci_cmd_hardware_new.h"
 
-DEFINE_CMD_WRAPPER(cmd_mode_sim)
-DEFINE_CMD_WRAPPER(cmd_mode_hw)
-DEFINE_CMD_WRAPPER(cmd_mode_info)
-DEFINE_CMD_WRAPPER(cmd_hw_init)
-DEFINE_CMD_WRAPPER(cmd_hw_send)
-DEFINE_CMD_WRAPPER(cmd_get_caps_info)
 DEFINE_CMD_WRAPPER(cmd_show_device_configs)
 
 static const uci_param_def_t k_set_power_params[] = {
@@ -146,7 +141,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Switch to simulation mode",
         .params = NULL,
         .param_count = 0,
-        .handler = cmd_mode_sim_framework_adapter,
+        .handler = handle_mode_sim_command_new,
     },
     {
         .name = "mode_hw",
@@ -156,7 +151,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Switch to hardware mode",
         .params = k_device_path_param,
         .param_count = ARRAY_SIZE(k_device_path_param),
-        .handler = cmd_mode_hw_framework_adapter,
+        .handler = handle_mode_hw_command_new,
     },
     {
         .name = "mode_info",
@@ -166,7 +161,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Display current mode",
         .params = NULL,
         .param_count = 0,
-        .handler = cmd_mode_info_framework_adapter,
+        .handler = handle_mode_info_command_new,
     },
     {
         .name = "hw_init",
@@ -176,7 +171,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Initialize hardware mode and connect",
         .params = k_device_path_param,
         .param_count = ARRAY_SIZE(k_device_path_param),
-        .handler = cmd_hw_init_framework_adapter,
+        .handler = handle_hw_init_command_new,
     },
     {
         .name = "hw_send",
@@ -186,7 +181,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Send a raw packet to hardware",
         .params = k_hw_send_params,
         .param_count = ARRAY_SIZE(k_hw_send_params),
-        .handler = cmd_hw_send_framework_adapter,
+        .handler = handle_hw_send_command_new,
     },
     {
         .name = "get_device_info",
@@ -246,7 +241,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Query capability information",
         .params = NULL,
         .param_count = 0,
-        .handler = cmd_get_caps_info_framework_adapter,
+        .handler = handle_get_caps_info_command_new,
     },
     {
         .name = "get_config",

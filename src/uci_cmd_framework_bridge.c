@@ -6,7 +6,6 @@
 #include "../include/uci_cmd_framework_simulation.h"
 #include "../include/uci_cmd_framework_session.h"
 #include "../include/uci_cmd_framework_wrappers.h"
-#include "../include/uci_cmd_handlers.h"
 #include "../include/uci_cmd_analysis.h"
 #include "../include/uci_cli.h"
 #include "../include/uci_ui.h"

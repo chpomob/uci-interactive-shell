@@ -34,7 +34,6 @@
 #include "../include/uci_cmd_session_config.h"
 #include "../include/uci_cmd_analysis.h"
 #include "../include/uci_globals.h"
-#include "../include/uci_cmd_handlers.h"
 #include "../include/uci_standardized_error_handling.h"
 #include "../include/uci_types.h"
 

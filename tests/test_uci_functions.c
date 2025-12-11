@@ -1157,7 +1157,7 @@ int main() {
         payload[offset++] = 0x07;
 
         struct uci_packet_header header;
-        set_header_values_safe(&header, NOTIFICATION, COMPLETE, 0x0B,  // RANGING_DATA GID = 0x0B
+        set_header_values_safe(&header, NOTIFICATION, COMPLETE, SESSION_CONTROL,  // QM SDK: Ranging data uses GID 0x02
                           SESSION_INFO_NTF_OPCODE, (unsigned char)offset);
 
         unsigned char packet[sizeof(struct uci_packet_header) + 64] = {0};
@@ -1197,8 +1197,10 @@ int main() {
     {
         // Test real range notification packet from logs
         // Raw: 6b0300212a0000000800000006030100000001000001000000020100000401000005000000
+        // NOTE: This packet uses GID 0x0B, but QM SDK correctly uses GID 0x02 for ranging data
+        // This appears to be from a non-QM-SDK implementation. Keeping for compatibility testing.
         unsigned char real_packet[] = {
-            0x6b, 0x03, 0x00, 0x21,  // Header: RANGING_DATA notification (GID 0x0B), opcode 0x03, payload length 33
+            0x6b, 0x03, 0x00, 0x21,  // Header: Legacy RANGING_DATA notification (GID 0x0B), opcode 0x03, payload length 33
             0x2a, 0x00, 0x00, 0x00,  // Session token (little endian)
             0x08, 0x00, 0x00, 0x00,  // Sequence number (little endian)
             0x06, 0x03, 0x01, 0x00,  // Control field and more
@@ -1211,8 +1213,8 @@ int main() {
 
         struct uci_packet_header* header = (struct uci_packet_header*)real_packet;
         
-        // Verify header fields from real packet
-        ASSERT_EQUAL(0x0B, get_gid(header));  // RANGING_DATA GID = 0x0B
+        // Verify header fields from real packet (legacy implementation)
+        ASSERT_EQUAL(0x0B, get_gid(header));  // Legacy: RANGING_DATA GID = 0x0B (non-QM-SDK)
         ASSERT_EQUAL(NOTIFICATION, get_mt(header));
         ASSERT_EQUAL(33, header->payload_len);
 
@@ -1226,6 +1228,25 @@ int main() {
         header = (struct uci_packet_header*)pdl_device_reset;
         ASSERT_EQUAL(CORE, get_gid(header));
         ASSERT_EQUAL(COMMAND, get_mt(header));
+
+        // Add QM SDK compliant ranging data test
+        // QM SDK: Ranging data uses GID 0x02 (SESSION_CONTROL), not 0x0B
+        unsigned char qm_sdk_ranging_packet[] = {
+            0x62, 0x00, 0x00, 0x21,  // Header: SESSION_CONTROL notification (GID 0x02), opcode 0x00, payload length 33
+            0x2a, 0x00, 0x00, 0x00,  // Session token (little endian)
+            0x08, 0x00, 0x00, 0x00,  // Sequence number (little endian)
+            0x06, 0x03, 0x01, 0x00,  // Control field and more
+            0x00, 0x00, 0x01, 0x00,  // More payload
+            0x00, 0x01, 0x00, 0x00,  // More payload
+            0x00, 0x02, 0x01, 0x00,  // More payload
+            0x00, 0x04, 0x01, 0x00,  // More payload
+            0x00, 0x05  // Remaining payload
+        };
+
+        header = (struct uci_packet_header*)qm_sdk_ranging_packet;
+        ASSERT_EQUAL(SESSION_CONTROL, get_gid(header));  // QM SDK: GID 0x02 for ranging data
+        ASSERT_EQUAL(NOTIFICATION, get_mt(header));
+        ASSERT_EQUAL(33, header->payload_len);
         ASSERT_EQUAL(0x00, get_opcode(header));  // CORE_DEVICE_RESET
         ASSERT_EQUAL(1, header->payload_len);
 

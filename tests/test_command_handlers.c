@@ -2,6 +2,8 @@
 #include "../include/uci_cmd_core.h"
 #include "../include/uci_config_manager.h"
 #include "../include/uci_cmd_session.h"
+#include "../include/uci_cmd_session_config.h"
+#include "../include/uci_cmd_session_config_ext.h"
 #include "../include/uci_functions.h"
 #include "../include/uci_packet_utils.h"
 #include "../include/uci_pdl.h"

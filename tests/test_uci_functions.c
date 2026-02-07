@@ -1247,8 +1247,7 @@ int main() {
         ASSERT_EQUAL(SESSION_CONTROL, get_gid(header));  // QM SDK: GID 0x02 for ranging data
         ASSERT_EQUAL(NOTIFICATION, get_mt(header));
         ASSERT_EQUAL(33, header->payload_len);
-        ASSERT_EQUAL(0x00, get_opcode(header));  // CORE_DEVICE_RESET
-        ASSERT_EQUAL(1, header->payload_len);
+        ASSERT_EQUAL(0x00, get_opcode(header));  // SESSION_INFO_NTF opcode is 0x00
 
         // Test PDL specification packet: GetDeviceInfoRsp
         // Raw: 4002000b000000010100020003000400010a

@@ -43,16 +43,16 @@ int handle_hw_init_command(char* device_path) {
             if (uci_hw_chardev_open(g_chardev_ptr) == 0) {
                 ui_print_success("Character device interface initialized successfully");
             } else {
-                printf("Warning: Failed to open character device interface\n");
+                ui_print_warning("Failed to open character device interface");
                 UCI_LOG_ERROR("Failed to open character device interface", UCI_ERROR_INVALID_PARAM);
             }
         } else {
-            printf("Warning: Failed to initialize character device interface\n");
+            ui_print_warning("Failed to initialize character device interface");
             UCI_LOG_ERROR("Failed to initialize character device interface", UCI_ERROR_INVALID_PARAM);
         }
         return 0;
     } else {
-        printf("Failed to initialize hardware mode\n");
+        ui_print_error("Failed to initialize hardware mode");
         UCI_LOG_ERROR("Failed to initialize hardware mode", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
@@ -65,13 +65,13 @@ int handle_hw_send_command(char* mt_str,
                            char** payload_tokens,
                            int payload_count) {
     if (!g_hw_mode_ptr || !*g_hw_mode_ptr) {
-        printf("Hardware mode not enabled\n");
+        ui_print_error("Hardware mode not enabled");
         UCI_LOG_ERROR("Hardware mode not enabled", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
 
     if (!uci_hw_interface_is_connected()) {
-        printf("Hardware not connected. Use 'hw_connect <device_path>' first.\n");
+        ui_print_error("Hardware not connected. Use 'hw_connect <device_path>' first.");
         UCI_LOG_ERROR("Hardware not connected", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
@@ -124,18 +124,17 @@ int handle_hw_send_command(char* mt_str,
                 printf("%02X ", response_buffer[i]);
             }
             printf("\n");
-
             // Parse and display the response
             parse_uci_packet(response_buffer, response_len);
         } else if (response_len == 0) {
-            printf("No response received from hardware (timeout)\n");
+            ui_print_warning("No response received from hardware (timeout)");
         } else {
-            printf("Error receiving response from hardware\n");
+            ui_print_error("Error receiving response from hardware");
             UCI_LOG_ERROR("Error receiving response from hardware", UCI_ERROR_INVALID_PARAM);
         }
         return 0;
     } else {
-        printf("Failed to send command to hardware\n");
+        ui_print_error("Failed to send command to hardware");
         UCI_LOG_ERROR("Failed to send command to hardware", UCI_ERROR_INVALID_PARAM);
         return -1;
     }

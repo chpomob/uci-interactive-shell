@@ -13,7 +13,6 @@
 
 // Static reference to hardware mode variables passed from main
 static int* g_hw_mode_ptr = NULL;
-static uci_hw_chardev_t* g_chardev_ptr = NULL;
 
 static int parse_u8_token(const char* token, int base, unsigned char* out_value) {
     char* endptr = NULL;
@@ -35,7 +34,7 @@ static int parse_u8_token(const char* token, int base, unsigned char* out_value)
 
 void uci_cmd_hardware_init(int* hw_mode, uci_hw_chardev_t* chardev) {
     g_hw_mode_ptr = hw_mode;
-    g_chardev_ptr = chardev;
+    (void)chardev;
 }
 
 int handle_hw_init_command(char* device_path) {
@@ -45,35 +44,22 @@ int handle_hw_init_command(char* device_path) {
         return -1;
     }
 
-    if (!g_hw_mode_ptr || !g_chardev_ptr) {
+    if (!g_hw_mode_ptr) {
         printf("Error: Hardware command module not initialized\n");
         UCI_LOG_ERROR("Hardware command module not initialized", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
 
-    // Initialize both the legacy hardware interface and the new character device interface
-    if (uci_hw_interface_init(device_path) == 0) {
-        *g_hw_mode_ptr = 1;
+    uci_enable_hardware_mode(device_path);
+    *g_hw_mode_ptr = uci_is_hardware_mode_enabled();
+    if (*g_hw_mode_ptr) {
         ui_print_hardware_mode_initialized(device_path);
-
-        // Also initialize the character device interface
-        if (uci_hw_chardev_init(g_chardev_ptr, device_path) == 0) {
-            if (uci_hw_chardev_open(g_chardev_ptr) == 0) {
-                ui_print_success("Character device interface initialized successfully");
-            } else {
-                ui_print_warning("Failed to open character device interface");
-                UCI_LOG_ERROR("Failed to open character device interface", UCI_ERROR_INVALID_PARAM);
-            }
-        } else {
-            ui_print_warning("Failed to initialize character device interface");
-            UCI_LOG_ERROR("Failed to initialize character device interface", UCI_ERROR_INVALID_PARAM);
-        }
         return 0;
-    } else {
-        ui_print_error("Failed to initialize hardware mode");
-        UCI_LOG_ERROR("Failed to initialize hardware mode", UCI_ERROR_INVALID_PARAM);
-        return -1;
     }
+
+    ui_print_error("Failed to initialize hardware mode");
+    UCI_LOG_ERROR("Failed to initialize hardware mode", UCI_ERROR_INVALID_PARAM);
+    return -1;
 }
 
 int handle_hw_send_command(char* mt_str,
@@ -189,8 +175,7 @@ int handle_mode_hw_command(char* device_path) {
         return -1;
     }
     
-    uci_enable_hardware_mode(device_path);
-    return 0;
+    return handle_hw_init_command(device_path);
 }
 
 void handle_mode_info_command(void) {

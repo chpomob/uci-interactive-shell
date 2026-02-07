@@ -466,32 +466,26 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
 // Function to enable hardware mode
 void uci_enable_hardware_mode(const char* device_path) {
     extern int g_hardware_mode;
-    extern uci_hw_chardev_t g_uwb_chardev;
-    
-    g_hardware_mode = 1;
-    if (device_path) {
-        // Initialize and open the character device
-        if (uci_hw_chardev_init(&g_uwb_chardev, device_path) == 0) {
-            if (uci_hw_chardev_open(&g_uwb_chardev) == 0) {
-                printf("Hardware mode enabled with device: %s (chardev initialized)\n", device_path);
-                return;
-            }
-        }
-        UCI_LOG_WARNING("Failed to initialize hardware device: %s", device_path);
-        g_hardware_mode = 0; // Disable if init failed
+
+    if (!device_path || device_path[0] == '\0') {
+        UCI_LOG_WARNING("Cannot enable hardware mode without a device path");
+        g_hardware_mode = 0;
+        return;
+    }
+
+    if (uci_hw_interface_init(device_path) == 0) {
+        g_hardware_mode = 1;
+        printf("Hardware mode enabled with device: %s\n", device_path);
     } else {
-        printf("Hardware mode enabled with default device\n");
+        UCI_LOG_WARNING("Failed to initialize hardware device: %s", device_path);
+        g_hardware_mode = 0;
     }
 }
 
 // Function to disable hardware mode
 void uci_disable_hardware_mode() {
     extern int g_hardware_mode;
-    extern uci_hw_chardev_t g_uwb_chardev;
-    
-    if (g_uwb_chardev.is_open) {
-        uci_hw_chardev_close(&g_uwb_chardev);
-    }
+    uci_hw_interface_cleanup();
     g_hardware_mode = 0;
     printf("Hardware mode disabled\n");
 }
@@ -504,8 +498,11 @@ int uci_is_hardware_mode_enabled() {
 
 // Function to get the current hardware device path
 const char* uci_get_hardware_device_path() {
-    extern uci_hw_chardev_t g_uwb_chardev;
-    return g_uwb_chardev.device_path[0] ? g_uwb_chardev.device_path : "/dev/ttyUSB0";
+    const char* path = uci_hw_interface_get_device_path();
+    if (!path || path[0] == '\0') {
+        return "/dev/ttyUSB0";
+    }
+    return path;
 }
 
 // Global session storage
@@ -664,7 +661,6 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
     }
 
     extern int g_hardware_mode;
-    extern uci_hw_chardev_t g_uwb_chardev;
 
     // Validate input parameters
     if (payload_len < 0 || payload_len > UCI_MAX_CONTROL_PAYLOAD_SIZE) {
@@ -681,72 +677,62 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
 
     if (g_hardware_mode) {
         printf("[HARDWARE MODE] ");
-
-        int total_packet_size = sizeof(struct uci_packet_header) + payload_len;
-        
-        // Check for potential integer overflow
-        if (payload_len > UCI_MAX_CONTROL_PAYLOAD_SIZE || 
-            total_packet_size < (int)sizeof(struct uci_packet_header)) {
-            UCI_LOG_ERROR("Payload size would cause integer overflow (len=%d)", payload_len);
-            uci_log_error(__func__, "Integer overflow in packet size calculation", UCI_ERROR_INVALID_PARAM);
+        if (!uci_hw_interface_is_connected()) {
+            ui_print_error("Hardware not connected. Use 'hw_init <device_path>' first.");
+            UCI_LOG_ERROR("Hardware interface not connected", UCI_ERROR_INVALID_PARAM);
             return;
         }
 
-        unsigned char *packet = safe_malloc(total_packet_size);
-        if (!packet) {
-            UCI_LOG_ERROR("Failed to allocate memory for UCI packet (size=%d)", total_packet_size);
-            uci_log_error(__func__, "Memory allocation failure", UCI_ERROR_OUT_OF_MEMORY);
-            return;
-        }
+        const char* hw_path = uci_get_hardware_device_path();
+        ui_print_sending_uci_packet(hw_path);
 
-        struct uci_packet_header *header = (struct uci_packet_header *)packet;
-        uci_error_t result = set_header_values_safe(header, mt, pbf, gid, oid, payload_len);
+        unsigned char preview_header[sizeof(struct uci_packet_header)];
+        uci_error_t result = set_header_values_safe((struct uci_packet_header*)preview_header,
+                                                    mt, pbf, gid, oid,
+                                                    (unsigned char)payload_len);
         if (result != UCI_SUCCESS) {
             UCI_LOG_ERROR("Failed to set header values (error=%d)", result);
             uci_log_error(__func__, "Header validation failed", result);
-            free(packet);
             return;
         }
+        printf("  Header: %02X %02X %02X %02X\n",
+               preview_header[0], preview_header[1], preview_header[2], preview_header[3]);
 
-        if (payload && payload_len > 0) {
-            result = safe_memcpy(packet + sizeof(struct uci_packet_header), 
-                                total_packet_size - sizeof(struct uci_packet_header),
-                                payload, payload_len);
-            if (result != UCI_SUCCESS) {
-                UCI_LOG_ERROR("Failed to copy payload data (error=%d)", result);
-                uci_log_error(__func__, "Payload copy failed", result);
-                free(packet);
-                return;
-            }
-        }
-
-        // Print what we're sending
-        ui_print_sending_uci_packet(g_uwb_chardev.device_path[0] ? g_uwb_chardev.device_path : "/dev/ttyUSB0");
-        unsigned char *header_bytes = (unsigned char *)header;
-        printf("  Header: %02X %02X %02X %02X\n", header_bytes[0], header_bytes[1],
-               header_bytes[2], header_bytes[3]);
         if (payload && payload_len > 0) {
             printf("  Payload: ");
             for (int i = 0; i < payload_len; i++) {
                 printf("%02X ", payload[i]);
             }
             printf("\n");
-        }
-
-        // Actually send to hardware device
-        int send_result = uci_hw_chardev_send(&g_uwb_chardev, packet, total_packet_size);
-        if (send_result > 0) {
-            printf("  -> Sent %d bytes to hardware device %s\n", send_result, 
-                   g_uwb_chardev.device_path[0] ? g_uwb_chardev.device_path : "/dev/ttyUSB0");
-            printf("  <- Waiting for response from hardware device...\n");
         } else {
-            printf("  -> Failed to send to hardware device %s: %s\n", 
-                   g_uwb_chardev.device_path[0] ? g_uwb_chardev.device_path : "/dev/ttyUSB0",
-                   strerror(errno));
-            UCI_LOG_ERROR("Hardware send failed", UCI_ERROR_INVALID_PARAM);
+            printf("  Payload: <empty>\n");
         }
 
-        free(packet);
+        if (uci_hw_interface_send_command(mt, pbf, gid, oid, payload, payload_len) != 0) {
+            ui_print_error("Failed to send command to hardware");
+            UCI_LOG_ERROR("Hardware send failed", UCI_ERROR_INVALID_PARAM);
+            return;
+        }
+
+        printf("  -> Sent command to hardware device %s\n", hw_path);
+        printf("  <- Waiting for response from hardware device...\n");
+
+        unsigned char response_buffer[1024];
+        int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
+        if (response_len > 0) {
+            printf("Received %d bytes from hardware:\n", response_len);
+            printf("  ");
+            for (int i = 0; i < response_len; i++) {
+                printf("%02X ", response_buffer[i]);
+            }
+            printf("\n");
+            parse_uci_packet(response_buffer, response_len);
+        } else if (response_len == 0) {
+            ui_print_warning("No response received from hardware (timeout)");
+        } else {
+            ui_print_error("Error receiving response from hardware");
+            UCI_LOG_ERROR("Error receiving response from hardware", UCI_ERROR_INVALID_PARAM);
+        }
         return;
     }
 

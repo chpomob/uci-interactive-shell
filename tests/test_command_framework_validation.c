@@ -466,10 +466,12 @@ int main(void) {
         char* argv_examples[] = { "analyze_packet", "--examples" };
         ASSERT_EQUAL(0, capture_cli_output(argv_examples, 2, buffer, sizeof(buffer)));
         ASSERT_TRUE(strstr(buffer, "UCI Enhanced Packet Analysis Examples") != NULL);
+        ASSERT_TRUE(strstr(buffer, "Basic Analysis:") != NULL);
 
         char* argv_help[] = { "analyze_packet", "--help" };
         ASSERT_EQUAL(0, capture_cli_output(argv_help, 2, buffer, sizeof(buffer)));
-        ASSERT_TRUE(strstr(buffer, "Usage: analyze_packet") != NULL);
+        ASSERT_TRUE(strstr(buffer, "UCI Enhanced Packet Analysis Help") != NULL);
+        ASSERT_TRUE(strstr(buffer, "Usage:") != NULL);
         TEST_PASS();
     }
     test_case_end:;

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <errno.h>
 
 #include "../include/uci.h"
 #include "../include/uci_cli.h"
@@ -57,6 +58,24 @@ static int parse_sim_session_state(const char* state_str, unsigned char* state_o
         printf("Invalid session state '%s'. Use init, deinit, active, or idle.\n", state_str);
         return -1;
     }
+    return 0;
+}
+
+static int parse_u8_token(const char* token, int base, unsigned char* out_value) {
+    char* endptr = NULL;
+    long parsed = 0;
+
+    if (!token || !out_value || *token == '\0') {
+        return -1;
+    }
+
+    errno = 0;
+    parsed = strtol(token, &endptr, base);
+    if (errno != 0 || endptr == token || *endptr != '\0' || parsed < 0 || parsed > 255) {
+        return -1;
+    }
+
+    *out_value = (unsigned char)parsed;
     return 0;
 }
 
@@ -392,7 +411,11 @@ int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv) {
         return 1;
     }
 
-    unsigned char opcode = (unsigned char)strtol(argv[1], NULL, 0);
+    unsigned char opcode = 0;
+    if (parse_u8_token(argv[1], 0, &opcode) != 0) {
+        fprintf(stderr, "Invalid opcode '%s'. Expected a byte value (0-255).\n", argv[1]);
+        return -1;
+    }
     size_t packet_len;
     unsigned char* vendor_payload = NULL;
     size_t vendor_payload_len = 0;

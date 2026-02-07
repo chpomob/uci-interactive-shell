@@ -15,6 +15,24 @@
 static int* g_hw_mode_ptr = NULL;
 static uci_hw_chardev_t* g_chardev_ptr = NULL;
 
+static int parse_u8_token(const char* token, int base, unsigned char* out_value) {
+    char* endptr = NULL;
+    long parsed = 0;
+
+    if (!token || !out_value || *token == '\0') {
+        return -1;
+    }
+
+    errno = 0;
+    parsed = strtol(token, &endptr, base);
+    if (errno != 0 || endptr == token || *endptr != '\0' || parsed < 0 || parsed > 255) {
+        return -1;
+    }
+
+    *out_value = (unsigned char)parsed;
+    return 0;
+}
+
 void uci_cmd_hardware_init(int* hw_mode, uci_hw_chardev_t* chardev) {
     g_hw_mode_ptr = hw_mode;
     g_chardev_ptr = chardev;
@@ -87,26 +105,31 @@ int handle_hw_send_command(char* mt_str,
         return -1;
     }
 
-    unsigned char mt = (unsigned char)strtol(mt_str, NULL, 16);
-    unsigned char pbf = (unsigned char)strtol(pbf_str, NULL, 16);
-    unsigned char gid = (unsigned char)strtol(gid_str, NULL, 16);
-    unsigned char oid = (unsigned char)strtol(oid_str, NULL, 16);
+    unsigned char mt = 0;
+    unsigned char pbf = 0;
+    unsigned char gid = 0;
+    unsigned char oid = 0;
+    if (parse_u8_token(mt_str, 16, &mt) != 0 ||
+        parse_u8_token(pbf_str, 16, &pbf) != 0 ||
+        parse_u8_token(gid_str, 16, &gid) != 0 ||
+        parse_u8_token(oid_str, 16, &oid) != 0) {
+        printf("Invalid command byte values. Expected hex bytes (00-FF).\n");
+        UCI_LOG_ERROR("Invalid command byte values", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
 
     unsigned char payload[MAX_PAYLOAD_LENGTH];
     int payload_len = 0;
 
     if (payload_tokens != NULL) {
         for (int i = 0; i < payload_count && i < MAX_PAYLOAD_LENGTH; i++) {
-            if (errno) {
-                errno = 0; // Reset errno
-            }
-            long val = strtol(payload_tokens[i], NULL, 16);
-            if (val < 0 || val > 255) {
+            unsigned char parsed_payload = 0;
+            if (parse_u8_token(payload_tokens[i], 16, &parsed_payload) != 0) {
                 printf("Invalid hex value: %s\n", payload_tokens[i]);
                 UCI_LOG_ERROR("Invalid hex value in payload", UCI_ERROR_INVALID_PARAM);
                 return -1;
             }
-            payload[payload_len++] = (unsigned char)val;
+            payload[payload_len++] = parsed_payload;
         }
     }
 

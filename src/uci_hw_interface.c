@@ -452,6 +452,30 @@ int uci_hw_interface_receive_response(unsigned char* buffer, size_t buffer_size,
     return 0;
 }
 
+int uci_hw_interface_exchange_command(unsigned char mt,
+                                      unsigned char pbf,
+                                      unsigned char gid,
+                                      unsigned char oid,
+                                      unsigned char* payload,
+                                      int payload_len,
+                                      unsigned char* response_buffer,
+                                      size_t response_buffer_size,
+                                      int timeout_ms) {
+    if (!response_buffer || response_buffer_size == 0) {
+        return -1;
+    }
+
+    if (!uci_hw_interface_is_connected()) {
+        return UCI_HW_EXCHANGE_SEND_ERROR;
+    }
+
+    if (uci_hw_interface_send_command(mt, pbf, gid, oid, payload, payload_len) != 0) {
+        return UCI_HW_EXCHANGE_SEND_ERROR;
+    }
+
+    return uci_hw_interface_receive_response(response_buffer, response_buffer_size, timeout_ms);
+}
+
 // Cleanup hardware interface
 void uci_hw_interface_cleanup(void) {
     if (g_hw_initialized) {

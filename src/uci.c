@@ -677,12 +677,6 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
 
     if (g_hardware_mode) {
         printf("[HARDWARE MODE] ");
-        if (!uci_hw_interface_is_connected()) {
-            ui_print_error("Hardware not connected. Use 'hw_init <device_path>' first.");
-            UCI_LOG_ERROR("Hardware interface not connected", UCI_ERROR_INVALID_PARAM);
-            return;
-        }
-
         const char* hw_path = uci_get_hardware_device_path();
         ui_print_sending_uci_packet(hw_path);
 
@@ -708,17 +702,24 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
             printf("  Payload: <empty>\n");
         }
 
-        if (uci_hw_interface_send_command(mt, pbf, gid, oid, payload, payload_len) != 0) {
+        unsigned char response_buffer[1024];
+        int response_len = uci_hw_interface_exchange_command(mt, pbf, gid, oid,
+                                                             payload, payload_len,
+                                                             response_buffer, sizeof(response_buffer),
+                                                             1000);
+        if (response_len == UCI_HW_EXCHANGE_SEND_ERROR) {
             ui_print_error("Failed to send command to hardware");
             UCI_LOG_ERROR("Hardware send failed", UCI_ERROR_INVALID_PARAM);
+            return;
+        }
+        if (response_len < 0) {
+            ui_print_error("Error receiving response from hardware");
+            UCI_LOG_ERROR("Error receiving response from hardware", UCI_ERROR_INVALID_PARAM);
             return;
         }
 
         printf("  -> Sent command to hardware device %s\n", hw_path);
         printf("  <- Waiting for response from hardware device...\n");
-
-        unsigned char response_buffer[1024];
-        int response_len = uci_hw_interface_receive_response(response_buffer, sizeof(response_buffer), 1000);
         if (response_len > 0) {
             printf("Received %d bytes from hardware:\n", response_len);
             printf("  ");
@@ -727,11 +728,8 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
             }
             printf("\n");
             parse_uci_packet(response_buffer, response_len);
-        } else if (response_len == 0) {
-            ui_print_warning("No response received from hardware (timeout)");
         } else {
-            ui_print_error("Error receiving response from hardware");
-            UCI_LOG_ERROR("Error receiving response from hardware", UCI_ERROR_INVALID_PARAM);
+            ui_print_warning("No response received from hardware (timeout)");
         }
         return;
     }

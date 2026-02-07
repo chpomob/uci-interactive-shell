@@ -87,4 +87,16 @@ bool validate_session_id(const char* session_id_str, unsigned int* out_session_i
  * @return true if parsing successful, false on error
  */
 bool parse_hex_string_safe(const char* hex_str, unsigned char* bytes, size_t max_len, size_t* out_len);
+
+/**
+ * @brief Parse a token into an unsigned byte with strict validation
+ *
+ * Requires full-token consumption, no conversion errors, and range 0..255.
+ *
+ * @param token Input token string
+ * @param base Numeric base for parsing (e.g. 10, 16, or 0 for auto)
+ * @param out_value Parsed byte output
+ * @return 0 on success, -1 on validation/parsing failure
+ */
+int uci_parse_u8_token(const char* token, int base, unsigned char* out_value);
 #endif // UCI_COMMAND_UTILS_H

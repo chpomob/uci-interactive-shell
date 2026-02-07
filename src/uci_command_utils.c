@@ -191,3 +191,21 @@ bool parse_hex_string_safe(const char* hex_str, unsigned char* bytes, size_t max
     *out_len = byte_count;
     return true;
 }
+
+int uci_parse_u8_token(const char* token, int base, unsigned char* out_value) {
+    char* endptr = NULL;
+    long parsed = 0;
+
+    if (!token || !out_value || *token == '\0') {
+        return -1;
+    }
+
+    errno = 0;
+    parsed = strtol(token, &endptr, base);
+    if (errno != 0 || endptr == token || *endptr != '\0' || parsed < 0 || parsed > 255) {
+        return -1;
+    }
+
+    *out_value = (unsigned char)parsed;
+    return 0;
+}

@@ -123,7 +123,7 @@ The `master` branch currently points to `39eac10 (2025-11-11)` and contains the 
 ### Next Tasks
 1. Consume the validated parameters inside each handler (for example the wrappers in `src/uci_cmd_core_new.c` still re-parse `argv`) so the framework can fully replace the legacy CLI parsing path.
 2. Add regression tests that load the command definition tables, walk aliases, and exercise `uci_cmd_dispatch`/`uci_cmd_framework_handler` to guard against accidental regressions.
-3. Provide an automated hardware-mode smoke test or loopback harness so commands that require hardware mode (`CLI_CMD_FLAG_REQUIRES_HW_MODE`) are exercised in CI rather than only manually.
+3. Extend `test_hardware_integration` with vendor-specific and session-lifecycle assertions once the target hardware profile is finalized.
 
 ### Complete Feature Set
 - **Protocol Compliance**: Fully aligned with Android UWB specification
@@ -141,6 +141,25 @@ The UCI Interactive Shell can communicate with real UWB hardware through charact
 > mode_hw /dev/ttyUSB0
 > hw_send 01 00 00 02  # Send CORE_DEVICE_INFO command
 ```
+
+### Hardware Integration Test Suite
+An opt-in hardware integration suite is available and safe for CI/local runs when no device is attached.
+```bash
+# Builds and runs; auto-skips if UCI_HW_DEVICE is not set.
+make hardware-integration-test
+
+# Run against real hardware
+UCI_HW_DEVICE=/dev/ttyUSB0 make hardware-integration-test
+
+# Optional destructive reset coverage
+UCI_HW_DEVICE=/dev/ttyUSB0 UCI_HW_INCLUDE_RESET=1 make hardware-integration-test
+```
+
+Environment variables:
+- `UCI_HW_DEVICE` (required to run real-hardware checks)
+- `UCI_HW_TIMEOUT_MS` (optional, default `1500`)
+- `UCI_HW_VERBOSE` (optional, `1` enables transport debug logs)
+- `UCI_HW_INCLUDE_RESET` (optional, `1` enables `CORE_DEVICE_RESET` test)
 
 ### Usage Examples
 

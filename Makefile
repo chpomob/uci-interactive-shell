@@ -21,8 +21,9 @@ COMMAND_GENERATION_TEST_TARGET=test_command_generation
 VALIDATION_DEMO_TARGET=demo_validation
 COMMAND_HANDLER_TEST_TARGET=test_command_handlers
 COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET=test_command_framework_validation
+HARDWARE_INTEGRATION_TEST_TARGET=test_hardware_integration
 
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test coverage
+.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test coverage
 
 all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test
 
@@ -44,7 +45,7 @@ src/uci_ui_packet_decoder.o: src/uci_ui_packet_decoder.c include/uci_ui_packet_d
 src/uci_cmd_session_config_ext.o: src/uci_cmd_session_config_ext.c include/uci_cmd_session_config_ext.h include/uci.h include/uci_functions.h
 
 clean:
-	rm -f $(OBJ) $(TARGET) $(TEST_TARGET) $(UNIT_TEST_TARGET) $(CONFIG_TEST_TARGET) $(SESSION_MANAGER_TEST_TARGET) $(SECURITY_TEST_TARGET) tests/*.o tests/*.d
+	rm -f $(OBJ) $(TARGET) $(TEST_TARGET) $(UNIT_TEST_TARGET) $(CONFIG_TEST_TARGET) $(SESSION_MANAGER_TEST_TARGET) $(SECURITY_TEST_TARGET) $(HARDWARE_INTEGRATION_TEST_TARGET) tests/*.o tests/*.d
 	rm -f src/*.gcno src/*.gcda tests/*.gcno tests/*.gcda *.gcov *.gcda *.gcno
 	rm -rf coverage
 
@@ -106,6 +107,12 @@ command-framework-validation-test: $(COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET)
 
 $(COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET): tests/test_command_framework_validation.c $(filter-out src/main.o,$(OBJ))
 	$(CC) $(CFLAGS) -o $(COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET) tests/test_command_framework_validation.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
+
+hardware-integration-test: $(HARDWARE_INTEGRATION_TEST_TARGET)
+	./$(HARDWARE_INTEGRATION_TEST_TARGET)
+
+$(HARDWARE_INTEGRATION_TEST_TARGET): tests/test_hardware_integration.c $(filter-out src/main.o,$(OBJ))
+	$(CC) $(CFLAGS) -o $(HARDWARE_INTEGRATION_TEST_TARGET) tests/test_hardware_integration.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
 
 
 

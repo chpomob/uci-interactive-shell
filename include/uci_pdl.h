@@ -1,6 +1,8 @@
 #ifndef UCI_PDL_H
 #define UCI_PDL_H
 
+#include "uci_opcode_constants.h"
+
 // Message Type (MT) definitions - aligned with Android UWB spec
 #define DATA            0x00
 #define COMMAND         0x01
@@ -45,30 +47,6 @@
 #define QORVO_EXT2      0x0B  // ⚠️ CORRECT: QM SDK uses this for vendor commands!
 #define ANDROID         0x0C
 #define TEST            0x0D
-
-// QM SDK Vendor-specific Opcodes for GID 0x0B (QORVO_EXT2)
-// These are vendor-specific commands used by Qorvo QM SDK implementations
-// ⚠️ IMPORTANT: In QM SDK, GID 0x0B is CORRECTLY used for vendor commands
-// ⚠️ This is the ACTUAL standard behavior, not any theoretical specification
-#define QORVO_TEST_DEBUG                        0x00
-#define QORVO_TEST_TX_CW                        0x01
-#define QORVO_TEST_PLLRF                        0x02
-#define QORVO_FIRA_RANGE_DIAGNOSTICS            0x03
-#define QORVO_SESSION_GET                       0x07
-#define QORVO_FIRA_SET_ANT_FLEX_CONFIG          0x08
-#define QORVO_FIRA_GET_ANT_FLEX_CONFIG          0x09
-#define QORVO_CCC_SET_ANT_FLEX_CONFIG           0x0A
-#define QORVO_CCC_GET_ANT_FLEX_CONFIG           0x0B
-#define QORVO_CORE_PSDU_DUMP                    0x22
-#define QORVO_CORE_GET_MEM_STATS                0x23
-#define QORVO_CORE_GET_POWER_STATS              0x24
-#define QORVO_CORE_GET_CPU_STATS                0x25
-#define QORVO_CORE_RESET_CPU_STATS              0x26
-#define QORVO_CORE_GET_DEVICE_STATS             0x27
-#define QORVO_CORE_ERASE_CERTS                  0x30
-#define QORVO_CORE_DEVICE_BOOT                  0x31
-#define QORVO_CORE_TOGGLE_GPIO_TIMESYNC         0x35
-#define QORVO_CORE_QUERY_GPIO_TIMESTAMP         0x36
 
 // OID definitions for SESSION_CONTROL group - corrected for QM SDK compatibility
 // ⚠️ IMPORTANT: QM SDK IS the REAL standard, not theoretical specifications

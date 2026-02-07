@@ -10,17 +10,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifndef ANDROID_GET_POWER_STATS
-#define ANDROID_GET_POWER_STATS 0x00
-#define ANDROID_SET_COUNTRY_CODE 0x01
-#define ANDROID_FIRA_RANGE_DIAGNOSTICS 0x02
-#define ANDROID_RADAR_SET_APP_CONFIG 0x11
-#define ANDROID_RADAR_GET_APP_CONFIG 0x12
-#define TEST_RF_SET_CONFIG 0x00
-#define TEST_RF_PERIODIC_TX 0x02
-#define TEST_RF_STOP 0x07
-#endif
-
 // Test suite for UCI functions
 int main() {
     TEST_SUITE(uci_functions);

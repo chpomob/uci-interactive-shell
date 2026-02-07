@@ -310,17 +310,6 @@ static void log_outbound_fragment(const char *target_label,
 
     uci_analyze_packet_core(packet, sizeof(struct uci_packet_header) + payload_len);
 }
-#define ANDROID_GET_POWER_STATS 0x00
-#define ANDROID_SET_COUNTRY_CODE 0x01
-#define ANDROID_FIRA_RANGE_DIAGNOSTICS 0x02
-#define ANDROID_RADAR_SET_APP_CONFIG 0x11
-#define ANDROID_RADAR_GET_APP_CONFIG 0x12
-#define TEST_RF_SET_CONFIG 0x00
-#define TEST_RF_PERIODIC_TX 0x02
-#define TEST_RF_PER_RX 0x03
-#define TEST_RF_RX 0x05
-#define TEST_RF_STOP 0x07
-
 static char g_hardware_device_path[256] = "/dev/ttyUSB0";  // Default device path (to be replaced by global approach)
 unsigned long long g_fake_timestamp = 0;
 static unsigned int g_session_handle_counter = 1;

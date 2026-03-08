@@ -38,8 +38,17 @@ The CLI is now driven by declarative command definitions stored in
 describes the command name, aliases, help text, parameter metadata, and hardware
 requirements. `uci_cli.c` and `uci_cli_completion.c` read those tables through
 `uci_cmd_framework_bridge.c`, while `uci_command_framework.c` enforces the
-parameter validation rules before handing control to the legacy handlers in
+parameter validation rules before handing control to the command handlers in
 `src/uci_cmd_*`.
+
+## Protocol Definition Policy
+
+- `include/uci_pdl.h` is the authoritative source for standard UCI constants in
+  this repository. Those values are kept aligned with Android UWB definitions.
+- `include/uci_opcode_constants.h` is the authoritative source for Qorvo and
+  Android vendor opcode values. Qorvo values follow the QM SDK.
+- New decoding or command logic must use those named constants instead of local
+  literals. `tests/test_protocol_definitions.c` exists to catch drift.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from
@@ -53,6 +62,9 @@ parameter validation rules before handing control to the legacy handlers in
   framework, enabling richer option parsing (e.g., `filter=...`, `id=...`,
   `detail=summary|full`) while retaining backward-compatible `--filter`/`--id`
   flags.
+- Core typed handlers now consume validated framework parameters for
+  `set_power`, `get_config`, `set_config`, and `validate_arguments` instead of
+  reparsing raw `argv` values.
 - Session lifecycle, data-transfer, and multicast handlers consume the
   validated values supplied by the framework. For example,
   `session_update_dt_tag_rounds` accepts either individual integers or a single

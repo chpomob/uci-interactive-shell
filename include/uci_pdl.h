@@ -1,6 +1,13 @@
 #ifndef UCI_PDL_H
 #define UCI_PDL_H
 
+/*
+ * Protocol constants in this header are the repository's authoritative UCI
+ * definitions. Standard UCI message/group/opcode values follow the Android UWB
+ * definitions; Qorvo vendor groups/opcodes extend that surface with QM SDK
+ * values.
+ */
+
 #include "uci_opcode_constants.h"
 
 // Message Type (MT) definitions - aligned with Android UWB spec
@@ -13,54 +20,18 @@
 #define COMPLETE        0x00
 #define NOT_COMPLETE    0x01
 
-// Group ID (GID) definitions - corrected based on FiRa UCI specification v2.0.0
-// 
-// Official UCI Specification GIDs (per Qorvo UCI spec):
-//   0x00: CORE - Core device management commands
-//   0x01: SESSION_CONFIG - Session configuration commands  
-//   0x02: SESSION_CONTROL - Session control commands
-//   0x03-0x08: RFU (Reserved for Future Use)
-//   0x09: QORVO_EXT1 - Qorvo vendor-specific extension group 1
-//   0x0A-0x0B: QORVO_EXT2 - Qorvo vendor-specific extension group 2
-//   0x0C: ANDROID - Android vendor-specific commands
-//   0x0D: TEST - Test commands
-//   0x0E-0x0F: Vendor-specific groups
-//
-// CORRECTION BASED ON QM SDK REFERENCE IMPLEMENTATION:
-//   ⚠️ QM SDK IS the REAL standard, not theoretical specifications
-//   ✅ According to Qorvo QM SDK v2.0.0, GID 0x0B IS QORVO_EXT2 (vendor commands)
-//   ✅ This IS the CORRECT implementation, not any incorrect assumption
-//   ⚠️ Any "standard UCI specification" claiming GID 0x0B should be for ranging data is WRONG
-//   ✅ QM SDK correctly places ranging data notifications in:
-//      - GID 0x02 (SESSION_CONTROL) with opcode SESSION_INFO_NTF (0x00)
-//
-// QM SDK REFERENCE IMPLEMENTATION ALERT:
-//   ⚠️ Confirmed: Qorvo QM SDK implementations correctly assign GID 0x0B to QORVO_EXT2
-//   ⚠️ QM SDK IS the reference implementation standard, not theoretical specifications
-//   ⚠️ The QM SDK correctly places ranging data notifications in:
-//      - GID 0x02 (SESSION_CONTROL) with opcode 0x00 (SESSION_INFO_NTF)
+/*
+ * Group ID (GID) definitions.
+ * Standard groups track Android UWB definitions; QORVO_EXT2 follows the QM SDK
+ * vendor assignment at 0x0B.
+ */
 #define CORE            0x00
 #define SESSION_CONFIG  0x01
 #define SESSION_CONTROL 0x02
-// NOTE: GID 0x03-0x08 are RFU (Reserved for Future Use) in standard UCI specification
 #define QORVO_EXT1      0x09
-#define QORVO_EXT2      0x0B  // ⚠️ CORRECT: QM SDK uses this for vendor commands!
+#define QORVO_EXT2      0x0B
 #define ANDROID         0x0C
 #define TEST            0x0D
-
-// OID definitions for SESSION_CONTROL group - corrected for QM SDK compatibility
-// ⚠️ IMPORTANT: QM SDK IS the REAL standard, not theoretical specifications
-// ⚠️ All implementation must follow QM SDK behavior, not assumptions
-#define SESSION_INFO_NTF 0x00  // This is the STANDARD ranging data notification (not GID 0x0B!)
-#define SESSION_START    0x00
-#define SESSION_STOP     0x01
-
-// Session Control opcodes - corrected for QM SDK compatibility
-// ⚠️ IMPORTANT: QM SDK IS the REAL standard, not theoretical specifications
-// ⚠️ All implementation must follow QM SDK behavior, not assumptions
-// NOTE: QM SDK correctly uses GID 0x0B for vendor commands, not ranging data notifications
-//       Ranging data notifications go through SESSION_CONTROL (GID 0x02) with opcode 0x00
-#define SESSION_INFO_NTF_OPCODE 0x00
 
 // OID (Opcode ID) definitions for CORE group - aligned with Android UWB spec
 #define CORE_DEVICE_RESET         0x00
@@ -97,7 +68,8 @@
 #define SESSION_GET_RANGING_COUNT   0x03
 #define SESSION_DATA_CREDIT_NTF     0x04
 #define SESSION_DATA_TRANSFER_STATUS_NTF 0x05
-#define SESSION_INFO_NTF            0x00  // Session info/ranging notification
+#define SESSION_INFO_NTF            0x00
+#define SESSION_INFO_NTF_OPCODE     SESSION_INFO_NTF
 #define SESSION_LOGICAL_LINK_CREATE 0x07
 #define SESSION_LOGICAL_LINK_CLOSE  0x08
 #define SESSION_LOGICAL_LINK_UWBS_CLOSE 0x09

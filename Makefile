@@ -22,10 +22,11 @@ VALIDATION_DEMO_TARGET=demo_validation
 COMMAND_HANDLER_TEST_TARGET=test_command_handlers
 COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET=test_command_framework_validation
 HARDWARE_INTEGRATION_TEST_TARGET=test_hardware_integration
+PROTOCOL_DEFINITIONS_TEST_TARGET=test_protocol_definitions
 
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test coverage
+.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test protocol-definitions-test coverage
 
-all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test
+all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
@@ -55,7 +56,7 @@ install: $(TARGET)
 	mkdir -p /usr/local/share/doc/uci-shell/uci_analysis
 	cp -r uci_analysis/* /usr/local/share/doc/uci-shell/uci_analysis/
 
-test: $(TEST_TARGET) command-framework-validation-test
+test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test
 
 $(TEST_TARGET): src/uci_hw_chardev.o
 	$(CC) $(CFLAGS) -o $(TEST_TARGET) test_chardev.c src/uci_hw_chardev.o
@@ -113,6 +114,12 @@ hardware-integration-test: $(HARDWARE_INTEGRATION_TEST_TARGET)
 
 $(HARDWARE_INTEGRATION_TEST_TARGET): tests/test_hardware_integration.c $(filter-out src/main.o,$(OBJ))
 	$(CC) $(CFLAGS) -o $(HARDWARE_INTEGRATION_TEST_TARGET) tests/test_hardware_integration.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
+
+protocol-definitions-test: $(PROTOCOL_DEFINITIONS_TEST_TARGET)
+	./$(PROTOCOL_DEFINITIONS_TEST_TARGET)
+
+$(PROTOCOL_DEFINITIONS_TEST_TARGET): tests/test_protocol_definitions.c $(filter-out src/main.o,$(OBJ))
+	$(CC) $(CFLAGS) -o $(PROTOCOL_DEFINITIONS_TEST_TARGET) tests/test_protocol_definitions.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
 
 
 

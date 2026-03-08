@@ -113,17 +113,26 @@ The UCI protocol is a communication interface used for Ultra-Wideband (UWB) devi
 
 ## Project Status
 
-The `master` branch currently points to `39eac10 (2025-11-11)` and contains the declarative command framework that now powers help text, tab completion, and dispatching (see `src/uci_cmd_framework_*` and `src/uci_command_framework.c`). The working tree is clean and aligned with `origin/master`. A living snapshot of recent commits and outstanding work is tracked in `docs/PROJECT_STATUS.md`.
+The shell is in consolidation mode. The active architecture is the declarative
+command framework in `src/uci_cmd_framework_*` and `src/uci_command_framework.c`.
+Help text, completion, validation, and dispatch now read from those shared
+command tables.
 
-### Current Highlights
-- CLI help/command discovery now shares the same metadata tables, keeping aliases, descriptions, and completion results in sync across the shell (`src/uci_cli.c`, `src/uci_cli_completion.c`).
-- Device, session, and simulation commands all flow through the same validation layer, so argument ranges are checked before handlers run (`src/uci_cmd_framework_device.c`, `src/uci_cmd_framework_session.c`, `src/uci_cmd_framework_simulation.c`).
-- Hardware and simulation transports execute through the same `uci_cmd_execute_unified` path, keeping feature parity between character-device hardware use and protocol simulation.
+### Source Of Truth
+- Standard UCI message, group, status, and opcode definitions are pinned to the
+  Android UWB code definitions in `include/uci_pdl.h`.
+- Qorvo vendor groups and opcodes are pinned to QM SDK values in
+  `include/uci_opcode_constants.h`.
+- Tests in `tests/test_protocol_definitions.c` and
+  `tests/test_command_framework_validation.c` enforce those mappings and the
+  command metadata that depends on them.
 
-### Next Tasks
-1. Consume the validated parameters inside each handler (for example the wrappers in `src/uci_cmd_core_new.c` still re-parse `argv`) so the framework can fully replace the legacy CLI parsing path.
-2. Add regression tests that load the command definition tables, walk aliases, and exercise `uci_cmd_dispatch`/`uci_cmd_framework_handler` to guard against accidental regressions.
-3. Extend `test_hardware_integration` with vendor-specific and session-lifecycle assertions once the target hardware profile is finalized.
+### Current Consolidation Work
+1. Keep protocol constants centralized and remove local literal fallbacks.
+2. Route typed command handlers through validated parsed parameters instead of
+   reparsing `argv`.
+3. Expand regression coverage for constant mappings, command definitions, and
+   hardware/simulation parity.
 
 ### Complete Feature Set
 - **Protocol Compliance**: Fully aligned with Android UWB specification

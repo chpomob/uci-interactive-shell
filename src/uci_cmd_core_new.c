@@ -16,6 +16,21 @@ static const char* get_raw_param_value(int index) {
     return param->raw_value;
 }
 
+static int require_param_value(int index,
+                               const char* param_name,
+                               const char** out_value) {
+    const char* value = get_raw_param_value(index);
+    if (!value) {
+        char buffer[128];
+        snprintf(buffer, sizeof(buffer), "Missing required parameter: %s", param_name);
+        ui_print_error(buffer);
+        return -1;
+    }
+
+    *out_value = value;
+    return 0;
+}
+
 static int parse_detail_option(const char* value, int* detail_full) {
     if (!value || value[0] == '\0' || strcasecmp(value, "summary") == 0) {
         *detail_full = 0;
@@ -172,16 +187,19 @@ int handle_set_power_command_new(const char* cmd_name, int argc, char** argv,
     (void)param_count;
     
     const uci_cmd_parsed_param_t* state_param = uci_cmd_get_parsed_param(0);
-    if (state_param && state_param->present && state_param->type == PARAM_TYPE_DEVICE_STATE) {
-        return handle_set_power_state_from_value(state_param->value.device_state);
-    }
-
-    if (argc < 2) {
-        handle_set_power_command(NULL);
+    if (!state_param || !state_param->present || state_param->type != PARAM_TYPE_DEVICE_STATE) {
+        ui_print_error("Missing required parameter: state");
         return -1;
     }
 
-    return handle_set_power_command(argv[1]);
+    if (state_param->raw_value &&
+        (strcasecmp(state_param->raw_value, "sleep") == 0 ||
+         strcasecmp(state_param->raw_value, "suspend") == 0)) {
+        handle_device_suspend_command();
+        return 0;
+    }
+
+    return handle_set_power_state_from_value(state_param->value.device_state);
 }
 
 // Handler for device_on command using framework
@@ -220,12 +238,12 @@ int handle_get_config_command_new(const char* cmd_name, int argc, char** argv,
     (void)params;
     (void)param_count;
     
-    if (argc < 2) {
-        handle_get_config_command(NULL);
+    const char* config_name = NULL;
+    if (require_param_value(0, "config_name", &config_name) != 0) {
         return -1;
     }
 
-    return handle_get_config_command(argv[1]);
+    return handle_get_config_command((char*)config_name);
 }
 
 int handle_get_caps_info_command_new(const char* cmd_name, int argc, char** argv,
@@ -288,12 +306,14 @@ int handle_set_config_command_new(const char* cmd_name, int argc, char** argv,
     (void)params;
     (void)param_count;
     
-    if (argc < 3) {
-        handle_set_config_command(NULL, NULL);
+    const char* config_name = NULL;
+    const char* value = NULL;
+    if (require_param_value(0, "config_name", &config_name) != 0 ||
+        require_param_value(1, "value", &value) != 0) {
         return -1;
     }
 
-    return handle_set_config_command(argv[1], argv[2]);
+    return handle_set_config_command((char*)config_name, (char*)value);
 }
 
 // Handler for device_suspend command using framework
@@ -339,21 +359,20 @@ int handle_validate_arguments_command_new(const char* cmd_name, int argc, char**
                                           const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
-    (void)argv;
     (void)params;
     (void)param_count;
-    
-    if (argc < 4) {
-        fprintf(stderr, "Usage: validate_arguments <integer_value> <hex_string> <session_id>\n");
-        fprintf(stderr, "  Examples:\n");
-        fprintf(stderr, "    validate_arguments 42 AABBCCDD 1\n");
-        fprintf(stderr, "    validate_arguments -10 FFEE 2\n");
+    (void)argc;
+    (void)argv;
+
+    const char* integer_str = NULL;
+    const char* hex_str = NULL;
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(2);
+    if (require_param_value(0, "integer_value", &integer_str) != 0 ||
+        require_param_value(1, "hex_payload", &hex_str) != 0 ||
+        !session_param || !session_param->present) {
+        ui_print_error("Missing required parameter: session_id");
         return -1;
     }
-
-    const char* integer_str = argv[1];
-    const char* hex_str = argv[2];
-    const char* session_id_str = argv[3];
     
     // Validate integer value
     long integer_val;
@@ -368,15 +387,10 @@ int handle_validate_arguments_command_new(const char* cmd_name, int argc, char**
     }
     
     // Validate session ID
-    unsigned int session_id;
-    if (uci_cmd_validate_session_id(session_id_str, &session_id) != 0) {
-        return -1;
-    }
-    
     printf("Arguments validated successfully:\n");
     printf("  Integer Value: %ld\n", integer_val);
     printf("  Hex String: %s\n", hex_str);
-    printf("  Session ID: %u\n", session_id);
+    printf("  Session ID: %u\n", session_param->value.session_id);
     
     return 0;
 }

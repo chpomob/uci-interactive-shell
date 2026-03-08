@@ -23,10 +23,11 @@ COMMAND_HANDLER_TEST_TARGET=test_command_handlers
 COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET=test_command_framework_validation
 HARDWARE_INTEGRATION_TEST_TARGET=test_hardware_integration
 PROTOCOL_DEFINITIONS_TEST_TARGET=test_protocol_definitions
+PROTOCOL_FIXTURES_TEST_TARGET=test_protocol_fixtures
 
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test protocol-definitions-test coverage
+.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test protocol-definitions-test protocol-fixtures-test coverage
 
-all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test
+all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test protocol-fixtures-test
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
@@ -56,7 +57,7 @@ install: $(TARGET)
 	mkdir -p /usr/local/share/doc/uci-shell/uci_analysis
 	cp -r uci_analysis/* /usr/local/share/doc/uci-shell/uci_analysis/
 
-test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test
+test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test protocol-fixtures-test
 
 $(TEST_TARGET): src/uci_hw_chardev.o
 	$(CC) $(CFLAGS) -o $(TEST_TARGET) test_chardev.c src/uci_hw_chardev.o
@@ -120,6 +121,12 @@ protocol-definitions-test: $(PROTOCOL_DEFINITIONS_TEST_TARGET)
 
 $(PROTOCOL_DEFINITIONS_TEST_TARGET): tests/test_protocol_definitions.c $(filter-out src/main.o,$(OBJ))
 	$(CC) $(CFLAGS) -o $(PROTOCOL_DEFINITIONS_TEST_TARGET) tests/test_protocol_definitions.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
+
+protocol-fixtures-test: $(PROTOCOL_FIXTURES_TEST_TARGET)
+	./$(PROTOCOL_FIXTURES_TEST_TARGET)
+
+$(PROTOCOL_FIXTURES_TEST_TARGET): tests/test_protocol_fixtures.c $(filter-out src/main.o,$(OBJ))
+	$(CC) $(CFLAGS) -o $(PROTOCOL_FIXTURES_TEST_TARGET) tests/test_protocol_fixtures.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
 
 
 

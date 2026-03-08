@@ -28,6 +28,8 @@ execution path, and changes are currently limited to:
   mappings and checks command metadata plus representative typed dispatch flows.
 - Shared enum helpers now cover session-type decoding in both CLI/UI analysis
   paths, reducing duplicated protocol switch statements.
+- Fixture-driven protocol tests now pin representative CORE commands/responses
+  and SESSION notifications at the exact byte level before hardware bring-up.
 - `make test` now runs the canonical non-hardware regression suites, including
   the protocol definition suite.
 

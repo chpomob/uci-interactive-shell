@@ -51,7 +51,8 @@ parameter validation rules before handing control to the command handlers in
   preferred way to decode protocol enums in UI/parser code, so repeated switch
   blocks do not drift apart.
 - New decoding or command logic must use those named constants instead of local
-  literals. `tests/test_protocol_definitions.c` exists to catch drift.
+  literals. `tests/test_protocol_definitions.c` and
+  `tests/test_protocol_fixtures.c` exist to catch drift.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

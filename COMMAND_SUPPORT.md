@@ -53,6 +53,9 @@ parameter validation rules before handing control to the command handlers in
 - New decoding or command logic must use those named constants instead of local
   literals. `tests/test_protocol_definitions.c` and
   `tests/test_protocol_fixtures.c` exist to catch drift.
+- `tests/test_transport_parity.c` verifies that representative handlers emit
+  byte-identical control packets in simulation mode and hardware mode before
+  any device response is processed.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

@@ -32,6 +32,9 @@ execution path, and changes are currently limited to:
   tables.
 - Fixture-driven protocol tests now pin representative CORE commands/responses
   and SESSION notifications at the exact byte level before hardware bring-up.
+- A new transport parity suite now runs representative handlers through both
+  simulation mode and a stubbed hardware transport to prove the emitted command
+  bytes match before real-device testing.
 - `make test` now runs the canonical non-hardware regression suites, including
   the protocol definition suite.
 

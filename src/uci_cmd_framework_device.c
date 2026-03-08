@@ -1,7 +1,7 @@
 #include "../include/uci_cmd_core.h"
-#include "../include/uci_cmd_core_new.h"
+#include "../include/uci_cmd_core_typed.h"
 #include "../include/uci_cmd_framework_device.h"
-#include "../include/uci_cmd_hardware_new.h"
+#include "../include/uci_cmd_hardware_typed.h"
 
 static const uci_param_def_t k_set_power_params[] = {
     {
@@ -183,7 +183,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Switch to simulation mode",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_mode_sim_command_new,
+        .handler = handle_mode_sim_command_typed,
     },
     {
         .name = "mode_hw",
@@ -193,7 +193,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Switch to hardware mode",
         .params = k_device_path_param,
         .param_count = ARRAY_SIZE(k_device_path_param),
-        .handler = handle_mode_hw_command_new,
+        .handler = handle_mode_hw_command_typed,
     },
     {
         .name = "mode_info",
@@ -203,7 +203,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Display current mode",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_mode_info_command_new,
+        .handler = handle_mode_info_command_typed,
     },
     {
         .name = "hw_init",
@@ -213,7 +213,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Initialize hardware mode and connect",
         .params = k_device_path_param,
         .param_count = ARRAY_SIZE(k_device_path_param),
-        .handler = handle_hw_init_command_new,
+        .handler = handle_hw_init_command_typed,
     },
     {
         .name = "hw_send",
@@ -223,7 +223,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Send a raw packet to hardware",
         .params = k_hw_send_params,
         .param_count = ARRAY_SIZE(k_hw_send_params),
-        .handler = handle_hw_send_command_new,
+        .handler = handle_hw_send_command_typed,
     },
     {
         .name = "get_device_info",
@@ -233,7 +233,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Query device information",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_get_device_info_command_new,
+        .handler = handle_get_device_info_command_typed,
     },
     {
         .name = "device_reset",
@@ -243,7 +243,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Reset the connected device",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_device_reset_command_new,
+        .handler = handle_device_reset_command_typed,
     },
     {
         .name = "set_power",
@@ -253,7 +253,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Set device power state",
         .params = k_set_power_params,
         .param_count = ARRAY_SIZE(k_set_power_params),
-        .handler = handle_set_power_command_new,
+        .handler = handle_set_power_command_typed,
     },
     {
         .name = "device_on",
@@ -263,7 +263,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Power on the device",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_device_on_command_new,
+        .handler = handle_device_on_command_typed,
     },
     {
         .name = "device_off",
@@ -273,7 +273,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Power off the device",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_device_off_command_new,
+        .handler = handle_device_off_command_typed,
     },
     {
         .name = "get_caps_info",
@@ -283,7 +283,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Query capability information",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_get_caps_info_command_new,
+        .handler = handle_get_caps_info_command_typed,
     },
     {
         .name = "get_config",
@@ -293,7 +293,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Read a device configuration parameter",
         .params = k_get_config_params,
         .param_count = ARRAY_SIZE(k_get_config_params),
-        .handler = handle_get_config_command_new,
+        .handler = handle_get_config_command_typed,
     },
     {
         .name = "get_device_state",
@@ -303,7 +303,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Report current device state",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_get_device_state_command_new,
+        .handler = handle_get_device_state_command_typed,
     },
     {
         .name = "set_device_active",
@@ -313,7 +313,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Force device Active state",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_set_device_active_command_new,
+        .handler = handle_set_device_active_command_typed,
     },
     {
         .name = "set_device_ready",
@@ -323,7 +323,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Force device Ready state",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_set_device_ready_command_new,
+        .handler = handle_set_device_ready_command_typed,
     },
     {
         .name = "set_config",
@@ -333,7 +333,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Update a device configuration parameter",
         .params = k_set_config_params,
         .param_count = ARRAY_SIZE(k_set_config_params),
-        .handler = handle_set_config_command_new,
+        .handler = handle_set_config_command_typed,
     },
     {
         .name = "show_device_configs",
@@ -343,7 +343,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "List device configs (use filter=..., id=..., detail=full)",
         .params = k_config_list_option_params,
         .param_count = ARRAY_SIZE(k_config_list_option_params),
-        .handler = handle_show_device_configs_command_new,
+        .handler = handle_show_device_configs_command_typed,
     },
     {
         .name = "device_suspend",
@@ -353,7 +353,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Suspend device operation",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_device_suspend_command_new,
+        .handler = handle_device_suspend_command_typed,
     },
     {
         .name = "query_timestamp",
@@ -363,7 +363,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Query device timestamp",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_query_timestamp_command_new,
+        .handler = handle_query_timestamp_command_typed,
     },
     {
         .name = "validate_arguments",
@@ -373,7 +373,7 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .description = "Demo new command framework argument validation",
         .params = k_validate_arguments_params,
         .param_count = ARRAY_SIZE(k_validate_arguments_params),
-        .handler = handle_validate_arguments_command_new,
+        .handler = handle_validate_arguments_command_typed,
     },
 };
 

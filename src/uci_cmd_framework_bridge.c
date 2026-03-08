@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "../include/uci_cmd_core_new.h"
+#include "../include/uci_cmd_core_typed.h"
 #include "../include/uci_cmd_framework_bridge.h"
 #include "../include/uci_cmd_framework_device.h"
 #include "../include/uci_cmd_framework_simulation.h"
@@ -10,7 +10,7 @@
 #include "../include/uci_cli.h"
 #include "../include/uci_ui.h"
 
-static int handle_help_command_new(const char* cmd_name,
+static int handle_help_command_typed(const char* cmd_name,
                                    int argc,
                                    char** argv,
                                    const uci_param_def_t* params,
@@ -24,7 +24,7 @@ static int handle_help_command_new(const char* cmd_name,
     return 0;
 }
 
-static int handle_analyze_packet_command_new(const char* cmd_name,
+static int handle_analyze_packet_command_typed(const char* cmd_name,
                                              int argc,
                                              char** argv,
                                              const uci_param_def_t* params,
@@ -51,7 +51,7 @@ const uci_command_def_t g_uci_command_defs[] = {
         .description = "Show this help message",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_help_command_new,
+        .handler = handle_help_command_typed,
     },
 
     // Analysis
@@ -63,7 +63,7 @@ const uci_command_def_t g_uci_command_defs[] = {
         .description = "Analyze packet bytes with enhanced decoder",
         .params = NULL,
         .param_count = 0,
-        .handler = handle_analyze_packet_command_new,
+        .handler = handle_analyze_packet_command_typed,
     },
 
 };

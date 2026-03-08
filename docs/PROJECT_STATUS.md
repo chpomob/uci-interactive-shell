@@ -19,7 +19,7 @@ execution path, and changes are currently limited to:
 
 ## Validated Improvements
 
-- Core typed handlers in `src/uci_cmd_core_new.c` now consume validated parsed
+- Core typed handlers in `src/uci_cmd_core_typed.c` now consume validated parsed
   parameters for `set_power`, `get_config`, `set_config`, and
   `validate_arguments`.
 - Vendor packet analysis in `src/uci_packet_analyzer_vendor.c` now references
@@ -31,8 +31,8 @@ execution path, and changes are currently limited to:
 
 ## Next Consolidation Targets
 
-1. Remove remaining `_new` transitional naming once the typed handlers fully
-   replace the old bridge semantics.
+1. Continue collapsing transitional seams by removing redundant wrapper layers
+   once the typed handlers fully replace the old bridge semantics.
 2. Collapse remaining literal protocol values in decoders and response builders
    into shared named constants.
 3. Expand hardware-integration assertions around vendor notifications and

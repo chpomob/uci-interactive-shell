@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "../include/uci_cmd_hardware_new.h"
+#include "../include/uci_cmd_hardware_typed.h"
 #include "../include/uci_cmd_hardware.h"
 #include "../include/uci_ui.h"
 
@@ -26,7 +26,7 @@ static int get_hex_byte_param(int index, const char* label, unsigned char* out_v
     return 0;
 }
 
-int handle_mode_sim_command_new(const char* cmd_name,
+int handle_mode_sim_command_typed(const char* cmd_name,
                                 int argc,
                                 char** argv,
                                 const uci_param_def_t* params,
@@ -40,7 +40,7 @@ int handle_mode_sim_command_new(const char* cmd_name,
     return 0;
 }
 
-int handle_mode_hw_command_new(const char* cmd_name,
+int handle_mode_hw_command_typed(const char* cmd_name,
                                int argc,
                                char** argv,
                                const uci_param_def_t* params,
@@ -55,7 +55,7 @@ int handle_mode_hw_command_new(const char* cmd_name,
     return handle_mode_hw_command((char*)device_path);
 }
 
-int handle_mode_info_command_new(const char* cmd_name,
+int handle_mode_info_command_typed(const char* cmd_name,
                                  int argc,
                                  char** argv,
                                  const uci_param_def_t* params,
@@ -69,7 +69,7 @@ int handle_mode_info_command_new(const char* cmd_name,
     return 0;
 }
 
-int handle_hw_init_command_new(const char* cmd_name,
+int handle_hw_init_command_typed(const char* cmd_name,
                                int argc,
                                char** argv,
                                const uci_param_def_t* params,
@@ -84,7 +84,7 @@ int handle_hw_init_command_new(const char* cmd_name,
     return handle_hw_init_command((char*)device_path);
 }
 
-int handle_hw_send_command_new(const char* cmd_name,
+int handle_hw_send_command_typed(const char* cmd_name,
                                int argc,
                                char** argv,
                                const uci_param_def_t* params,

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include "../include/uci_cmd_core_new.h"
+#include "../include/uci_cmd_core_typed.h"
 #include "../include/uci_cmd_core.h"
 #include "../include/uci_command_utils.h"
 #include "../include/uci_ui.h"
@@ -149,7 +149,7 @@ static int parse_config_list_options(int param_count,
 }
 
 // Handler for get_device_info command using framework
-int handle_get_device_info_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_get_device_info_command_typed(const char* cmd_name, int argc, char** argv, 
                                        const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -163,7 +163,7 @@ int handle_get_device_info_command_new(const char* cmd_name, int argc, char** ar
 }
 
 // Handler for device_reset command using framework
-int handle_device_reset_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_device_reset_command_typed(const char* cmd_name, int argc, char** argv, 
                                     const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -177,7 +177,7 @@ int handle_device_reset_command_new(const char* cmd_name, int argc, char** argv,
 }
 
 // Handler for set_power command using framework
-int handle_set_power_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_set_power_command_typed(const char* cmd_name, int argc, char** argv, 
                                  const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -203,7 +203,7 @@ int handle_set_power_command_new(const char* cmd_name, int argc, char** argv,
 }
 
 // Handler for device_on command using framework
-int handle_device_on_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_device_on_command_typed(const char* cmd_name, int argc, char** argv, 
                                  const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -216,7 +216,7 @@ int handle_device_on_command_new(const char* cmd_name, int argc, char** argv,
 }
 
 // Handler for device_off command using framework
-int handle_device_off_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_device_off_command_typed(const char* cmd_name, int argc, char** argv, 
                                   const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -229,7 +229,7 @@ int handle_device_off_command_new(const char* cmd_name, int argc, char** argv,
 }
 
 // Handler for get_config command using framework
-int handle_get_config_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_get_config_command_typed(const char* cmd_name, int argc, char** argv, 
                                   const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -246,7 +246,7 @@ int handle_get_config_command_new(const char* cmd_name, int argc, char** argv,
     return handle_get_config_command((char*)config_name);
 }
 
-int handle_get_caps_info_command_new(const char* cmd_name, int argc, char** argv,
+int handle_get_caps_info_command_typed(const char* cmd_name, int argc, char** argv,
                                      const uci_param_def_t* params, int param_count) {
     (void)cmd_name;
     (void)argc;
@@ -258,7 +258,7 @@ int handle_get_caps_info_command_new(const char* cmd_name, int argc, char** argv
 }
 
 // Handler for get_device_state command using framework
-int handle_get_device_state_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_get_device_state_command_typed(const char* cmd_name, int argc, char** argv, 
                                         const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -271,7 +271,7 @@ int handle_get_device_state_command_new(const char* cmd_name, int argc, char** a
 }
 
 // Handler for set_device_active command using framework
-int handle_set_device_active_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_set_device_active_command_typed(const char* cmd_name, int argc, char** argv, 
                                          const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -284,7 +284,7 @@ int handle_set_device_active_command_new(const char* cmd_name, int argc, char** 
 }
 
 // Handler for set_device_ready command using framework
-int handle_set_device_ready_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_set_device_ready_command_typed(const char* cmd_name, int argc, char** argv, 
                                         const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -297,7 +297,7 @@ int handle_set_device_ready_command_new(const char* cmd_name, int argc, char** a
 }
 
 // Handler for set_config command using framework
-int handle_set_config_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_set_config_command_typed(const char* cmd_name, int argc, char** argv, 
                                   const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -317,7 +317,7 @@ int handle_set_config_command_new(const char* cmd_name, int argc, char** argv,
 }
 
 // Handler for device_suspend command using framework
-int handle_device_suspend_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_device_suspend_command_typed(const char* cmd_name, int argc, char** argv, 
                                       const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -330,7 +330,7 @@ int handle_device_suspend_command_new(const char* cmd_name, int argc, char** arg
 }
 
 // Handler for query_timestamp command using framework
-int handle_query_timestamp_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_query_timestamp_command_typed(const char* cmd_name, int argc, char** argv, 
                                        const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -355,7 +355,7 @@ int handle_query_timestamp_command_new(const char* cmd_name, int argc, char** ar
  * @param param_count Number of parameters
  * @return 0 on success, -1 on error
  */
-int handle_validate_arguments_command_new(const char* cmd_name, int argc, char** argv, 
+int handle_validate_arguments_command_typed(const char* cmd_name, int argc, char** argv, 
                                           const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -395,7 +395,7 @@ int handle_validate_arguments_command_new(const char* cmd_name, int argc, char**
     return 0;
 }
 
-int handle_show_device_configs_command_new(const char* cmd_name,
+int handle_show_device_configs_command_typed(const char* cmd_name,
                                            int argc,
                                            char** argv,
                                            const uci_param_def_t* params,
@@ -415,7 +415,7 @@ int handle_show_device_configs_command_new(const char* cmd_name,
     return show_device_configs_with_filters(id_filter, name_filter, full);
 }
 
-int handle_show_app_configs_command_new(const char* cmd_name,
+int handle_show_app_configs_command_typed(const char* cmd_name,
                                         int argc,
                                         char** argv,
                                         const uci_param_def_t* params,

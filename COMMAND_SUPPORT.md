@@ -55,7 +55,7 @@ parameter validation rules before handing control to the command handlers in
   the shared definitions. Updating a command name/alias instantly propagates to
   discovery, help text, and validation.
 - Device/session/hardware commands now rely on typed handlers in
-  `src/uci_cmd_core_new.c`, `src/uci_cmd_hardware_new.c`, and
+  `src/uci_cmd_core_typed.c`, `src/uci_cmd_hardware_typed.c`, and
   `src/uci_cmd_handlers_session.c`. The legacy `src/uci_cmd_handlers.c`
   bridge—previously responsible for argc/argv parsing—has been deleted.
 - General utilities such as `analyze_packet` and `show_*_configs` use the typed

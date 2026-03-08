@@ -1,7 +1,7 @@
 #include "../include/uci_cmd_framework_session.h"
 #include "../include/uci_cmd_framework_wrappers.h"
 #include "../include/uci_cmd_handlers.h"
-#include "../include/uci_cmd_core_new.h"
+#include "../include/uci_cmd_core_typed.h"
 
 DEFINE_CMD_WRAPPER(cmd_session_init)
 DEFINE_CMD_WRAPPER(cmd_session_deinit)
@@ -500,7 +500,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "List session app configs (filter=..., id=..., detail=full)",
         .params = k_app_config_option_params,
         .param_count = ARRAY_SIZE(k_app_config_option_params),
-        .handler = handle_show_app_configs_command_new,
+        .handler = handle_show_app_configs_command_typed,
     },
     {
         .name = "session_update_multicast_list",

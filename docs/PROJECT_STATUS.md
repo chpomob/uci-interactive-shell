@@ -26,8 +26,10 @@ execution path, and changes are currently limited to:
   centralized Qorvo opcode constants instead of local numeric literals.
 - `tests/test_protocol_definitions.c` pins the current Android/Qorvo constant
   mappings and checks command metadata plus representative typed dispatch flows.
-- Shared enum helpers now cover session-type decoding in both CLI/UI analysis
-  paths, reducing duplicated protocol switch statements.
+- Shared enum helpers now cover device state, status, session state, session
+  reason, and session type decoding in the plain CLI/analyzer paths, reducing
+  duplicated protocol switch statements without collapsing the richer UI lookup
+  tables.
 - Fixture-driven protocol tests now pin representative CORE commands/responses
   and SESSION notifications at the exact byte level before hardware bring-up.
 - `make test` now runs the canonical non-hardware regression suites, including

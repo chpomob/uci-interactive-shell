@@ -118,83 +118,26 @@ static void analyze_data_message_payload(unsigned char dpf,
 
 // Enhanced error code analysis based on QM SDK patterns
 void enhanced_error_analysis(unsigned char status_code) {
+    const char *status_label = uci_status_to_string(status_code);
+    const char *status_description = uci_status_description(status_code);
+
     if (ui_color_enabled) {
         printf("  %s%sStatus Code Analysis:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
         printf("    %sCode: 0x%02X%s - ", ANSI_COLOR_BRIGHT_WHITE, status_code, ANSI_RESET);
-        
-        switch (status_code) {
-            case UCI_STATUS_OK:
-                printf("%sSUCCESS - Operation completed successfully%s\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET);
-                break;
-            case UCI_STATUS_REJECTED:
-                printf("%sREJECTED - Request rejected by device%s\n", ANSI_COLOR_YELLOW, ANSI_RESET);
-                break;
-            case UCI_STATUS_INVALID_PARAM:
-                printf("%sINVALID_PARAM - Invalid parameter provided%s\n", ANSI_COLOR_RED, ANSI_RESET);
-                break;
-            case UCI_STATUS_UNKNOWN_GID:
-                printf("%sUNKNOWN_GID - Unknown Group ID (check device capabilities)%s\n", ANSI_COLOR_RED, ANSI_RESET);
-                break;
-            case UCI_STATUS_UNKNOWN_OID:
-                printf("%sUNKNOWN_OID - Unknown Opcode ID (command not supported)%s\n", ANSI_COLOR_RED, ANSI_RESET);
-                break;
-            case UCI_STATUS_SESSION_DUPLICATE:
-                printf("%sSESSION_DUPLICATE - Session ID already exists%s\n", ANSI_COLOR_RED, ANSI_RESET);
-                break;
-            case UCI_STATUS_SESSION_NOT_EXIST:
-                printf("%sSESSION_NOT_EXIST - Session does not exist%s\n", ANSI_COLOR_RED, ANSI_RESET);
-                break;
-            case UCI_STATUS_FAILED:
-                printf("%sFAILED - Generic failure status%s\n", ANSI_COLOR_RED, ANSI_RESET);
-                break;
-            case UCI_STATUS_INVALID_RANGE:
-                printf("%sINVALID_RANGE - Parameter value out of range%s\n", ANSI_COLOR_RED, ANSI_RESET);
-                break;
-            case UCI_STATUS_INVALID_MSG_SIZE:
-                printf("%sINVALID_MSG_SIZE - Message size invalid%s\n", ANSI_COLOR_RED, ANSI_RESET);
-                break;
-            default:
-                printf("%sUNKNOWN - Status code 0x%02X%s\n", ANSI_COLOR_BRIGHT_BLACK, status_code, ANSI_RESET);
-                break;
+
+        if (status_code == UCI_STATUS_OK) {
+            printf("%s%s - %s%s\n", ANSI_COLOR_BRIGHT_GREEN, status_label, status_description, ANSI_RESET);
+        } else if (strcmp(status_label, "UNKNOWN") == 0) {
+            printf("%sUNKNOWN - Status code 0x%02X%s\n", ANSI_COLOR_BRIGHT_BLACK, status_code, ANSI_RESET);
+        } else {
+            printf("%s%s - %s%s\n", ANSI_COLOR_RED, status_label, status_description, ANSI_RESET);
         }
     } else {
         printf("  Status Code Analysis:\n");
-        printf("    Code: 0x%02X - ", status_code);
-        
-        switch (status_code) {
-            case UCI_STATUS_OK:
-                printf("SUCCESS - Operation completed successfully\n");
-                break;
-            case UCI_STATUS_REJECTED:
-                printf("REJECTED - Request rejected by device\n");
-                break;
-            case UCI_STATUS_INVALID_PARAM:
-                printf("INVALID_PARAM - Invalid parameter provided\n");
-                break;
-            case UCI_STATUS_UNKNOWN_GID:
-                printf("UNKNOWN_GID - Unknown Group ID\n");
-                break;
-            case UCI_STATUS_UNKNOWN_OID:
-                printf("UNKNOWN_OID - Unknown Opcode ID\n");
-                break;
-            case UCI_STATUS_SESSION_DUPLICATE:
-                printf("SESSION_DUPLICATE - Session ID already exists\n");
-                break;
-            case UCI_STATUS_SESSION_NOT_EXIST:
-                printf("SESSION_NOT_EXIST - Session does not exist\n");
-                break;
-            case UCI_STATUS_FAILED:
-                printf("FAILED - Generic failure status\n");
-                break;
-            case UCI_STATUS_INVALID_RANGE:
-                printf("INVALID_RANGE - Parameter value out of range\n");
-                break;
-            case UCI_STATUS_INVALID_MSG_SIZE:
-                printf("INVALID_MSG_SIZE - Message size invalid\n");
-                break;
-            default:
-                printf("UNKNOWN - Status code 0x%02X\n", status_code);
-                break;
+        if (strcmp(status_label, "UNKNOWN") == 0) {
+            printf("    Code: 0x%02X - UNKNOWN\n", status_code);
+        } else {
+            printf("    Code: 0x%02X - %s - %s\n", status_code, status_label, status_description);
         }
     }
 }

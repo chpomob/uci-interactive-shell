@@ -47,9 +47,9 @@ parameter validation rules before handing control to the command handlers in
   this repository. Those values are kept aligned with Android UWB definitions.
 - `include/uci_opcode_constants.h` is the authoritative source for Qorvo and
   Android vendor opcode values. Qorvo values follow the QM SDK.
-- Shared semantic helpers such as `uci_session_type_to_string()` are the
-  preferred way to decode protocol enums in UI/parser code, so repeated switch
-  blocks do not drift apart.
+- Shared semantic helpers in `uci_packet_utils` are the preferred way to decode
+  protocol enums in CLI/analyzer code, so repeated status, device-state,
+  session-state, and session-reason switch blocks do not drift apart.
 - New decoding or command logic must use those named constants instead of local
   literals. `tests/test_protocol_definitions.c` and
   `tests/test_protocol_fixtures.c` exist to catch drift.

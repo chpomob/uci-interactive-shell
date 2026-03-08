@@ -207,6 +207,11 @@ size_t uci_build_data_message_snd_payload(unsigned char *buffer,
                                           const unsigned char *app_data,
                                           size_t app_data_len);
 
+const char* uci_device_state_to_string(unsigned char device_state);
+const char* uci_status_to_string(unsigned char status);
+const char* uci_status_description(unsigned char status);
+const char* uci_session_state_to_string(unsigned char session_state);
+const char* uci_session_reason_to_string(unsigned char reason_code);
 const char* uci_session_type_to_string(unsigned char session_type);
 
 /**

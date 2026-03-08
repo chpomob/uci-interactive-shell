@@ -172,6 +172,25 @@ int main(void) {
     test_case_end:;
 #undef test_case_end
 
+#define test_case_end test_case_end_protocol_enum_lookups
+    TEST_CASE(protocol_enum_lookups_use_shared_strings);
+    {
+        ASSERT_STRING_EQUAL("READY", uci_device_state_to_string(DEVICE_STATE_READY));
+        ASSERT_STRING_EQUAL("INVALID_PARAM", uci_status_to_string(UCI_STATUS_INVALID_PARAM));
+        ASSERT_STRING_EQUAL("Invalid parameter provided", uci_status_description(UCI_STATUS_INVALID_PARAM));
+        ASSERT_STRING_EQUAL("ACTIVE", uci_session_state_to_string(SESSION_STATE_ACTIVE));
+        ASSERT_STRING_EQUAL("SESSION_STOPPED_DUE_TO_INBAND_SIGNAL",
+                            uci_session_reason_to_string(SESSION_STOPPED_DUE_TO_INBAND_SIGNAL));
+        ASSERT_STRING_EQUAL("UNKNOWN", uci_status_to_string(0xEE));
+        ASSERT_STRING_EQUAL("Unknown status code", uci_status_description(0xEE));
+        ASSERT_STRING_EQUAL("UNKNOWN", uci_session_state_to_string(0xEE));
+        ASSERT_STRING_EQUAL("UNKNOWN", uci_session_reason_to_string(0xEE));
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
 #define test_case_end test_case_end_core_device_info_defaults
     TEST_CASE(core_device_info_defaults_are_explicit);
     {

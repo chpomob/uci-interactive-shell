@@ -123,9 +123,12 @@ command tables.
   Android UWB code definitions in `include/uci_pdl.h`.
 - Qorvo vendor groups and opcodes are pinned to QM SDK values in
   `include/uci_opcode_constants.h`.
+- Shared enum decoding helpers in `include/uci_packet_utils.h` own the plain
+  CLI/analyzer mapping for status, device-state, session-state, and
+  session-reason values.
 - Tests in `tests/test_protocol_definitions.c` and
-  `tests/test_command_framework_validation.c` enforce those mappings and the
-  command metadata that depends on them.
+  `tests/test_protocol_fixtures.c` enforce those mappings, the command metadata
+  that depends on them, and representative byte-level packet fixtures.
 
 ### Current Consolidation Work
 1. Keep protocol constants centralized and remove local literal fallbacks.

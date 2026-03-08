@@ -51,6 +51,26 @@ static inline uint32_t read_u32_be(const unsigned char* buffer) {
            ((uint32_t)buffer[3]);
 }
 
+static void print_named_u8_line(const char* label, unsigned char value, const char* text) {
+    printf("      %s: 0x%02X (%s)\n", label, value, text);
+}
+
+static void print_status_line(const char* label, unsigned char status) {
+    print_named_u8_line(label, status, uci_status_to_string(status));
+}
+
+static void print_session_state_line(const char* label, unsigned char session_state) {
+    print_named_u8_line(label, session_state, uci_session_state_to_string(session_state));
+}
+
+static void print_session_reason_line(const char* label, unsigned char reason_code) {
+    print_named_u8_line(label, reason_code, uci_session_reason_to_string(reason_code));
+}
+
+static void print_device_state_line(const char* label, unsigned char device_state) {
+    print_named_u8_line(label, device_state, uci_device_state_to_string(device_state));
+}
+
 static void print_short_address_measurement(const unsigned char* data) {
     unsigned short mac_address = read_u16_le(&data[0]);
     unsigned char status = data[2];
@@ -68,12 +88,7 @@ static void print_short_address_measurement(const unsigned char* data) {
     unsigned char rssi = data[19];
 
     printf("      MAC Address: 0x%04X\n", mac_address);
-    printf("      Status: 0x%02X", status);
-    if (status == UCI_STATUS_OK) {
-        printf(" (OK)\n");
-    } else {
-        printf(" (UNKNOWN)\n");
-    }
+    print_status_line("Status", status);
     printf("      NLOS: %s\n", nlos ? "YES" : "NO");
     printf("      Distance: %u cm\n", distance);
     printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
@@ -101,12 +116,7 @@ static void print_extended_address_measurement(const unsigned char* data) {
     unsigned char rssi = data[25];
 
     printf("      MAC Address: 0x%016llX\n", (unsigned long long)mac_address);
-    printf("      Status: 0x%02X", status);
-    if (status == UCI_STATUS_OK) {
-        printf(" (OK)\n");
-    } else {
-        printf(" (UNKNOWN)\n");
-    }
+    print_status_line("Status", status);
     printf("      NLOS: %s\n", nlos ? "YES" : "NO");
     printf("      Distance: %u cm\n", distance);
     printf("      AoA Azimuth: %u degrees (FoM: %u)\n", aoa_azimuth, aoa_azimuth_fom);
@@ -3999,23 +4009,8 @@ void decode_session_get_state_rsp(unsigned char* payload, int payload_len) {
     unsigned char status = payload[0];
     unsigned char state = payload[1];
     
-    printf("      Status: 0x%02X", status);
-    switch(status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
-    
-    printf("      Session State: 0x%02X", state);
-    switch(state) {
-        case SESSION_STATE_INIT: printf(" (INIT)\n"); break;
-        case SESSION_STATE_DEINIT: printf(" (DEINIT)\n"); break;
-        case SESSION_STATE_ACTIVE: printf(" (ACTIVE)\n"); break;
-        case SESSION_STATE_IDLE: printf(" (IDLE)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    print_status_line("Status", status);
+    print_session_state_line("Session State", state);
 }
 
 // SESSION_CONTROL Group Payload Decoders
@@ -4029,16 +4024,7 @@ void decode_session_start_rsp(unsigned char* payload, int payload_len) {
     
     unsigned char status = payload[0];
     
-    printf("      Status: 0x%02X", status);
-    switch(status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
-        case UCI_STATUS_SESSION_ACTIVE: printf(" (SESSION_ACTIVE)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    print_status_line("Status", status);
 }
 
 void decode_session_stop_rsp(unsigned char* payload, int payload_len) {
@@ -4051,15 +4037,7 @@ void decode_session_stop_rsp(unsigned char* payload, int payload_len) {
     
     unsigned char status = payload[0];
     
-    printf("      Status: 0x%02X", status);
-    switch(status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    print_status_line("Status", status);
 }
 
 void decode_session_get_ranging_count_rsp(unsigned char* payload, int payload_len) {
@@ -4073,15 +4051,7 @@ void decode_session_get_ranging_count_rsp(unsigned char* payload, int payload_le
     unsigned char status = payload[0];
     unsigned short count = read_u16_le(&payload[1]);
     
-    printf("      Status: 0x%02X", status);
-    switch(status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    print_status_line("Status", status);
     
     printf("      Ranging Count: %d\n", count);
 }
@@ -4097,13 +4067,7 @@ void decode_core_device_status_ntf(unsigned char* payload, int payload_len) {
     
     unsigned char device_state = payload[0];
     
-    printf("      Device State: 0x%02X", device_state);
-    switch(device_state) {
-        case DEVICE_STATE_READY: printf(" (READY)\n"); break;
-        case DEVICE_STATE_ACTIVE: printf(" (ACTIVE)\n"); break;
-        case DEVICE_STATE_ERROR: printf(" (ERROR)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    print_device_state_line("Device State", device_state);
 }
 
 void decode_core_generic_error_ntf(unsigned char* payload, int payload_len) {
@@ -4116,21 +4080,7 @@ void decode_core_generic_error_ntf(unsigned char* payload, int payload_len) {
     
     unsigned char status = payload[0];
     
-    printf("      Error Status: 0x%02X", status);
-    switch(status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_SYNTAX_ERROR: printf(" (SYNTAX_ERROR)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        case UCI_STATUS_INVALID_RANGE: printf(" (INVALID_RANGE)\n"); break;
-        case UCI_STATUS_INVALID_MSG_SIZE: printf(" (INVALID_MSG_SIZE)\n"); break;
-        case UCI_STATUS_UNKNOWN_GID: printf(" (UNKNOWN_GID)\n"); break;
-        case UCI_STATUS_UNKNOWN_OID: printf(" (UNKNOWN_OID)\n"); break;
-        case UCI_STATUS_READ_ONLY: printf(" (READ_ONLY)\n"); break;
-        case UCI_STATUS_COMMAND_RETRY: printf(" (COMMAND_RETRY)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    print_status_line("Error Status", status);
 }
 
 // SESSION_CONFIG Notification Payload Decoders
@@ -4147,25 +4097,8 @@ void decode_session_status_ntf(unsigned char* payload, int payload_len) {
     unsigned char reason_code = payload[5];
     
     printf("      Session Token: 0x%08X\n", session_token);
-    printf("      Session State: 0x%02X", session_state);
-    switch(session_state) {
-        case SESSION_STATE_INIT: printf(" (INIT)\n"); break;
-        case SESSION_STATE_DEINIT: printf(" (DEINIT)\n"); break;
-        case SESSION_STATE_ACTIVE: printf(" (ACTIVE)\n"); break;
-        case SESSION_STATE_IDLE: printf(" (IDLE)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
-    
-    printf("      Reason Code: 0x%02X", reason_code);
-    switch(reason_code) {
-        case STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS: printf(" (STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS)\n"); break;
-        case MAX_RANGING_ROUND_RETRY_COUNT_REACHED: printf(" (MAX_RANGING_ROUND_RETRY_COUNT_REACHED)\n"); break;
-        case MAX_NUMBER_OF_MEASUREMENTS_REACHED: printf(" (MAX_NUMBER_OF_MEASUREMENTS_REACHED)\n"); break;
-        case SESSION_SUSPENDED_DUE_TO_INBAND_SIGNAL: printf(" (SESSION_SUSPENDED_DUE_TO_INBAND_SIGNAL)\n"); break;
-        case SESSION_RESUMED_DUE_TO_INBAND_SIGNAL: printf(" (SESSION_RESUMED_DUE_TO_INBAND_SIGNAL)\n"); break;
-        case SESSION_STOPPED_DUE_TO_INBAND_SIGNAL: printf(" (SESSION_STOPPED_DUE_TO_INBAND_SIGNAL)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    print_session_state_line("Session State", session_state);
+    print_session_reason_line("Reason Code", reason_code);
 }
 
 // SESSION_CONTROL Notification Payload Decoders

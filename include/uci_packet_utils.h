@@ -207,6 +207,8 @@ size_t uci_build_data_message_snd_payload(unsigned char *buffer,
                                           const unsigned char *app_data,
                                           size_t app_data_len);
 
+const char* uci_session_type_to_string(unsigned char session_type);
+
 /**
  * Create a UCI header with proper field packing
  */

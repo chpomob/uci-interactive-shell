@@ -253,6 +253,8 @@ typedef enum {
     FIRA_RANGING_ONLY_PHASE = 0x03,
     FIRA_IN_BAND_DATA_PHASE = 0x04,
     FIRA_RANGING_WITH_DATA_PHASE = 0x05,
+    CCC_RANGING_SESSION = 0xA0,
+    DEVICE_TEST_MODE = 0xD0,
 } SessionType;
 
 typedef enum {

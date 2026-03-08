@@ -5,6 +5,8 @@
 #include "../include/uci_command_framework.h"
 #include "../include/uci_config_manager.h"
 #include "../include/uci_functions.h"
+#include "../include/uci_packet_utils.h"
+#include "../include/uci_response_core.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -150,6 +152,39 @@ int main(void) {
         ASSERT_EQUAL(CLI_GROUP_DEVICE, set_power->group);
         ASSERT_EQUAL(CLI_GROUP_DEVICE, show_device_configs->group);
         ASSERT_EQUAL(CLI_GROUP_SESSION, session_start->group);
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_session_type_lookup
+    TEST_CASE(session_type_lookup_uses_shared_definitions);
+    {
+        ASSERT_STRING_EQUAL("FIRA_RANGING_SESSION", uci_session_type_to_string(FIRA_RANGING_SESSION));
+        ASSERT_STRING_EQUAL("FIRA_RANGING_WITH_DATA_PHASE", uci_session_type_to_string(FIRA_RANGING_WITH_DATA_PHASE));
+        ASSERT_STRING_EQUAL("CCC_RANGING_SESSION", uci_session_type_to_string(CCC_RANGING_SESSION));
+        ASSERT_STRING_EQUAL("DEVICE_TEST_MODE", uci_session_type_to_string(DEVICE_TEST_MODE));
+        ASSERT_STRING_EQUAL("UNKNOWN", uci_session_type_to_string(0x7F));
+
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_core_device_info_defaults
+    TEST_CASE(core_device_info_defaults_are_explicit);
+    {
+        unsigned char payload[16] = {0};
+        int len = build_core_device_info_response(payload, sizeof(payload));
+
+        ASSERT_EQUAL(10, len);
+        ASSERT_EQUAL(UCI_STATUS_OK, payload[0]);
+        ASSERT_EQUAL(0x0100, (int)read_u16_le(&payload[1]));
+        ASSERT_EQUAL(0x0200, (int)read_u16_le(&payload[3]));
+        ASSERT_EQUAL(0x0200, (int)read_u16_le(&payload[5]));
+        ASSERT_EQUAL(0x0100, (int)read_u16_le(&payload[7]));
+        ASSERT_EQUAL(0x00, payload[9]);
 
         TEST_PASS();
     }

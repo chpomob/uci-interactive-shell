@@ -3682,20 +3682,10 @@ void decode_session_init_cmd(unsigned char* payload, int payload_len) {
 
     unsigned int session_id = read_u32_le(&payload[0]);
     unsigned char session_type = payload[4];
+    const char* session_type_name = uci_session_type_to_string(session_type);
 
     printf("      Session ID: 0x%08X\n", session_id);
-    printf("      Session Type: 0x%02X", session_type);
-    switch(session_type) {
-        case 0x00: printf(" (FIRA_RANGING_SESSION)\n"); break;
-        case 0x01: printf(" (FIRA_RANGING_AND_IN_BAND_DATA_SESSION)\n"); break;
-        case 0x02: printf(" (FIRA_DATA_TRANSFER_SESSION)\n"); break;
-        case 0x03: printf(" (FIRA_RANGING_ONLY_PHASE)\n"); break;
-        case 0x04: printf(" (FIRA_IN_BAND_DATA_PHASE)\n"); break;
-        case 0x05: printf(" (FIRA_RANGING_WITH_DATA_PHASE)\n"); break;
-        case 0xA0: printf(" (CCC_RANGING_SESSION)\n"); break;
-        case 0xD0: printf(" (DEVICE_TEST_MODE)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    printf("      Session Type: 0x%02X (%s)\n", session_type, session_type_name);
 }
 
 void decode_session_init_rsp(unsigned char* payload, int payload_len) {

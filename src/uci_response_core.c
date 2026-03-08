@@ -9,6 +9,14 @@
 
 #define MAX_RESPONSE_PAYLOAD_LEN 255
 
+enum {
+    UCI_DEVICE_INFO_UCI_VERSION = 0x0100,
+    UCI_DEVICE_INFO_MAC_VERSION = 0x0200,
+    UCI_DEVICE_INFO_PHY_VERSION = 0x0200,
+    UCI_DEVICE_INFO_TEST_VERSION = 0x0100,
+    UCI_DEVICE_INFO_VENDOR_SPEC_COUNT = 0x00,
+};
+
 // External globals from uci.c
 extern unsigned long long g_fake_timestamp;
 
@@ -165,11 +173,11 @@ int build_core_device_info_response(unsigned char* response_payload, size_t max_
     uci_payload_builder_init(&builder, response_payload, max_len);
 
     if (uci_payload_builder_put_u8(&builder, UCI_STATUS_OK) < 0 ||
-        uci_payload_builder_put_u16_le(&builder, 0x0100) < 0 ||  // uci_version 1.0
-        uci_payload_builder_put_u16_le(&builder, 0x0200) < 0 ||  // mac_version 2.0
-        uci_payload_builder_put_u16_le(&builder, 0x0200) < 0 ||  // phy_version 2.0
-        uci_payload_builder_put_u16_le(&builder, 0x0100) < 0 ||  // uci_test_version 1.0
-        uci_payload_builder_put_u8(&builder, 0x00) < 0) {        // vendor_spec_info count
+        uci_payload_builder_put_u16_le(&builder, UCI_DEVICE_INFO_UCI_VERSION) < 0 ||
+        uci_payload_builder_put_u16_le(&builder, UCI_DEVICE_INFO_MAC_VERSION) < 0 ||
+        uci_payload_builder_put_u16_le(&builder, UCI_DEVICE_INFO_PHY_VERSION) < 0 ||
+        uci_payload_builder_put_u16_le(&builder, UCI_DEVICE_INFO_TEST_VERSION) < 0 ||
+        uci_payload_builder_put_u8(&builder, UCI_DEVICE_INFO_VENDOR_SPEC_COUNT) < 0) {
         return 0;
     }
 

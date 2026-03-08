@@ -9,6 +9,7 @@
 #include "../include/uci_ui.h"
 #include "../include/uci_ui_packet_decoder.h"
 #include "../include/uci_packet_analyzer.h"
+#include "../include/uci_packet_utils.h"
 #include "../include/uci_config_manager.h"
 
 typedef struct {
@@ -2399,18 +2400,7 @@ void ui_decode_session_init_cmd(unsigned char* payload, int payload_len) {
         printf("    Session ID: 0x%08X\n", session_id);
     }
 
-    // Print session type with name
-    const char* type_name = "UNKNOWN";
-    switch(session_type) {
-        case 0x00: type_name = "FIRA_RANGING_SESSION"; break;
-        case 0x01: type_name = "FIRA_RANGING_AND_IN_BAND_DATA_SESSION"; break;
-        case 0x02: type_name = "FIRA_DATA_TRANSFER_SESSION"; break;
-        case 0x03: type_name = "FIRA_RANGING_ONLY_PHASE"; break;
-        case 0x04: type_name = "FIRA_IN_BAND_DATA_PHASE"; break;
-        case 0x05: type_name = "FIRA_RANGING_WITH_DATA_PHASE"; break;
-        case 0xA0: type_name = "CCC_RANGING_SESSION"; break;
-        case 0xD0: type_name = "DEVICE_TEST_MODE"; break;
-    }
+    const char* type_name = uci_session_type_to_string(session_type);
 
     if (ui_color_enabled) {
         printf("    %s%sSession Type:%s 0x%02X (%s%s%s)\n",

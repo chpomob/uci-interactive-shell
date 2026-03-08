@@ -2,6 +2,29 @@
 #include <stdlib.h>
 #include <string.h>
 
+const char* uci_session_type_to_string(unsigned char session_type) {
+    switch (session_type) {
+        case FIRA_RANGING_SESSION:
+            return "FIRA_RANGING_SESSION";
+        case FIRA_RANGING_AND_IN_BAND_DATA_SESSION:
+            return "FIRA_RANGING_AND_IN_BAND_DATA_SESSION";
+        case FIRA_DATA_TRANSFER_SESSION:
+            return "FIRA_DATA_TRANSFER_SESSION";
+        case FIRA_RANGING_ONLY_PHASE:
+            return "FIRA_RANGING_ONLY_PHASE";
+        case FIRA_IN_BAND_DATA_PHASE:
+            return "FIRA_IN_BAND_DATA_PHASE";
+        case FIRA_RANGING_WITH_DATA_PHASE:
+            return "FIRA_RANGING_WITH_DATA_PHASE";
+        case CCC_RANGING_SESSION:
+            return "CCC_RANGING_SESSION";
+        case DEVICE_TEST_MODE:
+            return "DEVICE_TEST_MODE";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 unsigned char* create_uci_packet(
     unsigned char mt, 
     unsigned char pbf, 

@@ -26,7 +26,7 @@ PROTOCOL_DEFINITIONS_TEST_TARGET=test_protocol_definitions
 PROTOCOL_FIXTURES_TEST_TARGET=test_protocol_fixtures
 TRANSPORT_PARITY_TEST_TARGET=test_transport_parity
 
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test protocol-definitions-test protocol-fixtures-test transport-parity-test coverage
+.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hardware-acceptance-smoke protocol-definitions-test protocol-fixtures-test transport-parity-test coverage
 
 all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test protocol-fixtures-test transport-parity-test
 
@@ -116,6 +116,9 @@ hardware-integration-test: $(HARDWARE_INTEGRATION_TEST_TARGET)
 
 $(HARDWARE_INTEGRATION_TEST_TARGET): tests/test_hardware_integration.c $(filter-out src/main.o,$(OBJ))
 	$(CC) $(CFLAGS) -o $(HARDWARE_INTEGRATION_TEST_TARGET) tests/test_hardware_integration.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
+
+hardware-acceptance-smoke: $(TARGET)
+	./hardware_acceptance_smoke.sh
 
 protocol-definitions-test: $(PROTOCOL_DEFINITIONS_TEST_TARGET)
 	./$(PROTOCOL_DEFINITIONS_TEST_TARGET)

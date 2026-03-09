@@ -170,11 +170,24 @@ UCI_HW_DEVICE=/dev/ttyUSB0 make hardware-integration-test
 UCI_HW_DEVICE=/dev/ttyUSB0 UCI_HW_INCLUDE_RESET=1 make hardware-integration-test
 ```
 
+A minimal user-facing hardware acceptance smoke script is also available:
+```bash
+# Non-destructive CLI bring-up flow
+UCI_HW_DEVICE=/dev/ttyUSB0 make hardware-acceptance-smoke
+
+# Include session_start only when the target device already has a known-good
+# app-config baseline for the chosen session profile.
+UCI_HW_DEVICE=/dev/ttyUSB0 UCI_HW_INCLUDE_SESSION_START=1 make hardware-acceptance-smoke
+```
+
 Environment variables:
 - `UCI_HW_DEVICE` (required to run real-hardware checks)
 - `UCI_HW_TIMEOUT_MS` (optional, default `1500`)
 - `UCI_HW_VERBOSE` (optional, `1` enables transport debug logs)
 - `UCI_HW_INCLUDE_RESET` (optional, `1` enables `CORE_DEVICE_RESET` test)
+- `UCI_HW_SCRIPT_TIMEOUT_SEC` (optional, smoke-script timeout, default `20`)
+- `UCI_HW_SESSION_ID` and `UCI_HW_SESSION_TYPE` (optional, smoke-script session settings)
+- `UCI_HW_INCLUDE_SESSION_START` (optional, `1` includes `session_start` in the smoke script)
 
 ### Usage Examples
 

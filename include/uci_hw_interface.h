@@ -9,9 +9,15 @@
 // Hardware interface functions
 int uci_hw_interface_init(const char* device_path);
 void uci_hw_interface_set_verbose(int verbose);  // Add verbose mode support
+int uci_hw_interface_send_packet(const unsigned char* packet, size_t packet_len);
 int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid, 
                                  unsigned char* payload, int payload_len);
 int uci_hw_interface_receive_response(unsigned char* buffer, size_t buffer_size, int timeout_ms);
+int uci_hw_interface_exchange_packet(const unsigned char* packet,
+                                     size_t packet_len,
+                                     unsigned char* response_buffer,
+                                     size_t response_buffer_size,
+                                     int timeout_ms);
 int uci_hw_interface_exchange_command(unsigned char mt,
                                      unsigned char pbf,
                                      unsigned char gid,

@@ -186,6 +186,10 @@ static void log_outbound_fragment(const char *target_label,
                                   unsigned char oid,
                                   const unsigned char *payload,
                                   size_t payload_len);
+static void log_control_packet_bytes(const char *target_label,
+                                     const unsigned char *packet,
+                                     size_t packet_len,
+                                     int empty_payload_as_text);
 
 static void sim_queue_reset(void)
 {
@@ -371,6 +375,37 @@ void uci_process_pending_notifications() {
         parse_uci_packet(item->data, item->length);
         g_notification_head = (g_notification_head + 1) % MAX_PENDING_NOTIFICATIONS;
     }
+}
+
+static void log_control_packet_bytes(const char *target_label,
+                                     const unsigned char *packet,
+                                     size_t packet_len,
+                                     int empty_payload_as_text)
+{
+    const struct uci_packet_header *header = (const struct uci_packet_header *)packet;
+    uci_header_fields_t fields;
+    const unsigned char *payload;
+
+    if (!packet || packet_len < sizeof(struct uci_packet_header)) {
+        return;
+    }
+
+    uci_extract_header_fields_safe(header, &fields);
+    payload = packet + sizeof(struct uci_packet_header);
+
+    ui_print_sending_uci_packet(target_label);
+    printf("  Header: %02X %02X %02X %02X\n", packet[0], packet[1], packet[2], packet[3]);
+
+    if (fields.payload_length == 0 && empty_payload_as_text) {
+        printf("  Payload: <empty>\n");
+        return;
+    }
+
+    printf("  Payload: ");
+    for (unsigned char i = 0; i < fields.payload_length; i++) {
+        printf("%02X ", payload[i]);
+    }
+    printf("\n");
 }
 
 void decode_session_data_credit_ntf(unsigned char* payload, int payload_len);
@@ -652,6 +687,9 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
     }
 
     extern int g_hardware_mode;
+    size_t packet_len = 0;
+    unsigned char *packet = NULL;
+    const unsigned char *packet_payload = NULL;
 
     // Validate input parameters
     if (payload_len < 0 || payload_len > UCI_MAX_CONTROL_PAYLOAD_SIZE) {
@@ -666,46 +704,42 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
         }
     }
 
+    packet = create_uci_packet(mt,
+                               pbf,
+                               gid,
+                               oid,
+                               payload,
+                               (payload_len > 0) ? (size_t)payload_len : 0,
+                               &packet_len);
+    if (!packet) {
+        UCI_LOG_ERROR("Failed to construct UCI control packet", UCI_ERROR_OUT_OF_MEMORY);
+        uci_log_error(__func__, "Packet construction failed", UCI_ERROR_OUT_OF_MEMORY);
+        return;
+    }
+
+    packet_payload = packet + sizeof(struct uci_packet_header);
+
     if (g_hardware_mode) {
         printf("[HARDWARE MODE] ");
         const char* hw_path = uci_get_hardware_device_path();
-        ui_print_sending_uci_packet(hw_path);
-
-        unsigned char preview_header[sizeof(struct uci_packet_header)];
-        uci_error_t result = set_header_values_safe((struct uci_packet_header*)preview_header,
-                                                    mt, pbf, gid, oid,
-                                                    (unsigned char)payload_len);
-        if (result != UCI_SUCCESS) {
-            UCI_LOG_ERROR("Failed to set header values (error=%d)", result);
-            uci_log_error(__func__, "Header validation failed", result);
-            return;
-        }
-        printf("  Header: %02X %02X %02X %02X\n",
-               preview_header[0], preview_header[1], preview_header[2], preview_header[3]);
-
-        if (payload && payload_len > 0) {
-            printf("  Payload: ");
-            for (int i = 0; i < payload_len; i++) {
-                printf("%02X ", payload[i]);
-            }
-            printf("\n");
-        } else {
-            printf("  Payload: <empty>\n");
-        }
+        log_control_packet_bytes(hw_path, packet, packet_len, 1);
 
         unsigned char response_buffer[1024];
-        int response_len = uci_hw_interface_exchange_command(mt, pbf, gid, oid,
-                                                             payload, payload_len,
-                                                             response_buffer, sizeof(response_buffer),
-                                                             1000);
+        int response_len = uci_hw_interface_exchange_packet(packet,
+                                                            packet_len,
+                                                            response_buffer,
+                                                            sizeof(response_buffer),
+                                                            1000);
         if (response_len == UCI_HW_EXCHANGE_SEND_ERROR) {
             ui_print_error("Failed to send command to hardware");
             UCI_LOG_ERROR("Hardware send failed", UCI_ERROR_INVALID_PARAM);
+            free(packet);
             return;
         }
         if (response_len < 0) {
             ui_print_error("Error receiving response from hardware");
             UCI_LOG_ERROR("Error receiving response from hardware", UCI_ERROR_INVALID_PARAM);
+            free(packet);
             return;
         }
 
@@ -722,35 +756,19 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
         } else {
             ui_print_warning("No response received from hardware (timeout)");
         }
+        free(packet);
         return;
     }
 
     // In simulation mode, continue with existing behavior
-    struct uci_packet_header header;
-    uci_error_t result = set_header_values_safe(&header, mt, pbf, gid, oid, payload_len);
-    if (result != UCI_SUCCESS) {
-        UCI_LOG_ERROR("Failed to set header values in simulation mode (error=%d)", result);
-        uci_log_error(__func__, "Header validation failed in simulation", result);
-        return;
-    }
-
-    ui_print_sending_uci_packet("simulator");
-    unsigned char *header_bytes = (unsigned char *)&header;
-    printf("  Header: %02X %02X %02X %02X\n", header_bytes[0], header_bytes[1],
-           header_bytes[2], header_bytes[3]);
-    printf("  Payload: ");
-    if (payload && payload_len > 0) {
-        for (int i = 0; i < payload_len; i++) {
-            printf("%02X ", payload[i]);
-        }
-    }
-    printf("\n");
+    log_control_packet_bytes("simulator", packet, packet_len, 0);
 
     printf("Simulating UCI response...\n");
 
     if (!sim_command_allowed(gid, oid)) {
         send_sim_status(gid, oid, UCI_STATUS_REJECTED);
         UCI_LOG_ERROR("Command not allowed", UCI_ERROR_INVALID_PARAM);
+        free(packet);
         return;
     }
 
@@ -761,6 +779,7 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
         char error_msg[100];
         snprintf(error_msg, sizeof(error_msg), "Handler not found for GID: 0x%02X, OID: 0x%02X", gid, oid);
         UCI_LOG_ERROR(error_msg, UCI_ERROR_UNSUPPORTED_OPERATION);
+        free(packet);
         return;
     }
 
@@ -768,26 +787,30 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
     struct uci_packet_header *response_header = (struct uci_packet_header *)response_packet;
     unsigned char *response_payload = response_packet + sizeof(struct uci_packet_header);
 
-    size_t payload_size = (payload && payload_len > 0) ? (size_t)payload_len : 0;
-    int generated_len = handler->handler(response_payload, MAX_RESPONSE_PAYLOAD_LEN, payload,
-                                         payload_size);
+    int generated_len = handler->handler(response_payload,
+                                         MAX_RESPONSE_PAYLOAD_LEN,
+                                         packet_payload,
+                                         (size_t)payload_len);
     if (generated_len < 0) {
         send_sim_status(gid, oid, UCI_STATUS_FAILED);
         UCI_LOG_ERROR("Handler function failed", UCI_ERROR_INVALID_PARAM);
+        free(packet);
         return;
     }
 
     if ((size_t)generated_len > MAX_RESPONSE_PAYLOAD_LEN) {
         send_sim_status(gid, oid, UCI_STATUS_INVALID_MSG_SIZE);
         UCI_LOG_ERROR("Response payload too large", UCI_ERROR_BUFFER_OVERFLOW);
+        free(packet);
         return;
     }
 
-    result = set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid,
-                           (unsigned char)generated_len);
+    uci_error_t result = set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid,
+                                                (unsigned char)generated_len);
     if (result != UCI_SUCCESS) {
         UCI_LOG_ERROR("Failed to set response header values (error=%d)", result);
         uci_log_error(__func__, "Response header validation failed", result);
+        free(packet);
         return;
     }
 
@@ -797,6 +820,8 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
     } else {
         parse_uci_packet(response_packet, total_len);
     }
+
+    free(packet);
 }
 
 static void sim_handle_data_message_send(const unsigned char *payload, size_t payload_len)

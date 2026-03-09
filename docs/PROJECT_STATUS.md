@@ -33,6 +33,9 @@ execution path, and changes are currently limited to:
 - Shared plain decode-output helpers now back the `uci.c` and
   `uci_packet_analyzer.c` status/state reporting paths, so those two modules no
   longer maintain separate textual protocol semantics.
+- Control-command transport now builds a canonical packet once in
+  `send_uci_command()` and hands that packet to either simulation or hardware,
+  reducing header/payload drift across transport paths.
 - Fixture-driven protocol tests now pin representative CORE commands/responses
   and SESSION notifications at the exact byte level before hardware bring-up.
 - A new transport parity suite now runs representative handlers through both

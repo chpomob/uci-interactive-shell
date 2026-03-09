@@ -129,6 +129,8 @@ command tables.
 - Shared plain-text decode output now lives in `include/uci_decode_utils.h`,
   so `uci.c` and `uci_packet_analyzer.c` do not maintain separate status/state
   printing logic.
+- Control commands now flow through a single canonical packet-construction path
+  before either simulation or hardware transport handles them.
 - Tests in `tests/test_protocol_definitions.c` and
   `tests/test_protocol_fixtures.c` enforce those mappings, the command metadata
   that depends on them, and representative byte-level packet fixtures.

@@ -1,6 +1,7 @@
 #include "../include/uci_hw_interface.h"
 #include "../include/uci_hw_chardev.h"
 #include "../include/uci.h"
+#include "../include/uci_packet_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -286,9 +287,7 @@ int uci_hw_interface_init(const char* device_path) {
     }
 }
 
-// Send UCI command to hardware device
-int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid, 
-                                 unsigned char* payload, int payload_len) {
+int uci_hw_interface_send_packet(const unsigned char* packet, size_t packet_len) {
     if (!g_hw_initialized) {
         if (g_verbose_mode) {
             printf("Hardware interface not initialized\n");
@@ -303,7 +302,28 @@ int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned 
         return -1;
     }
 
-    size_t remaining = (payload_len > 0) ? (size_t)payload_len : 0;
+    if (!packet || packet_len < sizeof(struct uci_packet_header)) {
+        if (g_verbose_mode) {
+            printf("Invalid packet parameters\n");
+        }
+        return -1;
+    }
+
+    const struct uci_packet_header* packet_header = (const struct uci_packet_header*)packet;
+    uci_header_fields_t packet_fields;
+    uci_extract_header_fields_safe(packet_header, &packet_fields);
+
+    if (packet_len < sizeof(struct uci_packet_header) + packet_fields.payload_length) {
+        if (g_verbose_mode) {
+            printf("Incomplete packet: header expects %u payload bytes, got %zu total bytes\n",
+                   packet_fields.payload_length, packet_len);
+        }
+        return -1;
+    }
+
+    const unsigned char* payload = packet + sizeof(struct uci_packet_header);
+    size_t payload_len = packet_fields.payload_length;
+    size_t remaining = payload_len;
     size_t offset = 0;
     int fragment_index = 0;
 
@@ -314,17 +334,22 @@ int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned 
         }
 
         unsigned char fragment_pbf = (remaining > UCI_HAL_MAX_FRAGMENT_PAYLOAD) ? NOT_COMPLETE : COMPLETE;
-        // honour caller-provided PBF only for single-fragment sends
+        // Honour the original packet PBF only for single-fragment sends.
         if (payload_len <= UCI_HAL_MAX_FRAGMENT_PAYLOAD) {
-            fragment_pbf = pbf;
-        } else if (fragment_index == 0 && g_verbose_mode && pbf != COMPLETE) {
+            fragment_pbf = packet_fields.packet_boundary;
+        } else if (fragment_index == 0 && g_verbose_mode && packet_fields.packet_boundary != COMPLETE) {
             printf("Ignoring caller PBF for multi-fragment send; using NOT_COMPLETE/COMPLETE automatically\n");
         }
 
         size_t fragment_size = sizeof(struct uci_packet_header) + chunk;
         unsigned char fragment[sizeof(struct uci_packet_header) + UCI_HAL_MAX_FRAGMENT_PAYLOAD];
         struct uci_packet_header* header = (struct uci_packet_header*)fragment;
-        set_header_values_safe(header, mt, fragment_pbf, gid, oid, (unsigned char)chunk);
+        set_header_values_safe(header,
+                               packet_fields.message_type,
+                               fragment_pbf,
+                               packet_fields.group_id,
+                               packet_fields.opcode_id,
+                               (unsigned char)chunk);
 
         if (chunk > 0 && payload) {
             memcpy(fragment + sizeof(struct uci_packet_header), payload + offset, chunk);
@@ -361,6 +386,31 @@ int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned 
     } while (remaining > 0);
 
     return 0;
+}
+
+// Send UCI command to hardware device
+int uci_hw_interface_send_command(unsigned char mt, unsigned char pbf, unsigned char gid, unsigned char oid,
+                                 unsigned char* payload, int payload_len) {
+    size_t packet_len = 0;
+    unsigned char* packet = create_uci_packet(mt,
+                                              pbf,
+                                              gid,
+                                              oid,
+                                              payload,
+                                              (payload_len > 0) ? (size_t)payload_len : 0,
+                                              &packet_len);
+    int rc;
+
+    if (!packet) {
+        if (g_verbose_mode) {
+            printf("Failed to construct command packet\n");
+        }
+        return -1;
+    }
+
+    rc = uci_hw_interface_send_packet(packet, packet_len);
+    free(packet);
+    return rc;
 }
 
 // Receive UCI response from hardware device with timeout
@@ -465,11 +515,43 @@ int uci_hw_interface_exchange_command(unsigned char mt,
         return -1;
     }
 
+    size_t packet_len = 0;
+    unsigned char* packet = create_uci_packet(mt,
+                                              pbf,
+                                              gid,
+                                              oid,
+                                              payload,
+                                              (payload_len > 0) ? (size_t)payload_len : 0,
+                                              &packet_len);
+    int rc;
+
+    if (!packet) {
+        return UCI_HW_EXCHANGE_SEND_ERROR;
+    }
+
+    rc = uci_hw_interface_exchange_packet(packet,
+                                          packet_len,
+                                          response_buffer,
+                                          response_buffer_size,
+                                          timeout_ms);
+    free(packet);
+    return rc;
+}
+
+int uci_hw_interface_exchange_packet(const unsigned char* packet,
+                                     size_t packet_len,
+                                     unsigned char* response_buffer,
+                                     size_t response_buffer_size,
+                                     int timeout_ms) {
+    if (!response_buffer || response_buffer_size == 0) {
+        return -1;
+    }
+
     if (!uci_hw_interface_is_connected()) {
         return UCI_HW_EXCHANGE_SEND_ERROR;
     }
 
-    if (uci_hw_interface_send_command(mt, pbf, gid, oid, payload, payload_len) != 0) {
+    if (uci_hw_interface_send_packet(packet, packet_len) != 0) {
         return UCI_HW_EXCHANGE_SEND_ERROR;
     }
 

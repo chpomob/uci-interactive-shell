@@ -129,6 +129,10 @@ command tables.
 - Shared plain-text decode output now lives in `include/uci_decode_utils.h`,
   so `uci.c` and `uci_packet_analyzer.c` do not maintain separate status/state
   printing logic.
+- Plain payload response/notification decoding now lives in
+  `src/uci_plain_decoders.c`, which removes the bulk decoder table from
+  `uci.c` while keeping shared measurement helpers available to the live
+  session-notification path.
 - Control commands now flow through a single canonical packet-construction path
   before either simulation or hardware transport handles them.
 - Tests in `tests/test_protocol_definitions.c` and
@@ -275,7 +279,8 @@ For complete technical details of all improvements, see:
 ## Project Structure
 
 - `src/main.c` - Main interactive shell implementation
-- `src/uci.c` - UCI packet processing and command handling
+- `src/uci.c` - UCI packet processing, simulation flow, and live notification handling
+- `src/uci_plain_decoders.c` - Plain-text payload response/notification decoders shared by CLI paths
 - `src/uci.h` - UCI data structures
 - `src/uci_functions.h` - Function declarations
 - `src/uci_pdl.h` - UCI protocol definitions and constants

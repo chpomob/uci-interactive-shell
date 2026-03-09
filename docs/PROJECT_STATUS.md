@@ -33,6 +33,9 @@ execution path, and changes are currently limited to:
 - Shared plain decode-output helpers now back the `uci.c` and
   `uci_packet_analyzer.c` status/state reporting paths, so those two modules no
   longer maintain separate textual protocol semantics.
+- Plain response/notification payload decoding now lives in
+  `src/uci_plain_decoders.c`, which trims decoder responsibility out of
+  `uci.c` and adds a direct regression check for the plain session-state path.
 - Control-command transport now builds a canonical packet once in
   `send_uci_command()` and hands that packet to either simulation or hardware,
   reducing header/payload drift across transport paths.

@@ -71,6 +71,11 @@ static void emit_status_analysis_unknown(void) {
     uci_print_status_analysis(0xEE, 0);
 }
 
+static void emit_plain_session_get_state_rsp(void) {
+    unsigned char payload[] = { UCI_STATUS_OK, SESSION_STATE_ACTIVE };
+    decode_session_get_state_rsp(payload, sizeof(payload));
+}
+
 // Test suite for UCI functions
 int main() {
     TEST_SUITE(uci_functions);
@@ -351,6 +356,26 @@ int main() {
         TEST_PASS();
     }
     test_case_end_decode_status_analysis:;
+
+    TEST_CASE(plain_decoder_session_state_output);
+    {
+        char output[256];
+
+        if (capture_stdout(emit_plain_session_get_state_rsp, output, sizeof(output)) == 0) {
+            TEST_FAIL("Failed to capture plain decoder output");
+            goto test_case_end_plain_decoder;
+        }
+
+        if (strstr(output, "SESSION_GET_STATE_RSP") == NULL ||
+            strstr(output, "Status: 0x00 (OK)") == NULL ||
+            strstr(output, "Session State: 0x02 (ACTIVE)") == NULL) {
+            TEST_FAIL("Plain decoder output did not include expected session state lines");
+            goto test_case_end_plain_decoder;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_plain_decoder:;
 
     // Test header field extraction via struct helper
     TEST_CASE(header_struct_extraction);

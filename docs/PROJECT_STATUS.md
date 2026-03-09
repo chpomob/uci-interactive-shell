@@ -36,6 +36,9 @@ execution path, and changes are currently limited to:
 - Plain response/notification payload decoding now lives in
   `src/uci_plain_decoders.c`, which trims decoder responsibility out of
   `uci.c` and adds a direct regression check for the plain session-state path.
+- Dead simulation shim files (`src/uci_cmd_simulation.c` and the unused
+  `include/uci_cmd_simulation.h`) have been deleted so the simulation command
+  path now has one obvious implementation route.
 - Control-command transport now builds a canonical packet once in
   `send_uci_command()` and hands that packet to either simulation or hardware,
   reducing header/payload drift across transport paths.

@@ -56,6 +56,10 @@ parameter validation rules before handing control to the command handlers in
 - Plain response/notification payload decoders now live in
   `src/uci_plain_decoders.c`, so `uci.c` no longer carries the full plain-text
   decoder block alongside simulation and transport logic.
+- Dead simulation shim files (`src/uci_cmd_simulation.c` and the unused
+  `include/uci_cmd_simulation.h`) have been removed; the maintained simulation
+  command surface is `src/uci_cmd_handlers_simulation.c` plus
+  `src/uci_cmd_framework_simulation.c`.
 - `send_uci_command()` now constructs one canonical control packet and feeds
   that packet into simulation or hardware transport, instead of rebuilding
   command headers separately in each path.

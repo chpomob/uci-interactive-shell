@@ -4,6 +4,7 @@
 #include "../include/uci.h"
 #include "../include/uci_ui.h"
 #include "../include/uci_packet_analyzer.h"
+#include "../include/uci_decode_utils.h"
 #include "../include/uci_ui_packet_decoder.h"
 #include "../include/uci_packet_utils.h"
 #include "../include/uci_packet_analyzer_vendor.h"
@@ -118,28 +119,7 @@ static void analyze_data_message_payload(unsigned char dpf,
 
 // Enhanced error code analysis based on QM SDK patterns
 void enhanced_error_analysis(unsigned char status_code) {
-    const char *status_label = uci_status_to_string(status_code);
-    const char *status_description = uci_status_description(status_code);
-
-    if (ui_color_enabled) {
-        printf("  %s%sStatus Code Analysis:%s\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
-        printf("    %sCode: 0x%02X%s - ", ANSI_COLOR_BRIGHT_WHITE, status_code, ANSI_RESET);
-
-        if (status_code == UCI_STATUS_OK) {
-            printf("%s%s - %s%s\n", ANSI_COLOR_BRIGHT_GREEN, status_label, status_description, ANSI_RESET);
-        } else if (strcmp(status_label, "UNKNOWN") == 0) {
-            printf("%sUNKNOWN - Status code 0x%02X%s\n", ANSI_COLOR_BRIGHT_BLACK, status_code, ANSI_RESET);
-        } else {
-            printf("%s%s - %s%s\n", ANSI_COLOR_RED, status_label, status_description, ANSI_RESET);
-        }
-    } else {
-        printf("  Status Code Analysis:\n");
-        if (strcmp(status_label, "UNKNOWN") == 0) {
-            printf("    Code: 0x%02X - UNKNOWN\n", status_code);
-        } else {
-            printf("    Code: 0x%02X - %s - %s\n", status_code, status_label, status_description);
-        }
-    }
+    uci_print_status_analysis(status_code, ui_color_enabled);
 }
 
 // Unified packet analyzer that respects ui_color_enabled for formatted output

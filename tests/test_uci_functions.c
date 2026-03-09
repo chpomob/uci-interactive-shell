@@ -4,11 +4,72 @@
 #include "../include/uci_config_manager.h"
 #include "../include/uci_response_core.h"
 #include "../include/uci_packet_utils.h"
+#include "../include/uci_decode_utils.h"
 #include "../include/uci_qorvo_utils.h"
 #include "../include/uci_ui_packet_decoder.h"
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
+
+static size_t capture_stdout(void (*fn)(void), char *buffer, size_t buffer_len) {
+    FILE *tmp = tmpfile();
+    int tmp_fd;
+    int saved_stdout;
+    long size;
+    size_t read_bytes;
+
+    if (!tmp || !buffer || buffer_len == 0) {
+        if (tmp) {
+            fclose(tmp);
+        }
+        return 0;
+    }
+
+    tmp_fd = fileno(tmp);
+    saved_stdout = dup(STDOUT_FILENO);
+    if (tmp_fd < 0 || saved_stdout < 0) {
+        if (saved_stdout >= 0) {
+            close(saved_stdout);
+        }
+        fclose(tmp);
+        return 0;
+    }
+
+    fflush(stdout);
+    if (dup2(tmp_fd, STDOUT_FILENO) < 0) {
+        close(saved_stdout);
+        fclose(tmp);
+        return 0;
+    }
+
+    fn();
+
+    fflush(stdout);
+    fflush(tmp);
+    size = ftell(tmp);
+    if (size < 0) {
+        size = 0;
+    }
+    rewind(tmp);
+
+    read_bytes = (size_t)((size < (long)(buffer_len - 1)) ? size : (long)(buffer_len - 1));
+    read_bytes = fread(buffer, 1, read_bytes, tmp);
+    buffer[read_bytes] = '\0';
+
+    dup2(saved_stdout, STDOUT_FILENO);
+    close(saved_stdout);
+    fclose(tmp);
+    return read_bytes;
+}
+
+static void emit_status_line_invalid_param(void) {
+    uci_print_status_line("Status", UCI_STATUS_INVALID_PARAM);
+}
+
+static void emit_status_analysis_unknown(void) {
+    uci_print_status_analysis(0xEE, 0);
+}
 
 // Test suite for UCI functions
 int main() {
@@ -254,6 +315,42 @@ int main() {
         TEST_PASS();
     }
     test_case_end_dm_unknown:;
+
+    TEST_CASE(shared_decode_status_line_output);
+    {
+        char output[256];
+
+        if (capture_stdout(emit_status_line_invalid_param, output, sizeof(output)) == 0) {
+            TEST_FAIL("Failed to capture shared status line output");
+            goto test_case_end_decode_status_line;
+        }
+
+        if (strcmp(output, "      Status: 0x04 (INVALID_PARAM)\n") != 0) {
+            TEST_FAIL("Shared status line output mismatch");
+            goto test_case_end_decode_status_line;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_decode_status_line:;
+
+    TEST_CASE(shared_decode_status_analysis_output);
+    {
+        char output[256];
+
+        if (capture_stdout(emit_status_analysis_unknown, output, sizeof(output)) == 0) {
+            TEST_FAIL("Failed to capture shared status analysis output");
+            goto test_case_end_decode_status_analysis;
+        }
+
+        if (strcmp(output, "  Status Code Analysis:\n    Code: 0xEE - UNKNOWN\n") != 0) {
+            TEST_FAIL("Shared status analysis output mismatch");
+            goto test_case_end_decode_status_analysis;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_decode_status_analysis:;
 
     // Test header field extraction via struct helper
     TEST_CASE(header_struct_extraction);

@@ -50,6 +50,9 @@ parameter validation rules before handing control to the command handlers in
 - Shared semantic helpers in `uci_packet_utils` are the preferred way to decode
   protocol enums in CLI/analyzer code, so repeated status, device-state,
   session-state, and session-reason switch blocks do not drift apart.
+- Shared plain-text decode helpers in `uci_decode_utils` now own the
+  human-readable status/state printing used by `uci.c` and
+  `uci_packet_analyzer.c`.
 - New decoding or command logic must use those named constants instead of local
   literals. `tests/test_protocol_definitions.c` and
   `tests/test_protocol_fixtures.c` exist to catch drift.

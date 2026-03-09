@@ -126,6 +126,9 @@ command tables.
 - Shared enum decoding helpers in `include/uci_packet_utils.h` own the plain
   CLI/analyzer mapping for status, device-state, session-state, and
   session-reason values.
+- Shared plain-text decode output now lives in `include/uci_decode_utils.h`,
+  so `uci.c` and `uci_packet_analyzer.c` do not maintain separate status/state
+  printing logic.
 - Tests in `tests/test_protocol_definitions.c` and
   `tests/test_protocol_fixtures.c` enforce those mappings, the command metadata
   that depends on them, and representative byte-level packet fixtures.

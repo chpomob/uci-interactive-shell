@@ -30,6 +30,9 @@ execution path, and changes are currently limited to:
   reason, and session type decoding in the plain CLI/analyzer paths, reducing
   duplicated protocol switch statements without collapsing the richer UI lookup
   tables.
+- Shared plain decode-output helpers now back the `uci.c` and
+  `uci_packet_analyzer.c` status/state reporting paths, so those two modules no
+  longer maintain separate textual protocol semantics.
 - Fixture-driven protocol tests now pin representative CORE commands/responses
   and SESSION notifications at the exact byte level before hardware bring-up.
 - A new transport parity suite now runs representative handlers through both

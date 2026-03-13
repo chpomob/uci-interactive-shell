@@ -22,15 +22,16 @@ VALIDATION_DEMO_TARGET=demo_validation
 COMMAND_HANDLER_TEST_TARGET=test_command_handlers
 COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET=test_command_framework_validation
 HARDWARE_INTEGRATION_TEST_TARGET=test_hardware_integration
+HW_FRAGMENTATION_TEST_TARGET=test_hw_fragmentation
 PROTOCOL_DEFINITIONS_TEST_TARGET=test_protocol_definitions
 PROTOCOL_FIXTURES_TEST_TARGET=test_protocol_fixtures
 TRANSPORT_PARITY_TEST_TARGET=test_transport_parity
 ANALYZER_DISPATCH_TEST_TARGET=test_analyzer_dispatch
 CHERRY_ALIGNMENT_TEST_TARGET=test_cherry_alignment
 
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hardware-acceptance-smoke protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test coverage
+.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hw-fragmentation-test hardware-acceptance-smoke protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test coverage
 
-all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
+all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
@@ -50,7 +51,7 @@ src/uci_ui_packet_decoder.o: src/uci_ui_packet_decoder.c include/uci_ui_packet_d
 src/uci_cmd_session_config_ext.o: src/uci_cmd_session_config_ext.c include/uci_cmd_session_config_ext.h include/uci.h include/uci_functions.h
 
 clean:
-	rm -f $(OBJ) $(TARGET) $(TEST_TARGET) $(UNIT_TEST_TARGET) $(CONFIG_TEST_TARGET) $(SESSION_MANAGER_TEST_TARGET) $(SECURITY_TEST_TARGET) $(HARDWARE_INTEGRATION_TEST_TARGET) $(CHERRY_ALIGNMENT_TEST_TARGET) tests/*.o tests/*.d
+	rm -f $(OBJ) $(TARGET) $(TEST_TARGET) $(UNIT_TEST_TARGET) $(CONFIG_TEST_TARGET) $(SESSION_MANAGER_TEST_TARGET) $(SECURITY_TEST_TARGET) $(HARDWARE_INTEGRATION_TEST_TARGET) $(HW_FRAGMENTATION_TEST_TARGET) $(CHERRY_ALIGNMENT_TEST_TARGET) tests/*.o tests/*.d
 	rm -f src/*.gcno src/*.gcda tests/*.gcno tests/*.gcda *.gcov *.gcda *.gcno
 	rm -rf coverage
 
@@ -60,7 +61,7 @@ install: $(TARGET)
 	mkdir -p /usr/local/share/doc/uci-shell/uci_analysis
 	cp -r uci_analysis/* /usr/local/share/doc/uci-shell/uci_analysis/
 
-test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
+test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
 
 $(TEST_TARGET): src/uci_hw_chardev.o
 	$(CC) $(CFLAGS) -o $(TEST_TARGET) test_chardev.c src/uci_hw_chardev.o
@@ -118,6 +119,12 @@ hardware-integration-test: $(HARDWARE_INTEGRATION_TEST_TARGET)
 
 $(HARDWARE_INTEGRATION_TEST_TARGET): tests/test_hardware_integration.c $(filter-out src/main.o,$(OBJ))
 	$(CC) $(CFLAGS) -o $(HARDWARE_INTEGRATION_TEST_TARGET) tests/test_hardware_integration.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
+
+hw-fragmentation-test: $(HW_FRAGMENTATION_TEST_TARGET)
+	./$(HW_FRAGMENTATION_TEST_TARGET)
+
+$(HW_FRAGMENTATION_TEST_TARGET): tests/test_hw_fragmentation.c $(filter-out src/main.o,$(OBJ))
+	$(CC) $(CFLAGS) -o $(HW_FRAGMENTATION_TEST_TARGET) tests/test_hw_fragmentation.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
 
 hardware-acceptance-smoke: $(TARGET)
 	./hardware_acceptance_smoke.sh

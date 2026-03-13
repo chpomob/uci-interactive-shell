@@ -101,6 +101,11 @@ parameter validation rules before handing control to the command handlers in
   bytes 2-3 as a 16-bit little-endian payload length. `uci_send_data_message()`
   now accepts payloads up to the UCI 16-bit length limit while still emitting
   255-byte transport/log fragments locally.
+- The hardware transport path now preserves Cherry-style `DATA` fragment
+  behavior on receive: `DATA` packets are returned packet-by-packet even when
+  `PBF=NOT_COMPLETE`, instead of being combined through the non-DATA
+  reassembly buffer. The same transport layer still builds 255-byte outbound
+  `DATA` wire fragments for larger payloads.
 - `tests/test_analyzer_dispatch.c` now covers representative live dispatch for
   `COMMAND`, `RESPONSE`, and `NOTIFICATION` packets in the CORE,
   `SESSION_CONFIG`, and `SESSION_CONTROL` families, and now also asserts the
@@ -132,6 +137,10 @@ parameter validation rules before handing control to the command handlers in
   encoding/decoding and verifies that the data-message builder/send path
   preserves payloads above 255 bytes instead of falling back to the old
   control-packet length ceiling.
+- `tests/test_hw_fragmentation.c` now exercises the real hardware-interface
+  fragmentation helpers directly, pinning Cherry-style 255-byte outbound
+  `DATA` fragmentation and inbound `DATA` fragment passthrough without relying
+  on a real device.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

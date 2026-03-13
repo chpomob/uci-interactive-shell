@@ -66,6 +66,11 @@ execution path, and changes are currently limited to:
   correctly instead of truncating it back to 8 bits, and
   `uci_send_data_message()` no longer rejects payloads above the old 255-byte
   control-packet ceiling.
+- The hardware transport path now matches Cherry more closely for normal
+  `DATA` packet runtime flow: outbound packets still split into 255-byte wire
+  fragments, but inbound `DATA` fragments are no longer reassembled through the
+  non-DATA fragment buffer. They are forwarded packet-by-packet so MAC/data
+  consumers can observe the original fragment boundaries.
 - A dedicated table-driven analyzer dispatch suite now runs representative live
   packets through `uci_analyze_packet_core()` for CORE and SESSION command,
   response, and notification paths, and now also verifies the expected
@@ -108,6 +113,9 @@ execution path, and changes are currently limited to:
   a `DATA_MESSAGE_SND` generation path with an application payload above
   255 bytes, so the repository cannot silently fall back to 8-bit-only data
   packet behavior.
+- A dedicated hardware-fragmentation suite now exercises the transport
+  fragmentation helpers directly, proving both Cherry-style 255-byte outbound
+  `DATA` chunking and inbound `DATA` fragment passthrough.
 - A new transport parity suite now runs representative handlers through both
   simulation mode and a stubbed hardware transport to prove the emitted command
   bytes match before real-device testing.

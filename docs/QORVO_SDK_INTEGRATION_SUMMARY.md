@@ -142,6 +142,10 @@ The SDK enables:
   header byte 3, while `DATA` packets use bytes 2-3 as a 16-bit little-endian
   length. Local tests pin both encodings and a `DATA_MESSAGE_SND` payload path
   above 255 bytes.
+- The hardware transport layer now also preserves Cherry's packet-by-packet
+  `DATA` runtime model more closely: large outbound `DATA` payloads become
+  255-byte wire fragments, and inbound `DATA` fragments are no longer merged
+  through the control-oriented reassembly buffer.
 - The Qorvo SDK is not internally uniform for `GID 0x0E`: Cherry C headers use
   `QORVO_MAC`, while the Python Qorvo tools expose `ConfigManager`. This
   repository currently follows the Cherry C-header basis and documents that

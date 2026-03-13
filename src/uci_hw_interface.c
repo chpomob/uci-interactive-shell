@@ -1,4 +1,5 @@
 #include "../include/uci_hw_interface.h"
+#include "../include/uci_hw_interface_internal.h"
 #include "../include/uci_hw_chardev.h"
 #include "../include/uci.h"
 #include "../include/uci_packet_utils.h"
@@ -53,6 +54,93 @@ static void packet_queue_reset(void) {
 static void uci_hw_interface_reset_state(void) {
     uci_fragment_reset();
     packet_queue_reset();
+}
+
+void uci_hw_interface_reset_transport_state_for_test(void) {
+    uci_hw_interface_reset_state();
+}
+
+static int uci_build_outbound_fragment(const unsigned char* packet,
+                                       size_t packet_len,
+                                       size_t offset,
+                                       unsigned char* fragment,
+                                       size_t fragment_capacity,
+                                       size_t* fragment_size,
+                                       size_t* next_offset) {
+    const struct uci_packet_header* packet_header;
+    uci_header_fields_t packet_fields;
+    const unsigned char* payload;
+    size_t payload_len;
+    size_t remaining;
+    size_t chunk;
+    unsigned char fragment_pbf;
+    struct uci_packet_header* header;
+
+    if (!packet || packet_len < sizeof(struct uci_packet_header) || !fragment ||
+        fragment_capacity < sizeof(struct uci_packet_header) || !fragment_size || !next_offset) {
+        return -1;
+    }
+
+    packet_header = (const struct uci_packet_header*)packet;
+    if (uci_extract_header_fields_safe(packet_header, &packet_fields) != UCI_SUCCESS) {
+        return -1;
+    }
+
+    if (packet_len < sizeof(struct uci_packet_header) + packet_fields.payload_length ||
+        offset > packet_fields.payload_length) {
+        return -1;
+    }
+
+    payload = packet + sizeof(struct uci_packet_header);
+    payload_len = packet_fields.payload_length;
+    remaining = payload_len - offset;
+    chunk = remaining;
+    if (chunk > UCI_HAL_MAX_FRAGMENT_PAYLOAD) {
+        chunk = UCI_HAL_MAX_FRAGMENT_PAYLOAD;
+    }
+
+    if (fragment_capacity < sizeof(struct uci_packet_header) + chunk) {
+        return -1;
+    }
+
+    fragment_pbf = ((offset + chunk) < payload_len) ? NOT_COMPLETE : COMPLETE;
+    if (payload_len <= UCI_HAL_MAX_FRAGMENT_PAYLOAD) {
+        fragment_pbf = packet_fields.packet_boundary;
+    }
+
+    header = (struct uci_packet_header*)fragment;
+    if (set_header_values_safe(header,
+                               packet_fields.message_type,
+                               fragment_pbf,
+                               packet_fields.group_id,
+                               packet_fields.opcode_id,
+                               (uci_uint16)chunk) != UCI_SUCCESS) {
+        return -1;
+    }
+
+    if (chunk > 0) {
+        memcpy(fragment + sizeof(struct uci_packet_header), payload + offset, chunk);
+    }
+
+    *fragment_size = sizeof(struct uci_packet_header) + chunk;
+    *next_offset = offset + chunk;
+    return 0;
+}
+
+int uci_hw_interface_build_fragment_for_test(const unsigned char* packet,
+                                             size_t packet_len,
+                                             size_t offset,
+                                             unsigned char* fragment,
+                                             size_t fragment_capacity,
+                                             size_t* fragment_size,
+                                             size_t* next_offset) {
+    return uci_build_outbound_fragment(packet,
+                                       packet_len,
+                                       offset,
+                                       fragment,
+                                       fragment_capacity,
+                                       fragment_size,
+                                       next_offset);
 }
 
 static int packet_queue_enqueue(const unsigned char *packet, size_t len) {
@@ -140,6 +228,33 @@ static int uci_fragment_process(const unsigned char* fragment,
                    mt, gid, opcode,
                    (pbf == COMPLETE) ? "COMPLETE" : "NOT_COMPLETE",
                    payload_len);
+    }
+
+    /*
+     * Cherry forwards DATA packets packet-by-packet so the MAC layer can
+     * process credit/continuation state itself. Do not merge DATA fragments
+     * into a synthetic complete packet here.
+     */
+    if (mt == DATA) {
+        if (g_fragment_buffer.active) {
+            if (g_verbose_mode) {
+                printf("Dropping buffered non-DATA fragments after DATA packet arrival\n");
+            }
+            uci_fragment_reset();
+        }
+
+        if (out_capacity < expected_len) {
+            if (g_verbose_mode) {
+                printf("Output buffer too small for DATA fragment (%zu needed)\n", expected_len);
+            }
+            return -1;
+        }
+
+        memcpy(out_buffer, fragment, expected_len);
+        if (g_verbose_mode) {
+            printf("  Forwarding DATA fragment without reassembly (%zu bytes)\n", payload_len);
+        }
+        return (int)expected_len;
     }
 
     if (pbf == NOT_COMPLETE) {
@@ -245,6 +360,13 @@ static int uci_fragment_process(const unsigned char* fragment,
     return (int)expected_len;
 }
 
+int uci_hw_interface_process_fragment_for_test(const unsigned char* fragment,
+                                               size_t fragment_len,
+                                               unsigned char* out_buffer,
+                                               size_t out_capacity) {
+    return uci_fragment_process(fragment, fragment_len, out_buffer, out_capacity);
+}
+
 // Enable verbose mode for hardware interface
 void uci_hw_interface_set_verbose(int verbose) {
     g_verbose_mode = verbose ? 1 : 0;
@@ -324,49 +446,39 @@ int uci_hw_interface_send_packet(const unsigned char* packet, size_t packet_len)
         return -1;
     }
 
-    const unsigned char* payload = packet + sizeof(struct uci_packet_header);
-    size_t payload_len = packet_fields.payload_length;
-    size_t remaining = payload_len;
     size_t offset = 0;
-    int fragment_index = 0;
+    unsigned char fragment[sizeof(struct uci_packet_header) + UCI_HAL_MAX_FRAGMENT_PAYLOAD];
 
-    do {
-        size_t chunk = remaining;
-        if (chunk > UCI_HAL_MAX_FRAGMENT_PAYLOAD) {
-            chunk = UCI_HAL_MAX_FRAGMENT_PAYLOAD;
-        }
+    while (offset < packet_fields.payload_length || (offset == 0 && packet_fields.payload_length == 0)) {
+        size_t fragment_size = 0;
+        size_t next_offset = 0;
+        size_t fragment_payload_len = 0;
 
-        unsigned char fragment_pbf = (remaining > UCI_HAL_MAX_FRAGMENT_PAYLOAD) ? NOT_COMPLETE : COMPLETE;
-        // Honour the original packet PBF only for single-fragment sends.
-        if (payload_len <= UCI_HAL_MAX_FRAGMENT_PAYLOAD) {
-            fragment_pbf = packet_fields.packet_boundary;
-        } else if (fragment_index == 0 && g_verbose_mode && packet_fields.packet_boundary != COMPLETE) {
+        if (packet_fields.payload_length > UCI_HAL_MAX_FRAGMENT_PAYLOAD &&
+            offset == 0 &&
+            packet_fields.packet_boundary != COMPLETE &&
+            g_verbose_mode) {
             printf("Ignoring caller PBF for multi-fragment send; using NOT_COMPLETE/COMPLETE automatically\n");
         }
 
-        size_t fragment_size = sizeof(struct uci_packet_header) + chunk;
-        unsigned char fragment[sizeof(struct uci_packet_header) + UCI_HAL_MAX_FRAGMENT_PAYLOAD];
-        struct uci_packet_header* header = (struct uci_packet_header*)fragment;
-        if (set_header_values_safe(header,
-                                   packet_fields.message_type,
-                                   fragment_pbf,
-                                   packet_fields.group_id,
-                                   packet_fields.opcode_id,
-                                   (uci_uint16)chunk) != UCI_SUCCESS) {
+        if (uci_build_outbound_fragment(packet,
+                                        packet_len,
+                                        offset,
+                                        fragment,
+                                        sizeof(fragment),
+                                        &fragment_size,
+                                        &next_offset) != 0) {
             return -1;
         }
-
-        if (chunk > 0 && payload) {
-            memcpy(fragment + sizeof(struct uci_packet_header), payload + offset, chunk);
-        }
+        fragment_payload_len = fragment_size - sizeof(struct uci_packet_header);
 
         if (g_verbose_mode) {
             printf("Sending UCI fragment to hardware (%s):\n", g_device_path);
             printf("  Header: %02X %02X %02X %02X\n",
                    fragment[0], fragment[1], fragment[2], fragment[3]);
-            if (chunk > 0) {
+            if (fragment_payload_len > 0) {
                 printf("  Payload: ");
-                for (size_t i = 0; i < chunk; i++) {
+                for (size_t i = 0; i < fragment_payload_len; i++) {
                     printf("%02X ", fragment[sizeof(struct uci_packet_header) + i]);
                 }
                 printf("\n");
@@ -381,14 +493,14 @@ int uci_hw_interface_send_packet(const unsigned char* packet, size_t packet_len)
             return -1;
         }
 
-        if (remaining > chunk) {
-            remaining -= chunk;
-            offset += chunk;
-            fragment_index++;
-        } else {
-            remaining = 0;
+        if (next_offset <= offset) {
+            break;
         }
-    } while (remaining > 0);
+        offset = next_offset;
+        if (packet_fields.payload_length == 0) {
+            break;
+        }
+    }
 
     return 0;
 }

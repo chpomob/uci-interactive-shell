@@ -167,6 +167,10 @@ command tables.
   `DATA` packets use bytes 2-3 as a 16-bit little-endian payload length. The
   unit tests now pin both header encodings and a `DATA_MESSAGE_SND` payload
   path above 255 bytes.
+- The hardware transport now also follows Cherry's normal `DATA` packet flow
+  more closely: outbound `DATA` messages fragment into 255-byte wire packets,
+  while inbound `DATA` fragments are forwarded packet-by-packet instead of
+  being merged through the control-packet reassembly buffer.
 - `tests/test_uci_functions.c` now includes analyzer-dispatch regressions for
   live packet routing, so duplicate or unreachable `MT/GID/OID` decode branches
   are caught even when individual decoder helpers still pass in isolation.

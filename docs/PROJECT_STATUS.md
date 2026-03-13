@@ -30,6 +30,10 @@ execution path, and changes are currently limited to:
   reason, and session type decoding in the plain CLI/analyzer paths, reducing
   duplicated protocol switch statements without collapsing the richer UI lookup
   tables.
+- Shared protocol lookup tables in `src/uci_packet_utils.c` now also back the
+  UI packet decoder labels/descriptions for status, device state, session
+  state, session reason, and data-transfer status, so those semantics have one
+  maintained source.
 - Shared plain decode-output helpers now back the `uci.c` and
   `uci_packet_analyzer.c` status/state reporting paths, so those two modules no
   longer maintain separate textual protocol semantics.

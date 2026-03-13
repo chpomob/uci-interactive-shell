@@ -50,6 +50,9 @@ parameter validation rules before handing control to the command handlers in
 - Shared semantic helpers in `uci_packet_utils` are the preferred way to decode
   protocol enums in CLI/analyzer code, so repeated status, device-state,
   session-state, and session-reason switch blocks do not drift apart.
+- The shared `uci_packet_utils` lookup tables now also provide the label and
+  description metadata used by `uci_ui_packet_decoder.c`, replacing the older
+  private UI copies of status/device/session/data-transfer interpretation.
 - Shared plain-text decode helpers in `uci_decode_utils` now own the
   human-readable status/state printing used by `uci.c` and
   `uci_packet_analyzer.c`.
@@ -72,6 +75,8 @@ parameter validation rules before handing control to the command handlers in
 - `tests/test_transport_parity.c` verifies that representative handlers emit
   byte-identical control packets in simulation mode and hardware mode before
   any device response is processed.
+- `tests/test_protocol_definitions.c` now also pins the exported lookup-table
+  labels/descriptions that back analyzer and UI semantic output.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

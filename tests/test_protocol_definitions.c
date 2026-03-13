@@ -175,12 +175,26 @@ int main(void) {
 #define test_case_end test_case_end_protocol_enum_lookups
     TEST_CASE(protocol_enum_lookups_use_shared_strings);
     {
+        const uci_lookup_entry_t* status_entry = uci_lookup_status(UCI_STATUS_INVALID_PARAM);
+        const uci_lookup_entry_t* state_entry = uci_lookup_device_state(DEVICE_STATE_ACTIVE);
+        const uci_lookup_entry_t* reason_entry = uci_lookup_session_reason(0xFE);
+        const uci_lookup_entry_t* transfer_entry =
+            uci_lookup_data_transfer_status(UCI_DATA_TRANSFER_STATUS_ERROR_REJECTED);
+
         ASSERT_STRING_EQUAL("READY", uci_device_state_to_string(DEVICE_STATE_READY));
         ASSERT_STRING_EQUAL("INVALID_PARAM", uci_status_to_string(UCI_STATUS_INVALID_PARAM));
         ASSERT_STRING_EQUAL("Invalid parameter provided", uci_status_description(UCI_STATUS_INVALID_PARAM));
         ASSERT_STRING_EQUAL("ACTIVE", uci_session_state_to_string(SESSION_STATE_ACTIVE));
         ASSERT_STRING_EQUAL("SESSION_STOPPED_DUE_TO_INBAND_SIGNAL",
                             uci_session_reason_to_string(SESSION_STOPPED_DUE_TO_INBAND_SIGNAL));
+        ASSERT_TRUE(status_entry != NULL);
+        ASSERT_TRUE(state_entry != NULL);
+        ASSERT_TRUE(reason_entry != NULL);
+        ASSERT_TRUE(transfer_entry != NULL);
+        ASSERT_STRING_EQUAL("INVALID_PARAM", status_entry->label);
+        ASSERT_STRING_EQUAL("Device actively processing UCI requests", state_entry->description);
+        ASSERT_STRING_EQUAL("ERROR_START_CONFIG", reason_entry->label);
+        ASSERT_STRING_EQUAL("ERROR_REJECTED", transfer_entry->label);
         ASSERT_STRING_EQUAL("UNKNOWN", uci_status_to_string(0xEE));
         ASSERT_STRING_EQUAL("Unknown status code", uci_status_description(0xEE));
         ASSERT_STRING_EQUAL("UNKNOWN", uci_session_state_to_string(0xEE));

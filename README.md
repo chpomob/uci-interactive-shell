@@ -126,6 +126,10 @@ command tables.
 - Shared enum decoding helpers in `include/uci_packet_utils.h` own the plain
   CLI/analyzer mapping for status, device-state, session-state, and
   session-reason values.
+- Shared protocol lookup entries in `include/uci_packet_utils.h` now also back
+  the richer UI decoder labels/descriptions for status, device state, session
+  state, session reason, and data-transfer status, so those semantics are not
+  duplicated in `uci_ui_packet_decoder.c`.
 - Session and simulation command tables now bind directly to typed handlers in
   `src/uci_cmd_handlers_session.c` and `src/uci_cmd_handlers_simulation.c`;
   the framework wrapper adapter layer has been removed.

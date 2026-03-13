@@ -12,12 +12,6 @@
 #include "../include/uci_packet_utils.h"
 #include "../include/uci_config_manager.h"
 
-typedef struct {
-    unsigned char value;
-    const char* label;
-    const char* description;
-} uci_lookup_entry_t;
-
 #ifndef UCI_DIAG_REPORT_AOAS
 #define UCI_DIAG_REPORT_AOAS 0x01
 #endif
@@ -42,182 +36,6 @@ typedef struct {
 #ifndef UCI_DIAG_REPORT_SEGMENT_CONFIDENCE_RAW_DATA
 #define UCI_DIAG_REPORT_SEGMENT_CONFIDENCE_RAW_DATA 0x09
 #endif
-
-static const uci_lookup_entry_t k_device_state_table[] = {
-    { DEVICE_STATE_READY, "READY", "Device initialized and ready for commands" },
-    { DEVICE_STATE_ACTIVE, "ACTIVE", "Device actively processing UCI requests" },
-    { DEVICE_STATE_ERROR, "ERROR", "Device reported an unrecoverable error" },
-};
-
-static const uci_lookup_entry_t k_session_state_table[] = {
-    { SESSION_STATE_INIT, "INIT", "Session has been initialized" },
-    { SESSION_STATE_DEINIT, "DEINIT", "Session has been de-initialized" },
-    { SESSION_STATE_ACTIVE, "ACTIVE", "Session is actively ranging" },
-    { SESSION_STATE_IDLE, "IDLE", "Session is idle and ready" },
-};
-
-static const uci_lookup_entry_t k_session_reason_table[] = {
-    { STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS, "STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS", "State change triggered by management command" },
-    { MAX_RANGING_ROUND_RETRY_COUNT_REACHED, "MAX_RANGING_ROUND_RETRY_COUNT_REACHED", "Retries exhausted while attempting ranging" },
-    { MAX_NUMBER_OF_MEASUREMENTS_REACHED, "MAX_NUMBER_OF_MEASUREMENTS_REACHED", "Configured measurement target reached" },
-    { SESSION_RESUMED_DUE_TO_INBAND_SIGNAL, "SESSION_RESUMED_DUE_TO_INBAND_SIGNAL", "Session resumed after in-band signal" },
-    { SESSION_SUSPENDED_DUE_TO_INBAND_SIGNAL, "SESSION_SUSPENDED_DUE_TO_INBAND_SIGNAL", "Session suspended due to in-band signal" },
-    { SESSION_STOPPED_DUE_TO_INBAND_SIGNAL, "SESSION_STOPPED_DUE_TO_INBAND_SIGNAL", "Session stopped due to in-band signal" },
-    { 0x1E, "ERROR_MIN_RFRAMES_PER_RR_NOT_SUPPORTED", "Minimum RFRAME per round not supported" },
-    { 0x1F, "ERROR_TX_DELAY_NOT_SUPPORTED", "Requested TX delay not supported" },
-    { 0x20, "ERROR_SLOT_LENGTH_NOT_SUPPORTED", "Slot length not supported" },
-    { 0x21, "ERROR_INSUFFICIENT_SLOTS_PER_RR", "Insufficient slots per ranging round" },
-    { 0x22, "ERROR_MAC_ADDRESS_MODE_NOT_SUPPORTED", "MAC address mode not supported" },
-    { 0x23, "ERROR_INVALID_RANGING_INTERVAL", "Invalid ranging interval" },
-    { 0x24, "ERROR_INVALID_STS_CONFIG", "Invalid STS configuration" },
-    { 0x25, "ERROR_INVALID_RFRAME_CONFIG", "Invalid RFRAME configuration" },
-    { 0x26, "ERROR_HUS_NOT_ENOUGH_SLOTS", "Hybrid use case lacks enough slots" },
-    { 0x27, "ERROR_HUS_CFP_PHASE_TOO_SHORT", "HUS CFP phase too short" },
-    { 0x28, "ERROR_HUS_CAP_PHASE_TOO_SHORT", "HUS CAP phase too short" },
-    { 0x29, "ERROR_HUS_OTHERS", "Hybrid use case reported a generic error" },
-    { 0x2A, "ERROR_SESSION_KEY_NOT_FOUND", "Session key missing" },
-    { 0x2B, "ERROR_SUB_SESSION_KEY_NOT_FOUND", "Sub-session key missing" },
-    { 0x2C, "ERROR_INVALID_PREAMBLE_CODE_INDEX", "Preamble code index invalid" },
-    { 0x2D, "ERROR_INVALID_SFD_ID", "SFD identifier invalid" },
-    { 0x2E, "ERROR_INVALID_PSDU_DATA_RATE", "PSDU data rate invalid" },
-    { 0x2F, "ERROR_INVALID_PHR_DATA_RATE", "PHR data rate invalid" },
-    { 0x30, "ERROR_INVALID_PREAMBLE_DURATION", "Preamble duration invalid" },
-    { 0x31, "ERROR_INVALID_STS_LENGTH", "STS length invalid" },
-    { 0x32, "ERROR_INVALID_NUM_OF_STS_SEGMENTS", "Number of STS segments invalid" },
-    { 0x33, "ERROR_INVALID_NUM_OF_CONTROLEES", "Number of controlees invalid" },
-    { 0x34, "ERROR_MAX_RANGING_REPLY_TIME_EXCEEDED", "Maximum ranging reply time exceeded" },
-    { 0x35, "ERROR_INVALID_DST_ADDRESS_LIST", "Destination address list invalid" },
-    { 0x36, "ERROR_INVALID_OR_NOT_FOUND_SUB_SESSION_ID", "Sub-session identifier invalid or missing" },
-    { 0x37, "ERROR_INVALID_RESULT_REPORT_CONFIG", "Result report configuration invalid" },
-    { 0x38, "ERROR_INVALID_RANGING_ROUND_CONTROL_CONFIG", "Ranging round control configuration invalid" },
-    { 0x39, "ERROR_INVALID_RANGING_ROUND_USAGE", "Ranging round usage invalid" },
-    { 0x3A, "ERROR_INVALID_MULTI_NODE_MODE", "Multi-node mode invalid" },
-    { 0x3B, "ERROR_RDS_FETCH_FAILURE", "RDS fetch failure" },
-    { 0x3C, "ERROR_REF_SESSION_DOES_NOT_EXIST", "Referenced session does not exist" },
-    { 0x3D, "ERROR_REF_SESSION_RANGING_DURATION_MISMATCH", "Referenced session ranging duration mismatch" },
-    { 0x3E, "ERROR_REF_SESSION_INVALID_OFFSET_TIME", "Referenced session offset time invalid" },
-    { 0x3F, "ERROR_REF_SESSION_LOST", "Referenced session lost" },
-    { 0x40, "ERROR_DT_ANCHOR_RANGING_ROUNDS_NOT_CONFIGURED", "DT anchor ranging rounds not configured" },
-    { 0x41, "ERROR_DT_TAG_RANGING_ROUNDS_NOT_CONFIGURED", "DT tag ranging rounds not configured" },
-    { 0x42, "ERROR_UWB_INITIATION_TIME_EXPIRED", "UWB initiation time expired" },
-    { 0x80, "ERROR_INVALID_CHANNEL_WITH_AOA", "Invalid channel for AoA" },
-    { 0x81, "ERROR_STOPPED_DUE_TO_OTHER_SESSION_CONFLICT", "Stopped due to other session conflict" },
-    { 0x82, "ERROR_REGULATION_UWB_OFF", "Regulation turned UWB off" },
-    { 0xA1, "ERROR_SESSION_STOPPED_DUE_TO_URSK_EXPIRED", "Session stopped because URSK expired" },
-    { 0xA2, "ERROR_SESSION_STOPPED_DUE_TO_MAX_STS", "Session stopped due to maximum STS usage" },
-    { 0xF2, "ERROR_MAX_STS_REACHED", "Maximum STS reached" },
-    { 0xF3, "ERROR_RADAR_MEASUREMENT_TIME_REACHED", "Radar measurement duration reached" },
-    { 0xF4, "ERROR_INVALID_DEVICE_ROLE", "Device role invalid" },
-    { 0xF5, "ERROR_NO_MEM", "Out of memory" },
-    { 0xF7, "ERROR_DRIVER_DOWN", "UWB driver is down" },
-    { 0xF8, "ERROR_INVALID_PROXIMITY_RANGE", "Proximity range invalid" },
-    { 0xF9, "ERROR_INVALID_FRAME_INTERVAL", "Frame interval invalid" },
-    { 0xFA, "ERROR_INVALID_CAP_SIZE_RANGE", "CAP size range invalid" },
-    { 0xFB, "ERROR_INVALID_SCHEDULE_MODE", "Schedule mode invalid" },
-    { 0xFC, "ERROR_INVALID_PRF_MODE", "PRF mode invalid" },
-    { 0xFE, "ERROR_START_CONFIG", "Failed during session start configuration" },
-    { 0xFF, "ERROR_RDS_BUSY", "RDS busy" },
-};
-
-static const uci_lookup_entry_t k_data_transfer_status_table[] = {
-    { UCI_DATA_TRANSFER_STATUS_REPETITION_OK, "REPETITION_OK", "Frame already delivered during an earlier repetition" },
-    { UCI_DATA_TRANSFER_STATUS_OK, "OK", "Data transfer completed successfully" },
-    { UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER, "ERROR_DATA_TRANSFER", "Unspecified transmission problem" },
-    { UCI_DATA_TRANSFER_STATUS_ERROR_NO_CREDIT_AVAILABLE, "ERROR_NO_CREDIT_AVAILABLE", "Peer reported no credits available" },
-    { UCI_DATA_TRANSFER_STATUS_ERROR_REJECTED, "ERROR_REJECTED", "Peer rejected the data frame" },
-    { UCI_DATA_TRANSFER_STATUS_SESSION_TYPE_NOT_SUPPORTED, "SESSION_TYPE_NOT_SUPPORTED", "Session configuration does not support data transfer" },
-    { UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER_IS_ONGOING, "ERROR_DATA_TRANSFER_IS_ONGOING", "Another transfer is still in progress" },
-    { UCI_DATA_TRANSFER_STATUS_INVALID_FORMAT, "INVALID_FORMAT", "Frame format violated data transfer rules" },
-};
-
-static const uci_lookup_entry_t k_uci_status_table[] = {
-    { UCI_STATUS_OK, "OK", "Operation completed successfully" },
-    { UCI_STATUS_REJECTED, "REJECTED", "Request rejected by device" },
-    { UCI_STATUS_FAILED, "FAILED", "Generic failure occurred" },
-    { UCI_STATUS_SYNTAX_ERROR, "SYNTAX_ERROR", "Malformed request encountered" },
-    { UCI_STATUS_INVALID_PARAM, "INVALID_PARAM", "One or more parameters invalid" },
-    { UCI_STATUS_INVALID_RANGE, "INVALID_RANGE", "Parameter out of allowed range" },
-    { UCI_STATUS_INVALID_MSG_SIZE, "INVALID_MSG_SIZE", "Message size not supported" },
-    { UCI_STATUS_UNKNOWN_GID, "UNKNOWN_GID", "Unsupported group identifier" },
-    { UCI_STATUS_UNKNOWN_OID, "UNKNOWN_OID", "Unsupported opcode identifier" },
-    { UCI_STATUS_READ_ONLY, "READ_ONLY", "Attempt to set a read-only value" },
-    { UCI_STATUS_COMMAND_RETRY, "COMMAND_RETRY", "Command should be retried" },
-    { 0x0B, "STATUS_RFU_0B", "Reserved FiRa status" },
-    { 0x0C, "STATUS_RFU_0C", "Reserved FiRa status" },
-    { UCI_STATUS_SESSION_NOT_EXIST, "SESSION_NOT_EXIST", "Referenced session does not exist" },
-    { UCI_STATUS_SESSION_DUPLICATE, "SESSION_DUPLICATE", "Session already exists" },
-    { UCI_STATUS_SESSION_ACTIVE, "SESSION_ACTIVE", "Session already active" },
-    { UCI_STATUS_MAX_SESSIONS_EXCEEDED, "MAX_SESSIONS_EXCEEDED", "No more sessions can be created" },
-    { UCI_STATUS_SESSION_NOT_CONFIGURED, "SESSION_NOT_CONFIGURED", "Session lacks configuration" },
-    { UCI_STATUS_ACTIVE_SESSIONS_ONGOING, "ACTIVE_SESSIONS_ONGOING", "Conflicting active session detected" },
-    { UCI_STATUS_MULTICAST_LIST_FULL, "MULTICAST_LIST_FULL", "Multicast list reached capacity" },
-    { UCI_STATUS_ADDRESS_NOT_FOUND, "ADDRESS_NOT_FOUND", "Target address not found" },
-    { UCI_STATUS_ADDRESS_ALREADY_PRESENT, "ADDRESS_ALREADY_PRESENT", "Address already present" },
-    { UCI_STATUS_ERROR_UWB_INITIATION_TIME_TOO_OLD, "UWB_INITIATION_TIME_TOO_OLD", "Initiation time too old" },
-    { UCI_STATUS_OK_NEGATIVE_DISTANCE_REPORT, "OK_NEGATIVE_DISTANCE_REPORT", "Negative distance reported" },
-    { UCI_STATUS_RANGING_TX_FAILED, "RANGING_TX_FAILED", "Transmission failed during ranging" },
-    { UCI_STATUS_RANGING_RX_TIMEOUT, "RANGING_RX_TIMEOUT", "Timed out waiting for ranging frame" },
-    { UCI_STATUS_RANGING_RX_PHY_DEC_FAILED, "RANGING_RX_PHY_DEC_FAILED", "PHY decode failure" },
-    { UCI_STATUS_RANGING_RX_PHY_TOA_FAILED, "RANGING_RX_PHY_TOA_FAILED", "PHY ToA extraction failure" },
-    { UCI_STATUS_RANGING_RX_PHY_STS_FAILED, "RANGING_RX_PHY_STS_FAILED", "PHY STS validation failure" },
-    { UCI_STATUS_RANGING_RX_MAC_DEC_FAILED, "RANGING_RX_MAC_DEC_FAILED", "MAC decode failure" },
-    { UCI_STATUS_RANGING_RX_MAC_IE_DEC_FAILED, "RANGING_RX_MAC_IE_DEC_FAILED", "MAC IE decode failure" },
-    { UCI_STATUS_RANGING_RX_MAC_IE_MISSING, "RANGING_RX_MAC_IE_MISSING", "Expected MAC IE missing" },
-    { UCI_STATUS_ERROR_ROUND_INDEX_NOT_ACTIVATED, "ROUND_INDEX_NOT_ACTIVATED", "Requested round index not active" },
-    { UCI_STATUS_ERROR_NUMBER_OF_ACTIVE_RANGING_ROUNDS_EXCEEDED, "ACTIVE_RANGING_ROUNDS_EXCEEDED", "Too many active ranging rounds" },
-    { UCI_STATUS_ERROR_DL_TDOA_DEVICE_ADDRESS_NOT_MATCHING_IN_REPLY_TIME_LIST, "DEVICE_ADDRESS_MISMATCH_REPLY_TIME_LIST", "Device address mismatch in reply-time list" },
-    { 0x2B, "STATUS_RFU_2B", "Reserved FiRa status" },
-    { 0x2C, "STATUS_RFU_2C", "Reserved FiRa status" },
-    { 0x2D, "STATUS_RFU_2D", "Reserved FiRa status" },
-    { 0x2E, "STATUS_RFU_2E", "Reserved FiRa status" },
-    { 0x2F, "STATUS_RFU_2F", "Reserved FiRa status" },
-    { 0x30, "STATUS_RFU_30", "Reserved FiRa status" },
-    { 0x31, "STATUS_RFU_31", "Reserved FiRa status" },
-    { 0x32, "STATUS_RFU_32", "Reserved FiRa status" },
-    { 0x33, "STATUS_RFU_33", "Reserved FiRa status" },
-    { 0x34, "STATUS_RFU_34", "Reserved FiRa status" },
-    { 0x35, "STATUS_RFU_35", "Reserved FiRa status" },
-    { 0x36, "STATUS_RFU_36", "Reserved FiRa status" },
-    { 0x37, "STATUS_RFU_37", "Reserved FiRa status" },
-    { 0x38, "STATUS_RFU_38", "Reserved FiRa status" },
-    { 0x39, "STATUS_RFU_39", "Reserved FiRa status" },
-    { 0x3A, "STATUS_RFU_3A", "Reserved FiRa status" },
-    { 0x3B, "STATUS_RFU_3B", "Reserved FiRa status" },
-    { 0x3C, "STATUS_RFU_3C", "Reserved FiRa status" },
-    { 0x3D, "STATUS_RFU_3D", "Reserved FiRa status" },
-    { 0x3E, "STATUS_RFU_3E", "Reserved FiRa status" },
-    { 0x3F, "STATUS_RFU_3F", "Reserved FiRa status" },
-    { 0x40, "STATUS_RFU_40", "Reserved FiRa status" },
-    { 0x41, "STATUS_RFU_41", "Reserved FiRa status" },
-    { 0x42, "STATUS_RFU_42", "Reserved FiRa status" },
-    { 0x43, "STATUS_RFU_43", "Reserved FiRa status" },
-    { 0x44, "STATUS_RFU_44", "Reserved FiRa status" },
-    { 0x45, "STATUS_RFU_45", "Reserved FiRa status" },
-    { 0x46, "STATUS_RFU_46", "Reserved FiRa status" },
-    { 0x47, "STATUS_RFU_47", "Reserved FiRa status" },
-    { 0x48, "STATUS_RFU_48", "Reserved FiRa status" },
-    { 0x49, "STATUS_RFU_49", "Reserved FiRa status" },
-    { 0x4A, "STATUS_RFU_4A", "Reserved FiRa status" },
-    { 0x4B, "STATUS_RFU_4B", "Reserved FiRa status" },
-    { 0x4C, "STATUS_RFU_4C", "Reserved FiRa status" },
-    { 0x4D, "STATUS_RFU_4D", "Reserved FiRa status" },
-    { 0x4E, "STATUS_RFU_4E", "Reserved FiRa status" },
-    { 0x4F, "STATUS_RFU_4F", "Reserved FiRa status" },
-    { 0x50, "ERROR_SE_BUSY", "Secure element busy" },
-    { 0x51, "ERROR_CCC_LIFE_CYCLE", "CCC lifecycle error" },
-    { 0xFF, "STATUS_VENDOR_SPECIFIC", "Vendor-specific status code" },
-};
-
-static const uci_lookup_entry_t* find_lookup_entry(const uci_lookup_entry_t* table,
-                                                   size_t count,
-                                                   unsigned char value) {
-    for (size_t i = 0; i < count; i++) {
-        if (table[i].value == value) {
-            return &table[i];
-        }
-    }
-    return NULL;
-}
 
 static void print_lookup_line_with_indent(int indent,
                                           const char* label,
@@ -1348,10 +1166,7 @@ static bool decode_range_measurement_unknown(int measurement_index,
 static void ui_print_status_lookup_line_internal(const char* label,
                                                  unsigned char status_code,
                                                  int indent) {
-    const uci_lookup_entry_t* entry = find_lookup_entry(
-        k_uci_status_table,
-        sizeof(k_uci_status_table) / sizeof(k_uci_status_table[0]),
-        status_code);
+    const uci_lookup_entry_t* entry = uci_lookup_status(status_code);
 
     const char* status_color = ANSI_COLOR_BRIGHT_YELLOW;
     if (entry && entry->label) {
@@ -1378,10 +1193,7 @@ void ui_print_status_lookup_line(const char* label, unsigned char status_code) {
 static void ui_print_session_state_lookup_line_internal(const char* label,
                                                         unsigned char session_state,
                                                         int indent) {
-    const uci_lookup_entry_t* entry = find_lookup_entry(
-        k_session_state_table,
-        sizeof(k_session_state_table) / sizeof(k_session_state_table[0]),
-        session_state);
+    const uci_lookup_entry_t* entry = uci_lookup_session_state(session_state);
 
     const char* state_color = ANSI_COLOR_RED;
     switch (session_state) {
@@ -1412,10 +1224,7 @@ void ui_print_session_state_lookup_line(const char* label, unsigned char session
 static void ui_print_session_reason_lookup_line_internal(const char* label,
                                                          unsigned char reason_code,
                                                          int indent) {
-    const uci_lookup_entry_t* entry = find_lookup_entry(
-        k_session_reason_table,
-        sizeof(k_session_reason_table) / sizeof(k_session_reason_table[0]),
-        reason_code);
+    const uci_lookup_entry_t* entry = uci_lookup_session_reason(reason_code);
 
     const char* reason_color = ANSI_COLOR_BRIGHT_CYAN;
     if (entry && entry->label && strstr(entry->label, "ERROR") != NULL) {
@@ -2320,10 +2129,7 @@ void ui_decode_core_device_status_ntf(unsigned char* payload, int payload_len) {
     }
 
     unsigned char device_state = payload[0];
-    const uci_lookup_entry_t* entry = find_lookup_entry(
-        k_device_state_table,
-        sizeof(k_device_state_table) / sizeof(k_device_state_table[0]),
-        device_state);
+    const uci_lookup_entry_t* entry = uci_lookup_device_state(device_state);
 
     const char* state_color = ANSI_COLOR_YELLOW;
     if (device_state == DEVICE_STATE_READY || device_state == DEVICE_STATE_ACTIVE) {
@@ -2355,10 +2161,7 @@ void ui_decode_core_generic_error_ntf(unsigned char* payload, int payload_len) {
     }
 
     unsigned char status = payload[0];
-    const uci_lookup_entry_t* entry = find_lookup_entry(
-        k_uci_status_table,
-        sizeof(k_uci_status_table) / sizeof(k_uci_status_table[0]),
-        status);
+    const uci_lookup_entry_t* entry = uci_lookup_status(status);
 
     const char* status_color = (status == UCI_STATUS_OK) ? ANSI_COLOR_BRIGHT_GREEN : ANSI_COLOR_RED;
 
@@ -3745,15 +3548,8 @@ void ui_decode_session_status_ntf(unsigned char* payload, int payload_len) {
     unsigned char session_state = payload[4];
     unsigned char reason_code = payload[5];
 
-    const uci_lookup_entry_t* state_entry = find_lookup_entry(
-        k_session_state_table,
-        sizeof(k_session_state_table) / sizeof(k_session_state_table[0]),
-        session_state);
-
-    const uci_lookup_entry_t* reason_entry = find_lookup_entry(
-        k_session_reason_table,
-        sizeof(k_session_reason_table) / sizeof(k_session_reason_table[0]),
-        reason_code);
+    const uci_lookup_entry_t* state_entry = uci_lookup_session_state(session_state);
+    const uci_lookup_entry_t* reason_entry = uci_lookup_session_reason(reason_code);
 
     const char* state_color = ANSI_COLOR_YELLOW;
     switch (session_state) {
@@ -3847,10 +3643,7 @@ void ui_decode_session_data_transfer_status_ntf(unsigned char* payload, int payl
     unsigned char status = payload[6];
     unsigned char tx_count = payload[7];
 
-    const uci_lookup_entry_t* status_entry = find_lookup_entry(
-        k_data_transfer_status_table,
-        sizeof(k_data_transfer_status_table) / sizeof(k_data_transfer_status_table[0]),
-        status);
+    const uci_lookup_entry_t* status_entry = uci_lookup_data_transfer_status(status);
 
     const char* status_color = (status == UCI_DATA_TRANSFER_STATUS_REPETITION_OK ||
                                 status == UCI_DATA_TRANSFER_STATUS_OK)

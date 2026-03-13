@@ -185,6 +185,12 @@ static inline int uci_tlv_reader_next(struct uci_tlv_reader *reader,
     return 1;
 }
 
+typedef struct {
+    unsigned char value;
+    const char* label;
+    const char* description;
+} uci_lookup_entry_t;
+
 /**
  * Create a complete UCI packet with header and payload
  * Returns dynamically allocated packet - caller must free()
@@ -213,6 +219,11 @@ const char* uci_status_description(unsigned char status);
 const char* uci_session_state_to_string(unsigned char session_state);
 const char* uci_session_reason_to_string(unsigned char reason_code);
 const char* uci_session_type_to_string(unsigned char session_type);
+const uci_lookup_entry_t* uci_lookup_device_state(unsigned char device_state);
+const uci_lookup_entry_t* uci_lookup_status(unsigned char status);
+const uci_lookup_entry_t* uci_lookup_session_state(unsigned char session_state);
+const uci_lookup_entry_t* uci_lookup_session_reason(unsigned char reason_code);
+const uci_lookup_entry_t* uci_lookup_data_transfer_status(unsigned char status);
 
 /**
  * Create a UCI header with proper field packing

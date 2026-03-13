@@ -10,8 +10,9 @@
 #include "../include/uci_functions.h"
 #include "../include/uci_packet_utils.h"
 #include "../include/uci_pdl.h"
+#include "../include/uci_cmd_simulation_typed.h"
 #include "../include/uci_ui.h"
-#include "../include/uci_cmd_handlers_simulation.h"
+#include "../include/uci_command_framework.h"
 
 static void print_simulation_usage(void) {
     printf("Simulation helpers:\n");
@@ -76,31 +77,27 @@ static int parse_sim_session_reason(const char* reason_str, unsigned char* reaso
     return 0;
 }
 
-static int parse_sim_session_id(const char* session_id_str, uint32_t* session_id_out) {
-    if (!session_id_str || !session_id_out) {
+int handle_simulate_notification_command_typed(const char* cmd_name,
+                                               int argc,
+                                               char** argv,
+                                               const uci_param_def_t* params,
+                                               int param_count) {
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+
+    const uci_cmd_parsed_param_t* type_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* value_param = uci_cmd_get_parsed_param(1);
+    if (!type_param || !type_param->present || !type_param->raw_value ||
+        !value_param || !value_param->present || !value_param->raw_value) {
         print_simulation_usage();
         return -1;
     }
 
-    char* endptr = NULL;
-    unsigned long parsed = strtoul(session_id_str, &endptr, 0);
-    if (endptr == session_id_str || (endptr && *endptr != '\0') || parsed > 0xFFFFFFFFUL) {
-        printf("Invalid session_id '%s'. Must be 0-0xFFFFFFFF.\n", session_id_str);
-        return -1;
-    }
-
-    *session_id_out = (uint32_t)parsed;
-    return 0;
-}
-
-int cmd_simulate_notification(int argc, char** argv) {
-    if (argc < 3) {
-        print_simulation_usage();
-        return -1;
-    }
-
-    const char* type_str = argv[1];
-    const char* value_str = argv[2];
+    const char* type_str = type_param->raw_value;
+    const char* value_str = value_param->raw_value;
 
     if (strcmp(type_str, "device_status") == 0) {
         unsigned char device_state = 0;
@@ -124,24 +121,35 @@ int cmd_simulate_notification(int argc, char** argv) {
     return -1;
 }
 
-int cmd_simulate_session_status(int argc, char** argv) {
-    if (argc < 4) {
+int handle_simulate_session_status_command_typed(const char* cmd_name,
+                                                 int argc,
+                                                 char** argv,
+                                                 const uci_param_def_t* params,
+                                                 int param_count) {
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* state_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* reason_param = uci_cmd_get_parsed_param(2);
+    if (!session_param || !session_param->present ||
+        !state_param || !state_param->present || !state_param->raw_value ||
+        !reason_param || !reason_param->present || !reason_param->raw_value) {
         print_simulation_usage();
         return -1;
     }
 
-    uint32_t session_id = 0;
-    if (parse_sim_session_id(argv[1], &session_id) != 0) {
-        return -1;
-    }
-
+    uint32_t session_id = session_param->value.session_id;
     unsigned char session_state = 0;
-    if (parse_sim_session_state(argv[2], &session_state) != 0) {
+    if (parse_sim_session_state(state_param->raw_value, &session_state) != 0) {
         return -1;
     }
 
     unsigned char reason_code = 0;
-    if (parse_sim_session_reason(argv[3], &reason_code) != 0) {
+    if (parse_sim_session_reason(reason_param->raw_value, &reason_code) != 0) {
         return -1;
     }
 
@@ -161,9 +169,16 @@ int cmd_simulate_session_status(int argc, char** argv) {
     return 0;
 }
 
-int cmd_simulate_data_credit(int argc, char** argv) {
+int handle_simulate_data_credit_command_typed(const char* cmd_name,
+                                              int argc,
+                                              char** argv,
+                                              const uci_param_def_t* params,
+                                              int param_count) {
+    (void)cmd_name;
     (void)argc;
     (void)argv;
+    (void)params;
+    (void)param_count;
 
     unsigned char notification_payload[5] = {0x01, 0x02, 0x03, 0x04, 0x01};
 
@@ -177,9 +192,16 @@ int cmd_simulate_data_credit(int argc, char** argv) {
     return 0;
 }
 
-int cmd_demo_session_flow(int argc, char** argv) {
+int handle_demo_session_flow_command_typed(const char* cmd_name,
+                                           int argc,
+                                           char** argv,
+                                           const uci_param_def_t* params,
+                                           int param_count) {
+    (void)cmd_name;
     (void)argc;
     (void)argv;
+    (void)params;
+    (void)param_count;
 
     printf("=== UCI Session Flow Demonstration ===\n");
 
@@ -225,9 +247,16 @@ int cmd_demo_session_flow(int argc, char** argv) {
     return 0;
 }
 
-int cmd_simulate_ranging(int argc, char** argv) {
+int handle_simulate_ranging_command_typed(const char* cmd_name,
+                                          int argc,
+                                          char** argv,
+                                          const uci_param_def_t* params,
+                                          int param_count) {
+    (void)cmd_name;
     (void)argc;
     (void)argv;
+    (void)params;
+    (void)param_count;
 
     if (ui_color_enabled) {
         printf("%s%s=== Simulating UWB Ranging Notification ===%s\n",
@@ -279,9 +308,16 @@ int cmd_simulate_ranging(int argc, char** argv) {
     return 0;
 }
 
-int cmd_simulate_multi_target_ranging(int argc, char** argv) {
+int handle_simulate_multi_target_ranging_command_typed(const char* cmd_name,
+                                                       int argc,
+                                                       char** argv,
+                                                       const uci_param_def_t* params,
+                                                       int param_count) {
+    (void)cmd_name;
     (void)argc;
     (void)argv;
+    (void)params;
+    (void)param_count;
 
     unsigned char multi_ranging_ntf_payload[] = {
         0x0A, 0x00, 0x00, 0x00,
@@ -338,8 +374,19 @@ int cmd_simulate_multi_target_ranging(int argc, char** argv) {
     return 0;
 }
 
-int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv) {
-    if (argc < 2) {
+int handle_simulate_qm_sdk_vendor_command_typed(const char* cmd_name,
+                                                int argc,
+                                                char** argv,
+                                                const uci_param_def_t* params,
+                                                int param_count) {
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+
+    const uci_cmd_parsed_param_t* opcode_param = uci_cmd_get_parsed_param(0);
+    if (!opcode_param || !opcode_param->present) {
         if (ui_color_enabled) {
             printf("%s%sUsage:%s simulate_qm_sdk_vendor_command <opcode> [params...]\n", 
                    ANSI_COLOR_BRIGHT_RED, ANSI_BOLD, ANSI_RESET);
@@ -393,11 +440,7 @@ int cmd_simulate_qm_sdk_vendor_command(int argc, char** argv) {
         return 1;
     }
 
-    unsigned char opcode = 0;
-    if (uci_parse_u8_token(argv[1], 0, &opcode) != 0) {
-        fprintf(stderr, "Invalid opcode '%s'. Expected a byte value (0-255).\n", argv[1]);
-        return -1;
-    }
+    unsigned char opcode = opcode_param->value.u8;
     size_t packet_len;
     unsigned char* vendor_payload = NULL;
     size_t vendor_payload_len = 0;

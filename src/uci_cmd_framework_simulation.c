@@ -1,14 +1,5 @@
 #include "../include/uci_cmd_framework_simulation.h"
-#include "../include/uci_cmd_framework_wrappers.h"
-#include "../include/uci_cmd_handlers_simulation.h"
-
-DEFINE_CMD_WRAPPER(cmd_simulate_notification)
-DEFINE_CMD_WRAPPER(cmd_simulate_session_status)
-DEFINE_CMD_WRAPPER(cmd_simulate_data_credit)
-DEFINE_CMD_WRAPPER(cmd_simulate_ranging)
-DEFINE_CMD_WRAPPER(cmd_simulate_multi_target_ranging)
-DEFINE_CMD_WRAPPER(cmd_demo_session_flow)
-DEFINE_CMD_WRAPPER(cmd_simulate_qm_sdk_vendor_command)
+#include "../include/uci_cmd_simulation_typed.h"
 
 static const uci_param_def_t k_simulate_notification_params[] = {
     {
@@ -91,7 +82,7 @@ const uci_command_def_t g_uci_simulation_command_defs[] = {
         .description = "Simulate device notification",
         .params = k_simulate_notification_params,
         .param_count = ARRAY_SIZE(k_simulate_notification_params),
-        .handler = cmd_simulate_notification_framework_adapter,
+        .handler = handle_simulate_notification_command_typed,
     },
     {
         .name = "simulate_session_status",
@@ -101,7 +92,7 @@ const uci_command_def_t g_uci_simulation_command_defs[] = {
         .description = "Simulate session status notification",
         .params = k_simulate_session_status_params,
         .param_count = ARRAY_SIZE(k_simulate_session_status_params),
-        .handler = cmd_simulate_session_status_framework_adapter,
+        .handler = handle_simulate_session_status_command_typed,
     },
     {
         .name = "simulate_data_credit",
@@ -111,7 +102,7 @@ const uci_command_def_t g_uci_simulation_command_defs[] = {
         .description = "Simulate session data credit notification",
         .params = NULL,
         .param_count = 0,
-        .handler = cmd_simulate_data_credit_framework_adapter,
+        .handler = handle_simulate_data_credit_command_typed,
     },
     {
         .name = "simulate_ranging",
@@ -121,7 +112,7 @@ const uci_command_def_t g_uci_simulation_command_defs[] = {
         .description = "Simulate single-target ranging notification",
         .params = NULL,
         .param_count = 0,
-        .handler = cmd_simulate_ranging_framework_adapter,
+        .handler = handle_simulate_ranging_command_typed,
     },
     {
         .name = "simulate_multi_target_ranging",
@@ -131,7 +122,7 @@ const uci_command_def_t g_uci_simulation_command_defs[] = {
         .description = "Simulate multi-target ranging notification",
         .params = NULL,
         .param_count = 0,
-        .handler = cmd_simulate_multi_target_ranging_framework_adapter,
+        .handler = handle_simulate_multi_target_ranging_command_typed,
     },
     {
         .name = "demo_session_flow",
@@ -141,7 +132,7 @@ const uci_command_def_t g_uci_simulation_command_defs[] = {
         .description = "Demonstrate session flow",
         .params = NULL,
         .param_count = 0,
-        .handler = cmd_demo_session_flow_framework_adapter,
+        .handler = handle_demo_session_flow_command_typed,
     },
     {
         .name = "simulate_qm_sdk_vendor_command",
@@ -151,8 +142,9 @@ const uci_command_def_t g_uci_simulation_command_defs[] = {
         .description = "Simulate QM SDK vendor-specific command (GID 0x0B)",
         .params = k_vendor_command_params,
         .param_count = ARRAY_SIZE(k_vendor_command_params),
-        .handler = cmd_simulate_qm_sdk_vendor_command_framework_adapter,
+        .handler = handle_simulate_qm_sdk_vendor_command_typed,
     },
 };
 
-const int g_uci_simulation_command_defs_count = (int)ARRAY_SIZE(g_uci_simulation_command_defs);
+const int g_uci_simulation_command_defs_count =
+    (int)(sizeof(g_uci_simulation_command_defs) / sizeof(g_uci_simulation_command_defs[0]));

@@ -60,6 +60,9 @@ parameter validation rules before handing control to the command handlers in
   `include/uci_cmd_simulation.h`) have been removed; the maintained simulation
   command surface is `src/uci_cmd_handlers_simulation.c` plus
   `src/uci_cmd_framework_simulation.c`.
+- The framework wrapper adapter layer has been removed. Session and simulation
+  command definitions now call typed handlers directly instead of routing
+  through compatibility macros that rebuilt old `argc/argv` semantics.
 - `send_uci_command()` now constructs one canonical control packet and feeds
   that packet into simulation or hardware transport, instead of rebuilding
   command headers separately in each path.
@@ -91,3 +94,6 @@ parameter validation rules before handing control to the command handlers in
   hex blob, logical-link identifiers are parsed as bytes (0-255), and
   application configuration setters reuse the typed session ID that was already
   checked at dispatch time.
+- Simulation helpers now follow the same typed-dispatch model, so
+  `simulate_notification`, `simulate_session_status`, and the vendor simulation
+  helpers no longer carry a separate raw-argv adapter path.

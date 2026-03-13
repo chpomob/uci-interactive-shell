@@ -39,6 +39,9 @@ execution path, and changes are currently limited to:
 - Dead simulation shim files (`src/uci_cmd_simulation.c` and the unused
   `include/uci_cmd_simulation.h`) have been deleted so the simulation command
   path now has one obvious implementation route.
+- The framework wrapper adapter layer has been removed. Session and simulation
+  command tables now dispatch straight to typed handlers, so validated
+  framework parameters are the only command-entry model left in active code.
 - Control-command transport now builds a canonical packet once in
   `send_uci_command()` and hands that packet to either simulation or hardware,
   reducing header/payload drift across transport paths.
@@ -56,9 +59,7 @@ execution path, and changes are currently limited to:
 
 ## Next Consolidation Targets
 
-1. Continue collapsing transitional seams by removing redundant wrapper layers
-   once the typed handlers fully replace the old bridge semantics.
-2. Collapse remaining literal protocol values in decoders and response builders
+1. Collapse remaining literal protocol values in decoders and response builders
    into shared named constants.
-3. Expand hardware-integration assertions around vendor notifications and
+2. Expand hardware-integration assertions around vendor notifications and
    session lifecycle once the target device profile is locked.

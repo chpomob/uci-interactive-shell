@@ -5,7 +5,6 @@
 #include "../include/uci_cmd_framework_device.h"
 #include "../include/uci_cmd_framework_simulation.h"
 #include "../include/uci_cmd_framework_session.h"
-#include "../include/uci_cmd_framework_wrappers.h"
 #include "../include/uci_cmd_analysis.h"
 #include "../include/uci_cli.h"
 #include "../include/uci_ui.h"
@@ -68,7 +67,7 @@ const uci_command_def_t g_uci_command_defs[] = {
 
 };
 
-const int g_uci_command_defs_count = (int)ARRAY_SIZE(g_uci_command_defs);
+const int g_uci_command_defs_count = (int)(sizeof(g_uci_command_defs) / sizeof(g_uci_command_defs[0]));
 
 static const uci_command_def_t* uci_cmd_framework_find_in_defs(const uci_command_def_t* defs,
                                                                int count,

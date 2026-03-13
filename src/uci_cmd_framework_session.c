@@ -1,25 +1,6 @@
 #include "../include/uci_cmd_framework_session.h"
-#include "../include/uci_cmd_framework_wrappers.h"
-#include "../include/uci_cmd_handlers.h"
 #include "../include/uci_cmd_core_typed.h"
-
-DEFINE_CMD_WRAPPER(cmd_session_init)
-DEFINE_CMD_WRAPPER(cmd_session_deinit)
-DEFINE_CMD_WRAPPER(cmd_session_start)
-DEFINE_CMD_WRAPPER(cmd_session_stop)
-DEFINE_CMD_WRAPPER(cmd_session_send_data)
-DEFINE_CMD_WRAPPER(cmd_session_logical_link_create)
-DEFINE_CMD_WRAPPER(cmd_session_logical_link_close)
-DEFINE_CMD_WRAPPER(cmd_session_logical_link_get_param)
-DEFINE_CMD_WRAPPER(cmd_get_session_state)
-DEFINE_CMD_WRAPPER(cmd_set_app_config)
-DEFINE_CMD_WRAPPER(cmd_get_app_config)
-DEFINE_CMD_WRAPPER(cmd_session_update_multicast_list)
-DEFINE_CMD_WRAPPER(cmd_session_update_dt_tag_rounds)
-DEFINE_CMD_WRAPPER(cmd_session_data_transfer_phase_config)
-DEFINE_CMD_WRAPPER(cmd_session_set_hybrid_controller_config)
-DEFINE_CMD_WRAPPER(cmd_session_set_hybrid_controlee_config)
-DEFINE_CMD_WRAPPER(cmd_session_query_data_size_in_ranging)
+#include "../include/uci_cmd_session_typed.h"
 
 static const uci_param_def_t k_session_init_params[] = {
     {
@@ -388,7 +369,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Initialize a ranging session",
         .params = k_session_init_params,
         .param_count = ARRAY_SIZE(k_session_init_params),
-        .handler = cmd_session_init_framework_adapter,
+        .handler = handle_session_init_command_typed,
     },
     {
         .name = "session_deinit",
@@ -398,7 +379,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Deinitialize a session",
         .params = k_session_id_only_params,
         .param_count = ARRAY_SIZE(k_session_id_only_params),
-        .handler = cmd_session_deinit_framework_adapter,
+        .handler = handle_session_deinit_command_typed,
     },
     {
         .name = "session_start",
@@ -408,7 +389,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Start a ranging session",
         .params = k_session_id_only_params,
         .param_count = ARRAY_SIZE(k_session_id_only_params),
-        .handler = cmd_session_start_framework_adapter,
+        .handler = handle_session_start_command_typed,
     },
     {
         .name = "session_stop",
@@ -418,7 +399,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Stop a ranging session",
         .params = k_session_id_only_params,
         .param_count = ARRAY_SIZE(k_session_id_only_params),
-        .handler = cmd_session_stop_framework_adapter,
+        .handler = handle_session_stop_command_typed,
     },
     {
         .name = "session_send_data",
@@ -428,7 +409,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Send DATA_MESSAGE_SND payload",
         .params = k_session_send_data_params,
         .param_count = ARRAY_SIZE(k_session_send_data_params),
-        .handler = cmd_session_send_data_framework_adapter,
+        .handler = handle_session_send_data_command_typed,
     },
     {
         .name = "session_logical_link_create",
@@ -438,7 +419,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Create a logical link",
         .params = k_session_link_create_params,
         .param_count = ARRAY_SIZE(k_session_link_create_params),
-        .handler = cmd_session_logical_link_create_framework_adapter,
+        .handler = handle_session_logical_link_create_command_typed,
     },
     {
         .name = "session_logical_link_close",
@@ -448,7 +429,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Close a logical link",
         .params = k_session_link_id_params,
         .param_count = ARRAY_SIZE(k_session_link_id_params),
-        .handler = cmd_session_logical_link_close_framework_adapter,
+        .handler = handle_session_logical_link_close_command_typed,
     },
     {
         .name = "session_logical_link_get_param",
@@ -458,7 +439,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Query logical link parameters",
         .params = k_session_link_id_params,
         .param_count = ARRAY_SIZE(k_session_link_id_params),
-        .handler = cmd_session_logical_link_get_param_framework_adapter,
+        .handler = handle_session_logical_link_get_param_command_typed,
     },
     {
         .name = "get_session_state",
@@ -468,7 +449,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Report session state",
         .params = k_session_id_only_params,
         .param_count = ARRAY_SIZE(k_session_id_only_params),
-        .handler = cmd_get_session_state_framework_adapter,
+        .handler = handle_get_session_state_command_typed,
     },
 
     // Session configuration commands
@@ -480,7 +461,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Configure session application parameters",
         .params = k_set_app_config_params,
         .param_count = ARRAY_SIZE(k_set_app_config_params),
-        .handler = cmd_set_app_config_framework_adapter,
+        .handler = handle_set_app_config_command_typed,
     },
     {
         .name = "get_app_config",
@@ -490,7 +471,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Read session application parameters",
         .params = k_get_app_config_params,
         .param_count = ARRAY_SIZE(k_get_app_config_params),
-        .handler = cmd_get_app_config_framework_adapter,
+        .handler = handle_get_app_config_command_typed,
     },
     {
         .name = "show_app_configs",
@@ -510,7 +491,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Maintain multicast list entries",
         .params = k_multicast_list_params,
         .param_count = ARRAY_SIZE(k_multicast_list_params),
-        .handler = cmd_session_update_multicast_list_framework_adapter,
+        .handler = handle_session_update_multicast_list_command_typed,
     },
     {
         .name = "session_update_dt_tag_rounds",
@@ -520,7 +501,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Configure DT-Tag active rounds",
         .params = k_dt_tag_rounds_params,
         .param_count = ARRAY_SIZE(k_dt_tag_rounds_params),
-        .handler = cmd_session_update_dt_tag_rounds_framework_adapter,
+        .handler = handle_session_update_dt_tag_rounds_command_typed,
     },
     {
         .name = "session_data_transfer_phase_config",
@@ -530,7 +511,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Configure data transfer phase",
         .params = k_session_data_phase_params,
         .param_count = ARRAY_SIZE(k_session_data_phase_params),
-        .handler = cmd_session_data_transfer_phase_config_framework_adapter,
+        .handler = handle_session_data_transfer_phase_config_command_typed,
     },
     {
         .name = "session_set_hybrid_controller_config",
@@ -540,7 +521,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Set hybrid controller configuration",
         .params = k_set_hybrid_config_params,
         .param_count = ARRAY_SIZE(k_set_hybrid_config_params),
-        .handler = cmd_session_set_hybrid_controller_config_framework_adapter,
+        .handler = handle_session_set_hybrid_controller_config_command_typed,
     },
     {
         .name = "session_set_hybrid_controlee_config",
@@ -550,7 +531,7 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Set hybrid controlee configuration",
         .params = k_set_hybrid_config_params,
         .param_count = ARRAY_SIZE(k_set_hybrid_config_params),
-        .handler = cmd_session_set_hybrid_controlee_config_framework_adapter,
+        .handler = handle_session_set_hybrid_controlee_config_command_typed,
     },
     {
         .name = "session_query_data_size_in_ranging",
@@ -560,8 +541,9 @@ const uci_command_def_t g_uci_session_command_defs[] = {
         .description = "Query data size in ranging",
         .params = k_session_id_only_params,
         .param_count = ARRAY_SIZE(k_session_id_only_params),
-        .handler = cmd_session_query_data_size_in_ranging_framework_adapter,
+        .handler = handle_session_query_data_size_in_ranging_command_typed,
     },
 };
 
-const int g_uci_session_command_defs_count = (int)ARRAY_SIZE(g_uci_session_command_defs);
+const int g_uci_session_command_defs_count =
+    (int)(sizeof(g_uci_session_command_defs) / sizeof(g_uci_session_command_defs[0]));

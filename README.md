@@ -126,6 +126,9 @@ command tables.
 - Shared enum decoding helpers in `include/uci_packet_utils.h` own the plain
   CLI/analyzer mapping for status, device-state, session-state, and
   session-reason values.
+- Session and simulation command tables now bind directly to typed handlers in
+  `src/uci_cmd_handlers_session.c` and `src/uci_cmd_handlers_simulation.c`;
+  the framework wrapper adapter layer has been removed.
 - Shared plain-text decode output now lives in `include/uci_decode_utils.h`,
   so `uci.c` and `uci_packet_analyzer.c` do not maintain separate status/state
   printing logic.
@@ -147,7 +150,8 @@ command tables.
 2. Route typed command handlers through validated parsed parameters instead of
    reparsing `argv`.
 3. Expand regression coverage for constant mappings, command definitions, and
-   hardware/simulation parity.
+   hardware/simulation parity now that all framework command families use one
+   typed handler model.
 
 ### Complete Feature Set
 - **Protocol Compliance**: Fully aligned with Android UWB specification

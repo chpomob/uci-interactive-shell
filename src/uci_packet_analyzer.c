@@ -162,7 +162,7 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
     unsigned char mt = header_fields.message_type;
     unsigned char opcode = header_fields.opcode_id;
     unsigned char opcode_reserved_bits = header_fields.reserved_opcode_bits;
-    unsigned char payload_len_field = header_fields.payload_length;
+    uint16_t payload_len_field = header_fields.payload_length;
     unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
     int payload_len_int = (int)payload_len_field;
 
@@ -323,11 +323,11 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
         printf("  %s%sReserved Opcode Bits:%s 0x%01X\n", 
                ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, ANSI_RESET, opcode_reserved_bits);
         printf("  %s%sPayload Length:%s %u bytes\n", 
-               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, payload_len_field);
+               ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET, (unsigned int)payload_len_field);
     } else {
         printf("  Opcode: 0x%02X\n", opcode);
         printf("  Reserved Opcode Bits: 0x%01X\n", opcode_reserved_bits);
-        printf("  Payload Length: %u bytes\n", payload_len_field);
+        printf("  Payload Length: %u bytes\n", (unsigned int)payload_len_field);
     }
 
     // Analyze payload if present
@@ -336,12 +336,12 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
         if (payload_len_field > available_payload) {
             if (ui_color_enabled) {
                 printf("  %s%sWarning: Header payload length %u exceeds available data %zu. Clamping.%s\n", 
-                       ANSI_COLOR_YELLOW, ANSI_BOLD, payload_len_field, available_payload, ANSI_RESET);
+                       ANSI_COLOR_YELLOW, ANSI_BOLD, (unsigned int)payload_len_field, available_payload, ANSI_RESET);
             } else {
                 printf("  Warning: Header payload length %u exceeds available data %zu. Clamping.\n", 
-                       payload_len_field, available_payload);
+                       (unsigned int)payload_len_field, available_payload);
             }
-            payload_len_field = (unsigned char)available_payload;
+            payload_len_field = (uint16_t)available_payload;
         }
 
         payload_len_int = (int)payload_len_field;

@@ -12,8 +12,8 @@
 struct uci_packet_header {
     unsigned char first_byte;   // GID | (PBF << 4) | (MT << 5)
     unsigned char second_byte;  // Opcode in bits[5:0], reserved bits[7:6]
-    unsigned char reserved2;    // Reserved
-    unsigned char payload_len;  // Payload length
+    unsigned char third_byte;   // Reserved or payload length low byte
+    unsigned char fourth_byte;  // Payload length or payload length high byte
 };
 
 // Error codes for UCI security functions
@@ -293,7 +293,7 @@ static inline uci_security_error_t uci_sec_validate_packet_header(const unsigned
     // Extract header information
     uint8_t mt = (packet[0] >> 5) & 0x7;
     uint8_t gid = packet[0] & 0xF;
-    uint8_t payload_len = packet[3];
+    uint16_t payload_len = (mt == 0x0) ? (uint16_t)(((uint16_t)packet[3] << 8) | packet[2]) : packet[3];
     
     // Validate header fields
     if (mt > 3 || gid > 15) {

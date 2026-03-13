@@ -137,6 +137,11 @@ The SDK enables:
   separately branded session-info decoder surface. Tests now also pin Cherry's
   `INFO_NTF_HEADER_SIZE == 25`, the session-handle interpretation of the second
   32-bit field, and the fixed `n_measurements` byte at offset 24.
+- The repository now also matches Cherry's packet-header payload-length rules
+  for supported message types: control packets keep an 8-bit payload length in
+  header byte 3, while `DATA` packets use bytes 2-3 as a 16-bit little-endian
+  length. Local tests pin both encodings and a `DATA_MESSAGE_SND` payload path
+  above 255 bytes.
 - The Qorvo SDK is not internally uniform for `GID 0x0E`: Cherry C headers use
   `QORVO_MAC`, while the Python Qorvo tools expose `ConfigManager`. This
   repository currently follows the Cherry C-header basis and documents that

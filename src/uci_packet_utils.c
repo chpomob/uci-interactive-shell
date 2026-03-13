@@ -265,6 +265,14 @@ unsigned char* create_uci_packet(
     size_t payload_len,
     size_t* packet_len) {
     
+    if (!packet_len) {
+        return NULL;
+    }
+
+    if (!uci_mt_uses_u16_payload_length(mt) && payload_len > UCI_MAX_CONTROL_PAYLOAD_SIZE) {
+        return NULL;
+    }
+
     *packet_len = sizeof(struct uci_packet_header) + payload_len;
     unsigned char* packet = malloc(*packet_len);
     if (!packet) {
@@ -272,7 +280,7 @@ unsigned char* create_uci_packet(
     }
     
     struct uci_packet_header* header = (struct uci_packet_header*)packet;
-    create_uci_header(header, mt, pbf, gid, oid, (unsigned char)payload_len);
+    create_uci_header(header, mt, pbf, gid, oid, (uint16_t)payload_len);
     
     if (payload && payload_len > 0) {
         memcpy(packet + sizeof(struct uci_packet_header), payload, payload_len);
@@ -287,12 +295,12 @@ void create_uci_header(
     unsigned char pbf,
     unsigned char gid,
     unsigned char oid,
-    unsigned char payload_len) {
+    uint16_t payload_len) {
     if (!header) {
         return;
     }
 
-    set_header_values_safe(header, mt, pbf, gid, oid, payload_len);
+    (void)set_header_values_safe(header, mt, pbf, gid, oid, payload_len);
 }
 
 unsigned char* create_session_init_packet(

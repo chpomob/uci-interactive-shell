@@ -162,6 +162,11 @@ command tables.
   keeping the wire opcode and constant names unchanged. The checked-in Cherry
   alignment tests also pin the 25-byte fixed header, the session-handle meaning
   of the second 32-bit field, and `measurement_count` at byte 24.
+- The shared packet-header helpers now follow Cherry's payload-length split:
+  `COMMAND`/`RESPONSE`/`NOTIFICATION` keep the 8-bit length in byte 3, while
+  `DATA` packets use bytes 2-3 as a 16-bit little-endian payload length. The
+  unit tests now pin both header encodings and a `DATA_MESSAGE_SND` payload
+  path above 255 bytes.
 - `tests/test_uci_functions.c` now includes analyzer-dispatch regressions for
   live packet routing, so duplicate or unreachable `MT/GID/OID` decode branches
   are caught even when individual decoder helpers still pass in isolation.

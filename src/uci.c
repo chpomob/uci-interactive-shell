@@ -172,7 +172,10 @@ static void log_outbound_fragment(const char *target_label,
 
     unsigned char packet[sizeof(struct uci_packet_header) + UCI_MAX_DATA_PACKET_PAYLOAD_SIZE];
     struct uci_packet_header *header = (struct uci_packet_header *)packet;
-    set_header_values_safe(header, mt, pbf, gid, oid, (unsigned char)payload_len);
+    if (set_header_values_safe(header, mt, pbf, gid, oid, (uci_uint16)payload_len) != UCI_SUCCESS) {
+        printf("  Error: Failed to encode UCI header for outbound fragment.\n");
+        return;
+    }
 
     if (payload_len > 0 && payload) {
         memcpy(packet + sizeof(struct uci_packet_header), payload, payload_len);
@@ -250,7 +253,9 @@ void enqueue_notification(unsigned char gid, unsigned char oid, const unsigned c
 
     notification_item_t* item = &g_notification_queue[g_notification_tail];
     struct uci_packet_header* header = (struct uci_packet_header*)item->data;
-    set_header_values_safe(header, NOTIFICATION, COMPLETE, gid, oid, (unsigned char)payload_len);
+    if (set_header_values_safe(header, NOTIFICATION, COMPLETE, gid, oid, (uci_uint16)payload_len) != UCI_SUCCESS) {
+        return;
+    }
     if (payload_len > 0 && payload) {
         memcpy(item->data + sizeof(struct uci_packet_header), payload, payload_len);
     }
@@ -489,7 +494,7 @@ static void send_sim_status(uint8_t gid, uint8_t oid, uint8_t status) {
     unsigned char response_packet[sizeof(struct uci_packet_header) + 1];
     struct uci_packet_header *response_header = (struct uci_packet_header *)response_packet;
 
-    set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid, 1);
+    (void)set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid, 1);
     response_packet[sizeof(struct uci_packet_header)] = status;
 
     if (sim_queue_enqueue(response_packet, sizeof(struct uci_packet_header) + 1) == 0) {
@@ -628,7 +633,7 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
     }
 
     uci_error_t result = set_header_values_safe(response_header, RESPONSE, COMPLETE, gid, oid,
-                                                (unsigned char)generated_len);
+                                                (uci_uint16)generated_len);
     if (result != UCI_SUCCESS) {
         UCI_LOG_ERROR("Failed to set response header values (error=%d)", result);
         uci_log_error(__func__, "Response header validation failed", result);
@@ -636,7 +641,7 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
         return;
     }
 
-    size_t total_len = sizeof(struct uci_packet_header) + response_header->payload_len;
+    size_t total_len = sizeof(struct uci_packet_header) + (size_t)generated_len;
     if (sim_queue_enqueue(response_packet, total_len) == 0) {
         simulator_flush_queue();
     } else {
@@ -719,7 +724,7 @@ void uci_send_data_message(uint32_t identifier,
                            size_t app_data_len)
 {
     // Validate input parameters
-    if (app_data_len > UCI_MAX_DATA_PACKET_PAYLOAD_SIZE - UCI_DATA_MESSAGE_SND_HEADER) {
+    if (app_data_len > UCI_MAX_APPLICATION_DATA_PAYLOAD_SIZE) {
         UCI_LOG_ERROR("Application data length too large", UCI_ERROR_INVALID_PARAM);
         return;
     }
@@ -2829,9 +2834,10 @@ void parse_uci_packet(uci_uint8* packet, size_t packet_len) {
     }
 
     // Validate packet length against maximum allowed size to prevent potential attacks
-    size_t max_packet_size = UCI_MAX_DATA_PACKET_PAYLOAD_SIZE + sizeof(struct uci_packet_header);
-    if (packet_len > max_packet_size) {
-        printf("Error: UCI packet too large (got %zu, max %zu).\n", packet_len, max_packet_size);
+    size_t header_only_max = sizeof(struct uci_packet_header) +
+                             uci_get_message_max_payload_length(get_mt((struct uci_packet_header*)packet));
+    if (packet_len > header_only_max) {
+        printf("Error: UCI packet too large (got %zu, max %zu).\n", packet_len, header_only_max);
         UCI_LOG_ERROR("parse_uci_packet: Packet too large", UCI_ERROR_INVALID_PARAM);
         return;
     }

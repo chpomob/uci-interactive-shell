@@ -7,22 +7,27 @@
 #include "uci_logging.h"  // Include logging system
 #include <stddef.h>
 
-// UCI Packet Header - aligned with Android UWB specification
-// For control packets (COMMAND, RESPONSE, NOTIFICATION):
-// Byte 0: [GID:4][PBF:1][MT:3] where GID occupies the least significant bits
-// Byte 1: [Opcode:6][R:2] where Opcode occupies the least significant bits
+// UCI Packet Header - Cherry-compatible common packet header encoding.
+// For COMMAND/RESPONSE/NOTIFICATION:
+// Byte 0: [GID:4][PBF:1][MT:3]
+// Byte 1: [Opcode:6][R:2]
 // Byte 2: Reserved
-// Byte 3: Payload Length
+// Byte 3: Payload Length (8-bit)
+// For DATA and SE_TESTING:
+// Byte 2-3: Payload Length (16-bit little-endian)
 struct uci_packet_header {
     uci_uint8 first_byte;   // GID | (PBF << 4) | (MT << 5)
     uci_uint8 second_byte;  // Opcode in bits[5:0], reserved bits[7:6]
-    uci_uint8 reserved2;    // Reserved
-    uci_uint8 payload_len;  // Payload length
+    uci_uint8 third_byte;   // Reserved for control packets, length low byte for DATA/SE
+    uci_uint8 fourth_byte;  // Length byte for control, length high byte for DATA/SE
 };
 
 #define UCI_MAX_CONTROL_PAYLOAD_SIZE 255
 #define UCI_MAX_DATA_PACKET_PAYLOAD_SIZE 255
+#define UCI_MAX_DATA_MESSAGE_PAYLOAD_SIZE 0xFFFFu
 #define UCI_DATA_MESSAGE_SND_HEADER 16
+#define UCI_MAX_APPLICATION_DATA_PAYLOAD_SIZE \
+    (UCI_MAX_DATA_MESSAGE_PAYLOAD_SIZE - UCI_DATA_MESSAGE_SND_HEADER)
 #define UCI_MAX_APPLICATION_DATA_FIRST_SEGMENT \
     (UCI_MAX_DATA_PACKET_PAYLOAD_SIZE - UCI_DATA_MESSAGE_SND_HEADER)
 
@@ -106,20 +111,61 @@ static inline uci_uint8 uci_pack_second_byte(uci_uint8 opcode_id) {
     return (uci_uint8)(opcode_id & 0x3F);  // opcode occupies lower 6 bits
 }
 
+static inline int uci_mt_uses_u16_payload_length(uci_uint8 message_type) {
+    return message_type == DATA;
+}
+
+static inline uci_uint16 uci_get_message_max_payload_length(uci_uint8 message_type) {
+    return uci_mt_uses_u16_payload_length(message_type) ? 0xFFFFu : UCI_MAX_CONTROL_PAYLOAD_SIZE;
+}
+
+static inline uci_uint16 uci_get_payload_length_from_header_bytes(uci_uint8 message_type,
+                                                                  uci_uint8 third_byte,
+                                                                  uci_uint8 fourth_byte) {
+    if (uci_mt_uses_u16_payload_length(message_type)) {
+        return (uci_uint16)((((uci_uint16)fourth_byte) << 8) | third_byte);
+    }
+
+    return fourth_byte;
+}
+
+static inline void uci_set_payload_length_in_header_bytes(uci_uint8 message_type,
+                                                          uci_uint16 payload_length,
+                                                          uci_uint8 *third_byte,
+                                                          uci_uint8 *fourth_byte) {
+    if (!third_byte || !fourth_byte) {
+        return;
+    }
+
+    if (uci_mt_uses_u16_payload_length(message_type)) {
+        *third_byte = (uci_uint8)(payload_length & 0xFF);
+        *fourth_byte = (uci_uint8)((payload_length >> 8) & 0xFF);
+    } else {
+        *third_byte = 0;
+        *fourth_byte = (uci_uint8)(payload_length & 0xFF);
+    }
+}
+
 static inline uci_error_t set_header_values_safe(struct uci_packet_header *header,
                                                  uci_uint8 message_type,
                                                  uci_uint8 packet_boundary,
                                                  uci_uint8 group_id,
                                                  uci_uint8 opcode_id,
-                                                 uci_uint8 payload_length) {
+                                                 uci_uint16 payload_length) {
     if (!header) {
+        return UCI_ERROR_INVALID_PARAM;
+    }
+
+    if (payload_length > uci_get_message_max_payload_length(message_type)) {
         return UCI_ERROR_INVALID_PARAM;
     }
     
     header->first_byte = uci_pack_first_byte(message_type, packet_boundary, group_id);
     header->second_byte = uci_pack_second_byte(opcode_id);
-    header->reserved2 = 0;
-    header->payload_len = payload_length;
+    uci_set_payload_length_in_header_bytes(message_type,
+                                           payload_length,
+                                           &header->third_byte,
+                                           &header->fourth_byte);
     
     return UCI_SUCCESS;
 }
@@ -151,7 +197,7 @@ typedef struct {
     uci_uint8 group_id;
     uci_uint8 opcode_id;
     uci_uint8 reserved_opcode_bits;
-    uci_uint8 payload_length;
+    uci_uint16 payload_length;
 } uci_header_fields_t;
 
 static inline uci_error_t uci_extract_header_fields_safe(const struct uci_packet_header *header,
@@ -165,7 +211,9 @@ static inline uci_error_t uci_extract_header_fields_safe(const struct uci_packet
     out_fields->group_id = get_gid(header);
     out_fields->opcode_id = get_opcode(header);
     out_fields->reserved_opcode_bits = get_reserved_opcode_bits(header);
-    out_fields->payload_length = header->payload_len;
+    out_fields->payload_length = uci_get_payload_length_from_header_bytes(out_fields->message_type,
+                                                                          header->third_byte,
+                                                                          header->fourth_byte);
     
     return UCI_SUCCESS;
 }

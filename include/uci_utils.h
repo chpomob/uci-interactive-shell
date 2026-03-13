@@ -214,7 +214,7 @@ static inline uci_error_t validate_uci_packet(const unsigned char* packet, size_
     // Extract header information
     uint8_t mt = (packet[0] >> 5) & 0x7;
     uint8_t gid = packet[0] & 0xF;
-    uint8_t payload_len = packet[3];
+    uint16_t payload_len = (mt == 0x0) ? (uint16_t)(((uint16_t)packet[3] << 8) | packet[2]) : packet[3];
     
     // Validate header fields
     if (mt > 3 || gid > 15) {

@@ -213,7 +213,10 @@ static int uci_fragment_process(const unsigned char* fragment,
         }
 
         struct uci_packet_header final_header;
-        set_header_values_safe(&final_header, mt, COMPLETE, gid, opcode, (unsigned char)total_len);
+        if (set_header_values_safe(&final_header, mt, COMPLETE, gid, opcode, (uci_uint16)total_len) != UCI_SUCCESS) {
+            uci_fragment_reset();
+            return -1;
+        }
         memcpy(out_buffer, &final_header, sizeof(final_header));
         memcpy(out_buffer + sizeof(final_header), g_fragment_buffer.payload, g_fragment_buffer.payload_len);
         memcpy(out_buffer + sizeof(final_header) + g_fragment_buffer.payload_len,
@@ -344,12 +347,14 @@ int uci_hw_interface_send_packet(const unsigned char* packet, size_t packet_len)
         size_t fragment_size = sizeof(struct uci_packet_header) + chunk;
         unsigned char fragment[sizeof(struct uci_packet_header) + UCI_HAL_MAX_FRAGMENT_PAYLOAD];
         struct uci_packet_header* header = (struct uci_packet_header*)fragment;
-        set_header_values_safe(header,
-                               packet_fields.message_type,
-                               fragment_pbf,
-                               packet_fields.group_id,
-                               packet_fields.opcode_id,
-                               (unsigned char)chunk);
+        if (set_header_values_safe(header,
+                                   packet_fields.message_type,
+                                   fragment_pbf,
+                                   packet_fields.group_id,
+                                   packet_fields.opcode_id,
+                                   (uci_uint16)chunk) != UCI_SUCCESS) {
+            return -1;
+        }
 
         if (chunk > 0 && payload) {
             memcpy(fragment + sizeof(struct uci_packet_header), payload + offset, chunk);

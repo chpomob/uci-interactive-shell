@@ -269,12 +269,13 @@ int uci_hw_chardev_receive(uci_hw_chardev_t* hw, unsigned char* buffer, size_t b
     }
 
     const struct uci_packet_header* header = (const struct uci_packet_header*)buffer;
-    unsigned char payload_len = header->payload_len;
+    uint16_t payload_len = uci_get_payload_length_from_header_bytes(
+        get_mt(header), header->third_byte, header->fourth_byte);
 
     if (sizeof(struct uci_packet_header) + payload_len > buffer_size) {
         if (hw->verbose) {
             printf("Payload length %u exceeds buffer capacity %zu\n",
-                   payload_len, buffer_size);
+                   (unsigned int)payload_len, buffer_size);
         }
         return -1;
     }
@@ -288,7 +289,7 @@ int uci_hw_chardev_receive(uci_hw_chardev_t* hw, unsigned char* buffer, size_t b
         if ((unsigned int)payload_bytes != payload_len) {
             if (hw->verbose) {
                 printf("Short read while fetching payload (%d/%u bytes)\n",
-                       payload_bytes, payload_len);
+                       payload_bytes, (unsigned int)payload_len);
             }
             return -1;
         }

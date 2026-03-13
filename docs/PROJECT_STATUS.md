@@ -59,6 +59,13 @@ execution path, and changes are currently limited to:
   `RCR` role field. The remaining plain/core fallback decoders now also use the
   Cherry 25-byte fixed header and label the second 32-bit field as session
   handle rather than a local session token.
+- Shared packet-header helpers now follow Cherry's message-type-specific length
+  semantics: control packets keep an 8-bit payload length, while `DATA`
+  packets use a 16-bit little-endian length in bytes 2-3. The analyzer and
+  hardware character-device receive path now decode that 16-bit `DATA` length
+  correctly instead of truncating it back to 8 bits, and
+  `uci_send_data_message()` no longer rejects payloads above the old 255-byte
+  control-packet ceiling.
 - A dedicated table-driven analyzer dispatch suite now runs representative live
   packets through `uci_analyze_packet_core()` for CORE and SESSION command,
   response, and notification paths, and now also verifies the expected
@@ -97,6 +104,10 @@ execution path, and changes are currently limited to:
   reducing header/payload drift across transport paths.
 - Fixture-driven protocol tests now pin representative CORE commands/responses
   and SESSION notifications at the exact byte level before hardware bring-up.
+- The unit suite now also pins Cherry-style `DATA` header encoding/decoding and
+  a `DATA_MESSAGE_SND` generation path with an application payload above
+  255 bytes, so the repository cannot silently fall back to 8-bit-only data
+  packet behavior.
 - A new transport parity suite now runs representative handlers through both
   simulation mode and a stubbed hardware transport to prove the emitted command
   bytes match before real-device testing.

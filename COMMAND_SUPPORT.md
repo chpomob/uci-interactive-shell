@@ -96,6 +96,11 @@ parameter validation rules before handing control to the command handlers in
   header now follows Cherry's client handler more closely: the second 32-bit
   field is shown as session handle, and the fixed header includes the
   `measurement_count` byte at offset 24.
+- Shared header helpers now also follow Cherry's packet-length rules: control
+  packets keep their 8-bit payload length in byte 3, while `DATA` packets use
+  bytes 2-3 as a 16-bit little-endian payload length. `uci_send_data_message()`
+  now accepts payloads up to the UCI 16-bit length limit while still emitting
+  255-byte transport/log fragments locally.
 - `tests/test_analyzer_dispatch.c` now covers representative live dispatch for
   `COMMAND`, `RESPONSE`, and `NOTIFICATION` packets in the CORE,
   `SESSION_CONFIG`, and `SESSION_CONTROL` families, and now also asserts the
@@ -123,6 +128,10 @@ parameter validation rules before handing control to the command handlers in
   `SESSION_INFO` wire mapping cannot silently drift away from the checked-in
   SDK sources. The same suite now also asserts Cherry's
   `uci_rsp_range_data_ntf_handler` binding for that packet family.
+- `tests/test_uci_functions.c` now also pins Cherry-style `DATA` header
+  encoding/decoding and verifies that the data-message builder/send path
+  preserves payloads above 255 bytes instead of falling back to the old
+  control-packet length ceiling.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

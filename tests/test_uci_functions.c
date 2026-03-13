@@ -173,11 +173,44 @@ static void emit_ui_session_info_ntf(void) {
 static unsigned char *g_captured_packet = NULL;
 static size_t g_captured_packet_len = 0;
 static int g_saved_color_enabled = 1;
+static unsigned char g_captured_data_payload[2048];
+static size_t g_captured_data_payload_len = 0;
+static uint32_t g_large_data_session_id = 0;
+static uint64_t g_large_data_destination = 0;
+static uint16_t g_large_data_sequence = 0;
+static unsigned char g_large_data_app_payload[512];
+static size_t g_large_data_app_payload_len = 0;
 
 static void emit_analyzer_captured_packet(void) {
     ui_color_enabled = 0;
     uci_analyze_packet_core(g_captured_packet, g_captured_packet_len);
     ui_color_enabled = g_saved_color_enabled;
+}
+
+static int capture_large_data_message_hook(const unsigned char* payload, size_t payload_len) {
+    g_captured_data_payload_len = payload_len;
+    if (payload && payload_len > 0) {
+        size_t copy_len = payload_len;
+        if (copy_len > sizeof(g_captured_data_payload)) {
+            copy_len = sizeof(g_captured_data_payload);
+        }
+        memcpy(g_captured_data_payload, payload, copy_len);
+    }
+    return 0;
+}
+
+static void emit_large_data_message(void) {
+    uci_send_data_message(g_large_data_session_id,
+                          g_large_data_destination,
+                          g_large_data_sequence,
+                          g_large_data_app_payload,
+                          g_large_data_app_payload_len);
+}
+
+static uint16_t test_header_payload_length(const struct uci_packet_header* header) {
+    return uci_get_payload_length_from_header_bytes(get_mt(header),
+                                                    header->third_byte,
+                                                    header->fourth_byte);
 }
 
 // Test suite for UCI functions
@@ -208,7 +241,7 @@ int main() {
             TEST_FAIL("Opcode field mismatch");
             goto test_case_end;
         }
-        if (header.payload_len != 0) {
+        if (test_header_payload_length(&header) != 0) {
             TEST_FAIL("Payload length mismatch");
             goto test_case_end;
         }
@@ -216,6 +249,54 @@ int main() {
         TEST_PASS();
     }
     test_case_end:;
+
+    TEST_CASE(data_header_uses_cherry_u16_payload_length);
+    {
+        struct uci_packet_header header;
+        const uint16_t payload_len = 0x0123;
+
+        if (set_header_values_safe(&header, DATA, COMPLETE, CORE, CORE_DEVICE_INFO, payload_len) != UCI_SUCCESS) {
+            TEST_FAIL("Failed to create DATA header");
+            goto test_case_end_data_header_u16;
+        }
+
+        if (header.third_byte != 0x23 || header.fourth_byte != 0x01) {
+            TEST_FAIL("DATA header did not encode payload length in Cherry little-endian form");
+            goto test_case_end_data_header_u16;
+        }
+
+        if (test_header_payload_length(&header) != payload_len) {
+            TEST_FAIL("DATA header payload length decode mismatch");
+            goto test_case_end_data_header_u16;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_data_header_u16:;
+
+    TEST_CASE(control_header_keeps_single_byte_payload_length);
+    {
+        struct uci_packet_header header;
+        const uint16_t payload_len = 0x23;
+
+        if (set_header_values_safe(&header, RESPONSE, COMPLETE, CORE, CORE_DEVICE_INFO, payload_len) != UCI_SUCCESS) {
+            TEST_FAIL("Failed to create control header");
+            goto test_case_end_control_header_len;
+        }
+
+        if (header.third_byte != 0x00 || header.fourth_byte != 0x23) {
+            TEST_FAIL("Control header did not keep Cherry single-byte payload layout");
+            goto test_case_end_control_header_len;
+        }
+
+        if (test_header_payload_length(&header) != payload_len) {
+            TEST_FAIL("Control header payload length decode mismatch");
+            goto test_case_end_control_header_len;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_control_header_len:;
     
     // Test header values extraction
     TEST_CASE(header_extraction);
@@ -239,7 +320,7 @@ int main() {
             TEST_FAIL("Opcode field mismatch");
             goto test_case_end2;
         }
-        if (header.payload_len != 10) {
+        if (test_header_payload_length(&header) != 10) {
             TEST_FAIL("Payload length mismatch");
             goto test_case_end2;
         }
@@ -270,7 +351,7 @@ int main() {
             TEST_FAIL("Opcode field mismatch");
             goto test_case_end3;
         }
-        if (header.payload_len != 5) {
+        if (test_header_payload_length(&header) != 5) {
             TEST_FAIL("Payload length mismatch");
             goto test_case_end3;
         }
@@ -502,6 +583,112 @@ int main() {
         TEST_PASS();
     }
     test_case_end_dm_invalid:;
+
+    TEST_CASE(data_packet_builder_preserves_u16_payload_length);
+    {
+        const size_t payload_len = 0x0123;
+        size_t packet_len = 0;
+        unsigned char* packet = create_uci_packet(DATA,
+                                                  COMPLETE,
+                                                  CORE,
+                                                  CORE_DEVICE_INFO,
+                                                  NULL,
+                                                  payload_len,
+                                                  &packet_len);
+
+        if (!packet) {
+            TEST_FAIL("Failed to build DATA packet with Cherry-sized payload length");
+            goto test_case_end_data_packet_builder;
+        }
+
+        if (packet_len != sizeof(struct uci_packet_header) + payload_len) {
+            TEST_FAIL("DATA packet length mismatch");
+            free(packet);
+            goto test_case_end_data_packet_builder;
+        }
+
+        if (packet[2] != 0x23 || packet[3] != 0x01) {
+            TEST_FAIL("DATA packet header did not preserve 16-bit payload length");
+            free(packet);
+            goto test_case_end_data_packet_builder;
+        }
+
+        if (test_header_payload_length((const struct uci_packet_header*)packet) != payload_len) {
+            TEST_FAIL("DATA packet header decode mismatch");
+            free(packet);
+            goto test_case_end_data_packet_builder;
+        }
+
+        free(packet);
+        TEST_PASS();
+    }
+    test_case_end_data_packet_builder:;
+
+    TEST_CASE(data_message_send_allows_cherry_sized_payload_over_255_bytes);
+    {
+        char output[8192];
+        const size_t app_len = 300;
+
+        memset(g_large_data_app_payload, 0, sizeof(g_large_data_app_payload));
+        for (size_t i = 0; i < app_len; ++i) {
+            g_large_data_app_payload[i] = (unsigned char)(i & 0xFF);
+        }
+
+        g_large_data_session_id = 0x12345678u;
+        g_large_data_destination = 0x0102030405060708ULL;
+        g_large_data_sequence = 0x2345;
+        g_large_data_app_payload_len = app_len;
+        g_captured_data_payload_len = 0;
+        memset(g_captured_data_payload, 0, sizeof(g_captured_data_payload));
+
+        uci_set_data_message_hook(capture_large_data_message_hook);
+        if (capture_stdout(emit_large_data_message, output, sizeof(output)) == 0) {
+            uci_set_data_message_hook(NULL);
+            TEST_FAIL("Failed to capture DATA_MESSAGE_SND output");
+            goto test_case_end_large_data_message;
+        }
+        uci_set_data_message_hook(NULL);
+
+        if (g_captured_data_payload_len != UCI_DATA_MESSAGE_SND_HEADER + app_len) {
+            TEST_FAIL("DATA_MESSAGE_SND payload length did not preserve payloads above 255 bytes");
+            goto test_case_end_large_data_message;
+        }
+
+        if (read_u32_le(g_captured_data_payload) != g_large_data_session_id) {
+            TEST_FAIL("Captured DATA_MESSAGE_SND session handle mismatch");
+            goto test_case_end_large_data_message;
+        }
+
+        if (read_u64_le(g_captured_data_payload + 4) != g_large_data_destination) {
+            TEST_FAIL("Captured DATA_MESSAGE_SND destination mismatch");
+            goto test_case_end_large_data_message;
+        }
+
+        if (read_u16_le(g_captured_data_payload + 12) != g_large_data_sequence) {
+            TEST_FAIL("Captured DATA_MESSAGE_SND sequence mismatch");
+            goto test_case_end_large_data_message;
+        }
+
+        if (read_u16_le(g_captured_data_payload + 14) != app_len) {
+            TEST_FAIL("Captured DATA_MESSAGE_SND declared length mismatch");
+            goto test_case_end_large_data_message;
+        }
+
+        if (memcmp(g_captured_data_payload + UCI_DATA_MESSAGE_SND_HEADER,
+                   g_large_data_app_payload,
+                   app_len) != 0) {
+            TEST_FAIL("Captured DATA_MESSAGE_SND payload body mismatch");
+            goto test_case_end_large_data_message;
+        }
+
+        if (strstr(output, "Header:") == NULL) {
+            TEST_FAIL("Expected outbound DATA fragment logging for the oversized payload");
+            goto test_case_end_large_data_message;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_large_data_message:;
 
     TEST_CASE(data_message_unknown_session);
     {
@@ -749,7 +936,7 @@ int main() {
             TEST_FAIL("Opcode masking failed");
             goto test_case_header_mask_end;
         }
-        if (header.payload_len != 0x7B) {
+        if (test_header_payload_length(&header) != 0x7B) {
             TEST_FAIL("Payload length mismatch after masking");
             goto test_case_header_mask_end;
         }
@@ -1637,7 +1824,7 @@ int main() {
         // Verify header fields from real packet (legacy implementation)
         ASSERT_EQUAL(0x0B, get_gid(header));  // Legacy: RANGING_DATA GID = 0x0B (non-QM-SDK)
         ASSERT_EQUAL(NOTIFICATION, get_mt(header));
-        ASSERT_EQUAL(33, header->payload_len);
+        ASSERT_EQUAL(33, test_header_payload_length(header));
 
         // Test PDL specification packet: DeviceResetCmd
         // Raw: 2000000100000000
@@ -1667,7 +1854,7 @@ int main() {
         header = (struct uci_packet_header*)qm_sdk_ranging_packet;
         ASSERT_EQUAL(SESSION_CONTROL, get_gid(header));  // Cherry: GID 0x02 for range data
         ASSERT_EQUAL(NOTIFICATION, get_mt(header));
-        ASSERT_EQUAL(33, header->payload_len);
+        ASSERT_EQUAL(33, test_header_payload_length(header));
         ASSERT_EQUAL(0x00, get_opcode(header));  // SESSION_INFO_NTF opcode is 0x00
 
         // Test PDL specification packet: GetDeviceInfoRsp
@@ -1687,7 +1874,7 @@ int main() {
         ASSERT_EQUAL(CORE, get_gid(header));
         ASSERT_EQUAL(RESPONSE, get_mt(header));
         ASSERT_EQUAL(0x02, get_opcode(header));  // CORE_DEVICE_INFO
-        ASSERT_EQUAL(11, header->payload_len);
+        ASSERT_EQUAL(11, test_header_payload_length(header));
         ASSERT_EQUAL(0, pdl_device_info_rsp[4]); // status = UCI_STATUS_OK
 
         // Test PDL specification packet: SessionInfoNtf
@@ -1709,7 +1896,7 @@ int main() {
         ASSERT_EQUAL(SESSION_CONTROL, get_gid(header));
         ASSERT_EQUAL(NOTIFICATION, get_mt(header));
         ASSERT_EQUAL(0x00, get_opcode(header));  // SESSION_INFO_NTF
-        ASSERT_EQUAL(25, header->payload_len);
+        ASSERT_EQUAL(25, test_header_payload_length(header));
 
         // Test PDL specification packet: AndroidRangeDiagnosticsNtf
         // Raw: 6c0200110000000101010102020202010001020100010000
@@ -1726,7 +1913,7 @@ int main() {
         ASSERT_EQUAL(ANDROID, get_gid(header));
         ASSERT_EQUAL(NOTIFICATION, get_mt(header));
         ASSERT_EQUAL(0x02, get_opcode(header));  // ANDROID_FIRA_RANGE_DIAGNOSTICS
-        ASSERT_EQUAL(17, header->payload_len);
+        ASSERT_EQUAL(17, test_header_payload_length(header));
 
         TEST_PASS();
     }
@@ -2170,7 +2357,7 @@ int main() {
         ASSERT_EQUAL(COMMAND, get_mt(header));
         ASSERT_EQUAL(COMPLETE, get_pbf(header));
         ASSERT_EQUAL(QORVO_SESSION_GET, get_opcode(header));
-        ASSERT_EQUAL(sizeof(payload), header->payload_len);
+        ASSERT_EQUAL(sizeof(payload), test_header_payload_length(header));
         free(packet);
         TEST_PASS();
     }
@@ -2247,7 +2434,7 @@ int main() {
         ASSERT_EQUAL(NOTIFICATION, get_mt(header));
         ASSERT_EQUAL(QORVO_EXT2, get_gid(header));
         ASSERT_EQUAL(QORVO_CORE_DEVICE_BOOT, get_opcode(header));
-        ASSERT_EQUAL(sizeof(device_boot_payload), header->payload_len);
+        ASSERT_EQUAL(sizeof(device_boot_payload), test_header_payload_length(header));
 
         const unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
 
@@ -2297,7 +2484,7 @@ int main() {
         const struct uci_packet_header* header = (const struct uci_packet_header*)packet;
         ASSERT_EQUAL(QORVO_EXT2, get_gid(header));
         ASSERT_EQUAL(QORVO_CORE_PSDU_DUMP, get_opcode(header));
-        ASSERT_EQUAL(sizeof(payload), header->payload_len);
+        ASSERT_EQUAL(sizeof(payload), test_header_payload_length(header));
 
         const unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
         uci_qorvo_psdu_report_t report;

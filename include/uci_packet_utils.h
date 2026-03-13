@@ -234,7 +234,7 @@ void create_uci_header(
     unsigned char pbf,
     unsigned char gid,
     unsigned char oid,
-    unsigned char payload_len
+    uint16_t payload_len
 );
 
 /**

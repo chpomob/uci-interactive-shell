@@ -205,7 +205,10 @@ int main(void)
         ASSERT_TRUE(source != NULL);
         ASSERT_TRUE(contains_text(source, "UCI_GID_SESSION_CONTROL,"));
         ASSERT_TRUE(contains_text(source, "UCI_OID_SESSION_INFO)"));
+        ASSERT_TRUE(contains_text(source, "#define INFO_NTF_HEADER_SIZE 25"));
         ASSERT_TRUE(contains_text(source, ".handler = uci_rsp_range_data_ntf_handler,"));
+        ASSERT_TRUE(contains_text(source, "data.session_handle = uci_message_get_32bit(&parser);"));
+        ASSERT_TRUE(contains_text(source, "data.n_measurements = uci_message_get_8bit(&parser);"));
         ASSERT_EQUAL(0x02, SESSION_CONTROL);
         ASSERT_EQUAL(0x00, SESSION_INFO_NTF);
         ASSERT_EQUAL(SESSION_START, SESSION_INFO_NTF_OPCODE);

@@ -56,7 +56,9 @@ execution path, and changes are currently limited to:
   follows Cherry's `range_data_ntf` model: the packet is still the same wire
   opcode, but analyzer/plain/UI output presents it as
   `RANGE_DATA_NTF (SESSION_INFO_NTF)` and no longer treats byte 8 as an
-  `RCR` role field.
+  `RCR` role field. The remaining plain/core fallback decoders now also use the
+  Cherry 25-byte fixed header and label the second 32-bit field as session
+  handle rather than a local session token.
 - A dedicated table-driven analyzer dispatch suite now runs representative live
   packets through `uci_analyze_packet_core()` for CORE and SESSION command,
   response, and notification paths, and now also verifies the expected

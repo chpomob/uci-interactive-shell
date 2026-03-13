@@ -92,7 +92,10 @@ parameter validation rules before handing control to the command handlers in
 - The active decode surface now follows Cherry for `SESSION_CONTROL +
   SESSION_INFO_NTF`: the packet is presented as `RANGE_DATA_NTF
   (SESSION_INFO_NTF)` rather than as a separate session-info-only notification
-  family, while the wire opcode remains `UCI_OID_SESSION_INFO`.
+  family, while the wire opcode remains `UCI_OID_SESSION_INFO`. The decoded
+  header now follows Cherry's client handler more closely: the second 32-bit
+  field is shown as session handle, and the fixed header includes the
+  `measurement_count` byte at offset 24.
 - `tests/test_analyzer_dispatch.c` now covers representative live dispatch for
   `COMMAND`, `RESPONSE`, and `NOTIFICATION` packets in the CORE,
   `SESSION_CONFIG`, and `SESSION_CONTROL` families, and now also asserts the

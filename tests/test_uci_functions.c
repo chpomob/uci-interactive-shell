@@ -658,10 +658,11 @@ int main() {
         char ui_output[2048];
         static const char* k_expected_lines[] = {
             "Sequence Number: 0",
-            "Session Token: 0x05040302",
+            "Session Handle: 0x05040302",
             "Reserved Byte: 0x06",
             "Current Ranging Interval: 2055 ms",
-            "Primary Session ID: 0x00000000"
+            "Primary Session ID: 0x00000000",
+            "Measurement Count: 0"
         };
 
         if (capture_stdout(emit_plain_session_info_ntf, plain_output, sizeof(plain_output)) == 0) {
@@ -1577,7 +1578,7 @@ int main() {
         payload[offset++] = 0x07;
 
         struct uci_packet_header header;
-        set_header_values_safe(&header, NOTIFICATION, COMPLETE, SESSION_CONTROL,  // QM SDK: Ranging data uses GID 0x02
+        set_header_values_safe(&header, NOTIFICATION, COMPLETE, SESSION_CONTROL,  // Cherry: range data uses GID 0x02
                           SESSION_INFO_NTF_OPCODE, (unsigned char)offset);
 
         unsigned char packet[sizeof(struct uci_packet_header) + 64] = {0};
@@ -1650,7 +1651,7 @@ int main() {
         ASSERT_EQUAL(COMMAND, get_mt(header));
 
         // Add QM SDK compliant ranging data test
-        // QM SDK: Ranging data uses GID 0x02 (SESSION_CONTROL), not 0x0B
+        // Cherry: range data uses GID 0x02 (SESSION_CONTROL), not vendor EXT2
         unsigned char qm_sdk_ranging_packet[] = {
             0x62, 0x00, 0x00, 0x21,  // Header: SESSION_CONTROL notification (GID 0x02), opcode 0x00, payload length 33
             0x2a, 0x00, 0x00, 0x00,  // Session token (little endian)
@@ -1664,7 +1665,7 @@ int main() {
         };
 
         header = (struct uci_packet_header*)qm_sdk_ranging_packet;
-        ASSERT_EQUAL(SESSION_CONTROL, get_gid(header));  // QM SDK: GID 0x02 for ranging data
+        ASSERT_EQUAL(SESSION_CONTROL, get_gid(header));  // Cherry: GID 0x02 for range data
         ASSERT_EQUAL(NOTIFICATION, get_mt(header));
         ASSERT_EQUAL(33, header->payload_len);
         ASSERT_EQUAL(0x00, get_opcode(header));  // SESSION_INFO_NTF opcode is 0x00

@@ -134,7 +134,9 @@ The SDK enables:
   silently away from the local SDK sources.
 - `SESSION_CONTROL + UCI_OID_SESSION_INFO` is now enforced against Cherry's
   client-model interpretation as the range-data notification path, not as a
-  separately branded session-info decoder surface.
+  separately branded session-info decoder surface. Tests now also pin Cherry's
+  `INFO_NTF_HEADER_SIZE == 25`, the session-handle interpretation of the second
+  32-bit field, and the fixed `n_measurements` byte at offset 24.
 - The Qorvo SDK is not internally uniform for `GID 0x0E`: Cherry C headers use
   `QORVO_MAC`, while the Python Qorvo tools expose `ConfigManager`. This
   repository currently follows the Cherry C-header basis and documents that

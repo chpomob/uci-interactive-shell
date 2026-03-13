@@ -159,7 +159,9 @@ command tables.
   `GID 0x0E` basis choice against the Python-tool `ConfigManager` overlap.
 - `SESSION_CONTROL + SESSION_INFO_NTF` is now presented through the Cherry
   `RANGE_DATA_NTF` semantic surface in analyzer and decoder output, while
-  keeping the wire opcode and constant names unchanged.
+  keeping the wire opcode and constant names unchanged. The checked-in Cherry
+  alignment tests also pin the 25-byte fixed header, the session-handle meaning
+  of the second 32-bit field, and `measurement_count` at byte 24.
 - `tests/test_uci_functions.c` now includes analyzer-dispatch regressions for
   live packet routing, so duplicate or unreachable `MT/GID/OID` decode branches
   are caught even when individual decoder helpers still pass in isolation.

@@ -954,13 +954,13 @@ void decode_session_status_ntf(unsigned char* payload, int payload_len) {
 void decode_session_info_ntf(unsigned char* payload, int payload_len) {
     printf("    RANGE_DATA_NTF (SESSION_INFO_NTF) - Ranging Data Notification\n");
 
-    if (payload_len < 24) {
-        printf("      ERROR: Payload too short (%d bytes, need at least 24 for header)\n", payload_len);
+    if (payload_len < 25) {
+        printf("      ERROR: Payload too short (%d bytes, need at least 25 for header)\n", payload_len);
         return;
     }
 
     unsigned int sequence_number = read_u32_le(&payload[0]);
-    unsigned int session_token = read_u32_le(&payload[4]);
+    unsigned int session_handle = read_u32_le(&payload[4]);
     unsigned char reserved_byte = payload[8];
     unsigned int current_ranging_interval = read_u32_le(&payload[9]);
     unsigned char ranging_measurement_type = payload[13];
@@ -968,9 +968,10 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
     unsigned char mac_address_indicator = payload[15];
     unsigned int hus_primary_session_id = read_u32_le(&payload[16]);
     unsigned int reserved2 = read_u32_le(&payload[20]);
+    unsigned char measurement_count = payload[24];
 
     printf("      Sequence Number: %u\n", sequence_number);
-    printf("      Session Token: 0x%08X\n", session_token);
+    printf("      Session Handle: 0x%08X\n", session_handle);
     printf("      Reserved Byte: 0x%02X\n", reserved_byte);
     printf("      Current Ranging Interval: %u ms\n", current_ranging_interval);
     printf("      Ranging Measurement Type: 0x%02X", ranging_measurement_type);
@@ -993,15 +994,14 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
     }
 
     printf("      Primary Session ID: 0x%08X\n", hus_primary_session_id);
+    printf("      Measurement Count: %u\n", measurement_count);
 
-    int offset = 24;
-    if (offset < payload_len) {
+    int offset = 25;
+    if (measurement_count > 0) {
         if (ranging_measurement_type == 0x01) {
-            unsigned char num_measurements = payload[offset];
-            offset += 1;
-            printf("      Number of Two-Way Measurements: %d\n", num_measurements);
+            printf("      Number of Two-Way Measurements: %d\n", measurement_count);
 
-            for (int i = 0; i < num_measurements && offset + 20 <= payload_len; i++) {
+            for (int i = 0; i < measurement_count && offset + 20 <= payload_len; i++) {
                 printf("      Measurement %d:\n", i + 1);
 
                 if (mac_address_indicator == 0x00) {
@@ -1016,11 +1016,9 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
                 }
             }
         } else if (ranging_measurement_type == 0x03) {
-            unsigned char num_measurements = payload[offset];
-            offset += 1;
-            printf("      Number of OWR-AoA Measurements: %d\n", num_measurements);
+            printf("      Number of OWR-AoA Measurements: %d\n", measurement_count);
 
-            for (int i = 0; i < num_measurements && offset + 13 <= payload_len; i++) {
+            for (int i = 0; i < measurement_count && offset + 13 <= payload_len; i++) {
                 printf("      OWR-AoA Measurement %d:\n", i + 1);
 
                 if (mac_address_indicator == 0x00) {

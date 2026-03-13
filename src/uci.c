@@ -2677,14 +2677,14 @@ void handle_session_control_ntf(unsigned char opcode, unsigned char* payload, in
 
 // Cherry models SESSION_INFO_NTF as the range-data notification surface.
 void handle_session_info_ntf(unsigned char* payload, int payload_len) {
-    if (!payload || payload_len < 24) {
-        printf("  Error: SESSION_INFO_NTF payload too short. Need at least 24 bytes, got %d.\n", payload_len);
+    if (!payload || payload_len < 25) {
+        printf("  Error: SESSION_INFO_NTF payload too short. Need at least 25 bytes, got %d.\n", payload_len);
         return;
     }
 
-    // Parse header fields according to Android UCI spec
+    // Parse header fields according to Cherry's range-data notification model.
     unsigned int sequence_number = read_u32_le(&payload[0]);
-    unsigned int session_token = read_u32_le(&payload[4]);
+    unsigned int session_handle = read_u32_le(&payload[4]);
     unsigned char reserved_byte = payload[8];
     unsigned int current_ranging_interval = read_u32_le(&payload[9]);
     unsigned char ranging_measurement_type = payload[13];
@@ -2692,9 +2692,10 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
     unsigned char mac_address_indicator = payload[15];
     unsigned int hus_primary_session_id = read_u32_le(&payload[16]);
     // unsigned int reserved2 = read_u32_le(&payload[20]); // Skip reserved 4 bytes at position 20-23
+    unsigned char measurement_count = payload[24];
 
     printf("  Sequence Number: %u\n", sequence_number);
-    printf("  Session Token: 0x%08X\n", session_token);
+    printf("  Session Handle: 0x%08X\n", session_handle);
     printf("  Reserved Byte: 0x%02X\n", reserved_byte);
     printf("  Current Ranging Interval: %u ms\n", current_ranging_interval);
     printf("  Ranging Measurement Type: 0x%02X", ranging_measurement_type);
@@ -2708,9 +2709,10 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
     printf("\n");
     printf("  MAC Address Indicator: %s\n", mac_address_indicator ? "EXTENDED_ADDRESS" : "SHORT_ADDRESS");
     printf("  Primary Session ID: 0x%08X\n", hus_primary_session_id);
+    printf("  Measurement Count: %u\n", measurement_count);
 
     // Parse ranging measurements
-    int offset = 24; // Header size (24 bytes): 4+4+1+4+1+1+1+4+4
+    int offset = 25; // Cherry INFO_NTF header size: 4+4+1+4+1+1+1+4+4+1
     if (offset >= payload_len) {
         printf("  No ranging measurements in notification (offset=%d, payload_len=%d).\n", offset, payload_len);
         return;
@@ -2719,11 +2721,9 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
     printf("  Ranging Measurements (offset=%d, payload_len=%d):\n", offset, payload_len);
     
     if (ranging_measurement_type == 0x01) { // TWO_WAY
-        unsigned char num_measurements = payload[offset];
-        offset += 1;
-        printf("    Number of Two-Way Measurements: %d\n", num_measurements);
+        printf("    Number of Two-Way Measurements: %d\n", measurement_count);
         
-        for (int i = 0; i < num_measurements && offset < payload_len; i++) {
+        for (int i = 0; i < measurement_count && offset < payload_len; i++) {
             if (offset + 20 > payload_len) { // Size for SHORT_ADDRESS two-way measurement = 20 bytes
                 printf("    Warning: Incomplete measurement data at index %d (need offset+%d=%d but have %d)\n", 
                        i, 20, offset + 20, payload_len);
@@ -2749,11 +2749,9 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
             }
         }
     } else if (ranging_measurement_type == 0x03) { // OWR_AOA
-        unsigned char num_measurements = payload[offset];
-        offset += 1;
-        printf("    Number of OWR-AoA Measurements: %d\n", num_measurements);
+        printf("    Number of OWR-AoA Measurements: %d\n", measurement_count);
         
-        for (int i = 0; i < num_measurements && offset + 13 <= payload_len; i++) {
+        for (int i = 0; i < measurement_count && offset + 13 <= payload_len; i++) {
             printf("    OWR-AoA Measurement %d:\n", i + 1);
             
             if (mac_address_indicator == 0x00) { // SHORT_ADDRESS

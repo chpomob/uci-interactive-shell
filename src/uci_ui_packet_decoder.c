@@ -3750,7 +3750,7 @@ void ui_decode_range_data_ntf(unsigned char* payload, int payload_len) {
     }
 
     uint32_t sequence_number = ui_read_u32_le(&payload[0]);
-    uint32_t session_token = ui_read_u32_le(&payload[4]);
+    uint32_t session_handle = ui_read_u32_le(&payload[4]);
     uint8_t reserved_byte = payload[8];
     uint32_t ranging_interval_ms = ui_read_u32_le(&payload[9]);
     uint8_t measurement_type = payload[13];
@@ -3768,10 +3768,10 @@ void ui_decode_range_data_ntf(unsigned char* payload, int payload_len) {
                            "%u",
                            sequence_number);
     print_field_line_color(4,
-                           "Session Token",
+                           "Session Handle",
                            ANSI_COLOR_BRIGHT_YELLOW,
                            "0x%08X",
-                           session_token);
+                           session_handle);
     print_field_line_color(4,
                            "Reserved Byte",
                            ANSI_COLOR_BRIGHT_YELLOW,

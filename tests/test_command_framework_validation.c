@@ -534,7 +534,7 @@ int main(void) {
 #undef test_case_end
 
 #define test_case_end test_case_end_simulate_ranging_integration
-    TEST_CASE(simulate_ranging_routes_to_standard_session_info_decoder);
+    TEST_CASE(simulate_ranging_routes_to_cherry_range_data_decoder);
     {
         char capture_buffer[8192];
         int saved_color = ui_color_enabled;
@@ -552,9 +552,9 @@ int main(void) {
                                                     capture_buffer,
                                                     sizeof(capture_buffer)));
         ui_color_enabled = saved_color;
-        ASSERT_TRUE(strstr(capture_buffer, "SESSION_INFO_NTF - Standard FiRa Ranging Notification") != NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "RANGE_DATA_NTF (SESSION_INFO_NTF)") != NULL);
         ASSERT_TRUE(strstr(capture_buffer, "Sequence Number:") != NULL);
-        ASSERT_TRUE(strstr(capture_buffer, "RANGE_DATA_NTF") == NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "SESSION_INFO_NTF - Standard FiRa Ranging Notification") == NULL);
         TEST_PASS();
     }
     test_case_end:;

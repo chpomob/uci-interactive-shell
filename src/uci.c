@@ -2675,7 +2675,7 @@ void handle_session_control_ntf(unsigned char opcode, unsigned char* payload, in
     }
 }
 
-// Ranging/Session Info Notification Handler
+// Cherry models SESSION_INFO_NTF as the range-data notification surface.
 void handle_session_info_ntf(unsigned char* payload, int payload_len) {
     if (!payload || payload_len < 24) {
         printf("  Error: SESSION_INFO_NTF payload too short. Need at least 24 bytes, got %d.\n", payload_len);
@@ -2685,7 +2685,7 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
     // Parse header fields according to Android UCI spec
     unsigned int sequence_number = read_u32_le(&payload[0]);
     unsigned int session_token = read_u32_le(&payload[4]);
-    unsigned char rcr_indicator = payload[8];
+    unsigned char reserved_byte = payload[8];
     unsigned int current_ranging_interval = read_u32_le(&payload[9]);
     unsigned char ranging_measurement_type = payload[13];
     // unsigned char reserved1 = payload[14]; // Skip reserved byte at position 14
@@ -2695,7 +2695,7 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
 
     printf("  Sequence Number: %u\n", sequence_number);
     printf("  Session Token: 0x%08X\n", session_token);
-    printf("  RCR Indicator: 0x%02X\n", rcr_indicator);
+    printf("  Reserved Byte: 0x%02X\n", reserved_byte);
     printf("  Current Ranging Interval: %u ms\n", current_ranging_interval);
     printf("  Ranging Measurement Type: 0x%02X", ranging_measurement_type);
     switch(ranging_measurement_type) {
@@ -2707,7 +2707,7 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
     }
     printf("\n");
     printf("  MAC Address Indicator: %s\n", mac_address_indicator ? "EXTENDED_ADDRESS" : "SHORT_ADDRESS");
-    printf("  HUS Primary Session ID: 0x%08X\n", hus_primary_session_id);
+    printf("  Primary Session ID: 0x%08X\n", hus_primary_session_id);
 
     // Parse ranging measurements
     int offset = 24; // Header size (24 bytes): 4+4+1+4+1+1+1+4+4

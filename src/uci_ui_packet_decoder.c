@@ -3734,169 +3734,14 @@ void ui_decode_session_logical_link_uwbs_close_ntf(unsigned char* payload, int p
 }
 
 void ui_decode_session_info_ntf(unsigned char* payload, int payload_len) {
-    if (ui_color_enabled) {
-        printf("  %s%sSESSION_INFO_NTF - Standard FiRa Ranging Notification:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
-    } else {
-        printf("  SESSION_INFO_NTF - Standard FiRa Ranging Notification:\n");
-    }
-    
-    // Validate payload length - should be at least enough for basic header fields
-    if (payload_len < 12) {
-        if (ui_color_enabled) {
-            printf("    %s%sERROR:%s Payload too short (%d bytes, need at least 12)\n", 
-                   ANSI_COLOR_RED, ANSI_BOLD, ANSI_RESET, payload_len);
-        } else {
-            printf("    ERROR: Payload too short (%d bytes, need at least 12)\n", payload_len);
-        }
-        return;
-    }
-
-    // Decode standard FiRa ranging notification structure
-    // Based on FiRa Consortium UWB Command Interface Generic Technical Specification v2.0.0
-    // SESSION_INFO_NTF payload structure:
-    // - Sequence Counter (4 bytes) - Little Endian
-    // - Session Token/Handle (4 bytes) - Little Endian
-    // - RCR Indicator (1 byte)
-    // - Current Ranging Interval (4 bytes) - in units of 1200 RSTU (=1ms)
-    // - Ranging Measurement Type (1 byte)
-    // - RFU (1 byte)
-    // - MAC Addressing Mode (1 byte) - 0: Short Address (2 bytes), 1: Extended Address (8 bytes)
-    // - HUS Primary Session ID (4 bytes) - Little Endian
-    // - RFU (4 bytes)
-    // - Number of Ranging Measurements (1 byte)
-    // - Variable length ranging measurements data
-    
-    uint32_t sequence_number = ui_read_u32_le(&payload[0]);
-    uint32_t session_token = ui_read_u32_le(&payload[4]);
-    uint8_t rcr_indicator = payload[8];
-    uint32_t current_ranging_interval = ui_read_u32_le(&payload[9]); // in units of 1200 RSTU (=1ms)
-    uint8_t ranging_measurement_type = payload[13];
-    // payload[14] is RFU
-    uint8_t mac_addressing_mode = payload[15]; // 0: Short Address (2 bytes), 1: Extended Address (8 bytes)
-    uint32_t hus_primary_session_id = ui_read_u32_le(&payload[16]);
-    // payload[20-23] are RFU
-    uint8_t num_measurements = payload[24];
-    
-    if (ui_color_enabled) {
-        printf("    %s%sSequence Number:%s %u\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, sequence_number);
-        printf("    %s%sSession Token:%s 0x%08X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, session_token);
-        printf("    %s%sRCR Indicator:%s 0x%02X", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, rcr_indicator);
-        if (rcr_indicator == 0x01) {
-            printf(" %s(Initiator)%s", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET);
-        }
-        printf("\n");
-        printf("    %s%sCurrent Ranging Interval:%s %u ms\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, current_ranging_interval);
-        
-        // Decode ranging measurement type
-        const char* meas_type_str = "Unknown";
-        switch(ranging_measurement_type) {
-            case 0x00: meas_type_str = "OWR UL-TDoA"; break;
-            case 0x01: meas_type_str = "TWR (SS-TWR & DS-TWR)"; break;
-            case 0x02: meas_type_str = "OWR DL-TDoA"; break;
-            case 0x03: meas_type_str = "OWR for AoA"; break;
-            case 0x04: meas_type_str = "CCC Controller"; break;
-            case 0x05: meas_type_str = "CCC Controlee"; break;
-            case 0x06: meas_type_str = "OWR DL-TDoA v2"; break;
-            default: meas_type_str = "Unknown"; break;
-        }
-        printf("    %s%sRanging Measurement Type:%s 0x%02X (%s)\n", 
-               ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, ranging_measurement_type, meas_type_str);
-               
-        printf("    %s%sMAC Addressing Mode:%s 0x%02X (%s)\n",
-               ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, mac_addressing_mode,
-               mac_addressing_mode ? "Extended Address (8 bytes)" : "Short Address (2 bytes)");
-        printf("    %s%sHUS Primary Session ID:%s 0x%08X\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, hus_primary_session_id);
-        printf("    %s%sNumber of Measurements:%s %u\n", ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, num_measurements);
-    } else {
-        printf("    Sequence Number: %u\n", sequence_number);
-        printf("    Session Token: 0x%08X\n", session_token);
-        printf("    RCR Indicator: 0x%02X (%s)\n", rcr_indicator, rcr_indicator ? "Initiator" : "Responder");
-        printf("    Current Ranging Interval: %u ms\n", current_ranging_interval);
-        printf("    Ranging Measurement Type: 0x%02X\n", ranging_measurement_type);
-        printf("    MAC Addressing Mode: 0x%02X (%s)\n", mac_addressing_mode, 
-               mac_addressing_mode ? "Extended Address" : "Short Address");
-        printf("    HUS Primary Session ID: 0x%08X\n", hus_primary_session_id);
-        printf("    Number of Measurements: %u\n", num_measurements);
-    }
-
-    // Parse ranging measurements
-    int offset = 25; // Starting after the fixed header fields
-    for (uint8_t i = 0; i < num_measurements; i++) {
-        if (offset >= payload_len) {
-            if (ui_color_enabled) {
-                printf("      %s%sWARNING:%s No data left while expecting measurement %u\n", 
-                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, i + 1);
-            } else {
-                printf("      WARNING: No data left while expecting measurement %u\n", i + 1);
-            }
-            break;
-        }
-
-        if (ui_color_enabled) {
-            printf("    %s%sMeasurement %u:%s\n", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, i + 1, ANSI_RESET);
-        } else {
-            printf("    Measurement %u:\n", i + 1);
-        }
-
-        bool parsed = false;
-        switch (ranging_measurement_type) {
-            case 0x00:
-                parsed = decode_range_measurement_owr_ul_tdoa(payload, payload_len, &offset, mac_addressing_mode ? 8 : 2, i + 1);
-                break;
-            case 0x01:
-                parsed = decode_range_measurement_twr(payload, payload_len, &offset, mac_addressing_mode ? 8 : 2, i + 1);
-                break;
-            case 0x02:
-                parsed = decode_range_measurement_owr_dl_tdoa(payload, payload_len, &offset, mac_addressing_mode ? 8 : 2, i + 1);
-                break;
-            case 0x03:
-                parsed = decode_range_measurement_owr_aoa(payload, payload_len, &offset, mac_addressing_mode ? 8 : 2, i + 1);
-                break;
-            case 0x04:
-                parsed = decode_range_measurement_ccc_controller(payload, payload_len, &offset, i + 1);
-                break;
-            case 0x05:
-                parsed = decode_range_measurement_ccc_controlee(payload, payload_len, &offset, i + 1);
-                break;
-            case 0x06:
-                parsed = decode_range_measurement_owr_dl_tdoa_v2(payload, payload_len, &offset, mac_addressing_mode ? 8 : 2, i + 1);
-                break;
-            default:
-                parsed = decode_range_measurement_unknown(i + 1, ranging_measurement_type);
-                offset = payload_len;
-                break;
-        }
-
-        if (!parsed) {
-            if (ui_color_enabled) {
-                printf("      %s%sWARNING:%s Stopping measurement parsing after entry %u\n", 
-                       ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, i + 1);
-            } else {
-                printf("      WARNING: Stopping measurement parsing after entry %u\n", i + 1);
-            }
-            break;
-        }
-    }
-
-    // Check for any remaining vendor-specific data
-    if (offset < payload_len) {
-        if (ui_color_enabled) {
-            printf("    %s%sVendor-specific Data:%s %d bytes\n", ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, ANSI_RESET, payload_len - offset);
-        } else {
-            printf("    Vendor-specific Data: %d bytes\n", payload_len - offset);
-        }
-        print_hex_data(4,
-                       "Trailing Vendor Data",
-                       &payload[offset],
-                       payload_len - offset,
-                       32);
-    }}
+    ui_decode_range_data_ntf(payload, payload_len);
+}
 
 void ui_decode_range_data_ntf(unsigned char* payload, int payload_len) {
     if (ui_color_enabled) {
-        printf("  %s%sRANGE_DATA_NTF:%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
+        printf("  %s%sRANGE_DATA_NTF (SESSION_INFO_NTF):%s\n", ANSI_COLOR_BRIGHT_MAGENTA, ANSI_BOLD, ANSI_RESET);
     } else {
-        printf("  RANGE_DATA_NTF:\n");
+        printf("  RANGE_DATA_NTF (SESSION_INFO_NTF):\n");
     }
 
     if (payload_len < 25) {
@@ -3906,15 +3751,13 @@ void ui_decode_range_data_ntf(unsigned char* payload, int payload_len) {
 
     uint32_t sequence_number = ui_read_u32_le(&payload[0]);
     uint32_t session_token = ui_read_u32_le(&payload[4]);
-    uint8_t rcr_indicator = payload[8];
+    uint8_t reserved_byte = payload[8];
     uint32_t ranging_interval_ms = ui_read_u32_le(&payload[9]);
     uint8_t measurement_type = payload[13];
     uint8_t mac_addressing_mode = payload[15];
     uint32_t primary_session_id = ui_read_u32_le(&payload[16]);
     uint8_t measurement_count = payload[24];
 
-    const char* rcr_role = (rcr_indicator == 0x01) ? "Initiator" :
-                           (rcr_indicator == 0x00) ? "Responder" : "Unknown";
     const char* measurement_type_desc = map_ranging_measurement_type(measurement_type);
     const char* mac_mode_desc = mac_addressing_mode ? "Extended Address (8 bytes)" : "Short Address (2 bytes)";
     int mac_len = mac_addressing_mode ? 8 : 2;
@@ -3930,13 +3773,12 @@ void ui_decode_range_data_ntf(unsigned char* payload, int payload_len) {
                            "0x%08X",
                            session_token);
     print_field_line_color(4,
-                           "RCR Role",
+                           "Reserved Byte",
                            ANSI_COLOR_BRIGHT_YELLOW,
-                           "%s (0x%02X)",
-                           rcr_role,
-                           rcr_indicator);
+                           "0x%02X",
+                           reserved_byte);
     print_field_line_color(4,
-                           "Ranging Interval",
+                           "Current Ranging Interval",
                            ANSI_COLOR_BRIGHT_YELLOW,
                            "%u ms",
                            ranging_interval_ms);

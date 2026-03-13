@@ -293,8 +293,8 @@ int main(void) {
                 SESSION_INFO_NTF,
                 k_session_info_ntf,
                 sizeof(k_session_info_ntf),
-                "SESSION_INFO_NTF - Standard FiRa Ranging Notification",
-                "RANGE_DATA_NTF"
+                "RANGE_DATA_NTF (SESSION_INFO_NTF)",
+                "SESSION_INFO_NTF - Standard FiRa Ranging Notification"
             },
             {
                 "session_start_cmd",
@@ -412,7 +412,7 @@ int main(void) {
                 k_minimal_payload,
                 sizeof(k_minimal_payload),
                 "No specific decoder for SESSION_CONTROL_NOTIFICATION opcode 0x3F",
-                "SESSION_INFO_NTF - Standard FiRa Ranging Notification"
+                "RANGE_DATA_NTF (SESSION_INFO_NTF)"
             },
             {
                 "android_ntf_unknown_oid",

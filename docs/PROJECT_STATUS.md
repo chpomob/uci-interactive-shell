@@ -52,6 +52,11 @@ execution path, and changes are currently limited to:
   `SESSION_CONTROL + SESSION_INFO_NTF`, which guards against stale duplicate
   branches in `uci_packet_analyzer.c` that helper-only decoder tests would not
   catch.
+- The active decoder surface for `SESSION_CONTROL + SESSION_INFO_NTF` now
+  follows Cherry's `range_data_ntf` model: the packet is still the same wire
+  opcode, but analyzer/plain/UI output presents it as
+  `RANGE_DATA_NTF (SESSION_INFO_NTF)` and no longer treats byte 8 as an
+  `RCR` role field.
 - A dedicated table-driven analyzer dispatch suite now runs representative live
   packets through `uci_analyze_packet_core()` for CORE and SESSION command,
   response, and notification paths, and now also verifies the expected

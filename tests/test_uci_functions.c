@@ -457,18 +457,18 @@ int main() {
         g_captured_packet_len = 0;
         free(packet);
 
-        if (strstr(output, "SESSION_INFO_NTF - Standard FiRa Ranging Notification") == NULL) {
-            TEST_FAIL("Analyzer did not dispatch SESSION_INFO_NTF to the standard session info decoder");
+        if (strstr(output, "RANGE_DATA_NTF (SESSION_INFO_NTF)") == NULL) {
+            TEST_FAIL("Analyzer did not dispatch SESSION_INFO_NTF to the Cherry-aligned range data decoder");
             goto test_case_end_packet_analyzer_dispatch;
         }
 
-        if (strstr(output, "RANGE_DATA_NTF") != NULL) {
-            TEST_FAIL("Analyzer dispatched SESSION_INFO_NTF through the stale range data path");
+        if (strstr(output, "SESSION_INFO_NTF - Standard FiRa Ranging Notification") != NULL) {
+            TEST_FAIL("Analyzer still exposed the legacy session-info banner");
             goto test_case_end_packet_analyzer_dispatch;
         }
 
         if (strstr(output, "No specific decoder for SESSION_CONTROL_NOTIFICATION") != NULL) {
-            TEST_FAIL("Analyzer fell through instead of dispatching the session info decoder");
+            TEST_FAIL("Analyzer fell through instead of dispatching the Cherry-aligned range data decoder");
             goto test_case_end_packet_analyzer_dispatch;
         }
 
@@ -659,9 +659,9 @@ int main() {
         static const char* k_expected_lines[] = {
             "Sequence Number: 0",
             "Session Token: 0x05040302",
-            "RCR Indicator: 0x06",
+            "Reserved Byte: 0x06",
             "Current Ranging Interval: 2055 ms",
-            "HUS Primary Session ID: 0x00000000"
+            "Primary Session ID: 0x00000000"
         };
 
         if (capture_stdout(emit_plain_session_info_ntf, plain_output, sizeof(plain_output)) == 0) {

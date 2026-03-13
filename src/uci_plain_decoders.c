@@ -952,7 +952,7 @@ void decode_session_status_ntf(unsigned char* payload, int payload_len) {
 }
 
 void decode_session_info_ntf(unsigned char* payload, int payload_len) {
-    printf("    SESSION_INFO_NTF - Session Information/Ranging Notification\n");
+    printf("    RANGE_DATA_NTF (SESSION_INFO_NTF) - Ranging Data Notification\n");
 
     if (payload_len < 24) {
         printf("      ERROR: Payload too short (%d bytes, need at least 24 for header)\n", payload_len);
@@ -961,7 +961,7 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
 
     unsigned int sequence_number = read_u32_le(&payload[0]);
     unsigned int session_token = read_u32_le(&payload[4]);
-    unsigned char rcr_indicator = payload[8];
+    unsigned char reserved_byte = payload[8];
     unsigned int current_ranging_interval = read_u32_le(&payload[9]);
     unsigned char ranging_measurement_type = payload[13];
     unsigned char reserved1 = payload[14];
@@ -971,7 +971,7 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
 
     printf("      Sequence Number: %u\n", sequence_number);
     printf("      Session Token: 0x%08X\n", session_token);
-    printf("      RCR Indicator: 0x%02X\n", rcr_indicator);
+    printf("      Reserved Byte: 0x%02X\n", reserved_byte);
     printf("      Current Ranging Interval: %u ms\n", current_ranging_interval);
     printf("      Ranging Measurement Type: 0x%02X", ranging_measurement_type);
     switch (ranging_measurement_type) {
@@ -992,7 +992,7 @@ void decode_session_info_ntf(unsigned char* payload, int payload_len) {
         printf(" (EXTENDED_ADDRESS)\n");
     }
 
-    printf("      HUS Primary Session ID: 0x%08X\n", hus_primary_session_id);
+    printf("      Primary Session ID: 0x%08X\n", hus_primary_session_id);
 
     int offset = 24;
     if (offset < payload_len) {

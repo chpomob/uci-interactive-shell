@@ -157,6 +157,9 @@ command tables.
   sources directly, pinning the standard GIDs/OIDs, Qorvo `EXT2` opcodes, the
   Cherry `QORVO_MAC`/`QORVO_CALIB` group assignments, and the current explicit
   `GID 0x0E` basis choice against the Python-tool `ConfigManager` overlap.
+- `SESSION_CONTROL + SESSION_INFO_NTF` is now presented through the Cherry
+  `RANGE_DATA_NTF` semantic surface in analyzer and decoder output, while
+  keeping the wire opcode and constant names unchanged.
 - `tests/test_uci_functions.c` now includes analyzer-dispatch regressions for
   live packet routing, so duplicate or unreachable `MT/GID/OID` decode branches
   are caught even when individual decoder helpers still pass in isolation.

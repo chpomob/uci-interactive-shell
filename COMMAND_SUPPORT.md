@@ -89,6 +89,10 @@ parameter validation rules before handing control to the command handlers in
 - `tests/test_uci_functions.c` now exercises `uci_analyze_packet_core()` with a
   real `SESSION_INFO_NTF` packet, closing the gap where decoder helper tests
   could pass while the analyzer dispatch table still contained dead branches.
+- The active decode surface now follows Cherry for `SESSION_CONTROL +
+  SESSION_INFO_NTF`: the packet is presented as `RANGE_DATA_NTF
+  (SESSION_INFO_NTF)` rather than as a separate session-info-only notification
+  family, while the wire opcode remains `UCI_OID_SESSION_INFO`.
 - `tests/test_analyzer_dispatch.c` now covers representative live dispatch for
   `COMMAND`, `RESPONSE`, and `NOTIFICATION` packets in the CORE,
   `SESSION_CONFIG`, and `SESSION_CONTROL` families, and now also asserts the
@@ -114,7 +118,8 @@ parameter validation rules before handing control to the command handlers in
   client sources directly so standard FiRa GIDs/OIDs, Qorvo `EXT2` opcodes,
   Cherry `QORVO_MAC`/`QORVO_CALIB` assignments, and the `SESSION_CONTROL` +
   `SESSION_INFO` wire mapping cannot silently drift away from the checked-in
-  SDK sources.
+  SDK sources. The same suite now also asserts Cherry's
+  `uci_rsp_range_data_ntf_handler` binding for that packet family.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

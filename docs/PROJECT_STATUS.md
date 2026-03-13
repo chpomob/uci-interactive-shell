@@ -12,6 +12,9 @@ execution path, and changes are currently limited to:
 ## Protocol Source Of Truth
 
 - Standard UCI constants in `include/uci_pdl.h` follow Android UWB definitions.
+- The same header now also pins Qorvo vendor-group values against the Cherry C
+  headers under `uci_analysis/uwb/Samples/Cherry/uci/uci_core/include/uci`,
+  including the explicit choice that `GID 0x0E` means `QORVO_MAC`.
 - Vendor-specific opcode constants in `include/uci_opcode_constants.h` follow
   Qorvo QM SDK values, with Android vendor opcodes kept alongside them.
 - Code should use named constants from those headers instead of embedding local
@@ -26,6 +29,11 @@ execution path, and changes are currently limited to:
   centralized Qorvo opcode constants instead of local numeric literals.
 - `tests/test_protocol_definitions.c` pins the current Android/Qorvo constant
   mappings and checks command metadata plus representative typed dispatch flows.
+- `tests/test_cherry_alignment.c` now reads the local Cherry headers and client
+  sources directly, enforcing that the currently supported standard FiRa and
+  Qorvo `EXT2` definitions still match the SDK sources and that the repository
+  keeps its documented `GID 0x0E` basis choice explicit even though the Python
+  Qorvo tools expose `ConfigManager` at that same value.
 - Shared enum helpers now cover device state, status, session state, session
   reason, and session type decoding in the plain CLI/analyzer paths, reducing
   duplicated protocol switch statements without collapsing the richer UI lookup

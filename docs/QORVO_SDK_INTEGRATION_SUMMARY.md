@@ -122,6 +122,21 @@ The SDK enables:
 - Validate our implementation against the official test vectors
 - Add hardware integration tests using Qorvo development kits
 
+## Current Enforcement Basis
+
+- Standard FiRa/UCI constants are enforced in this repository through
+  `include/uci_pdl.h`, which stays aligned with Android UWB definitions.
+- Qorvo vendor-group and vendor-opcode values are cross-checked against the
+  Cherry C headers in
+  `uci_analysis/uwb/Samples/Cherry/uci/uci_core/include/uci`.
+- The automated test suite now reads those Cherry headers and Cherry client
+  sources directly so supported GIDs/OIDs and Qorvo `EXT2` opcodes cannot drift
+  silently away from the local SDK sources.
+- The Qorvo SDK is not internally uniform for `GID 0x0E`: Cherry C headers use
+  `QORVO_MAC`, while the Python Qorvo tools expose `ConfigManager`. This
+  repository currently follows the Cherry C-header basis and documents that
+  choice explicitly.
+
 ## Conclusion
 
 The integration of the Qorvo UWB SDK significantly enhances our UCI implementation by providing:

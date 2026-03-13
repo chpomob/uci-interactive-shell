@@ -4,8 +4,8 @@
 /*
  * Protocol constants in this header are the repository's authoritative UCI
  * definitions. Standard UCI message/group/opcode values follow the Android UWB
- * definitions; Qorvo vendor groups/opcodes extend that surface with QM SDK
- * values.
+ * definitions; Qorvo vendor groups/opcodes extend that surface with values
+ * cross-checked against the Qorvo SDK Cherry C headers.
  */
 
 #include "uci_opcode_constants.h"
@@ -22,8 +22,9 @@
 
 /*
  * Group ID (GID) definitions.
- * Standard groups track Android UWB definitions; QORVO_EXT2 follows the QM SDK
- * vendor assignment at 0x0B.
+ * Standard groups track Android UWB definitions. Qorvo vendor groups track the
+ * Cherry C headers in the local SDK tree; in particular, GID 0x0E follows
+ * Cherry's QORVO_MAC assignment rather than the Python-tool ConfigManager alias.
  */
 #define CORE            0x00
 #define SESSION_CONFIG  0x01
@@ -32,6 +33,8 @@
 #define QORVO_EXT2      0x0B
 #define ANDROID         0x0C
 #define TEST            0x0D
+#define QORVO_MAC       0x0E
+#define QORVO_CALIB     0x0F
 
 // OID (Opcode ID) definitions for CORE group - aligned with Android UWB spec
 #define CORE_DEVICE_RESET         0x00

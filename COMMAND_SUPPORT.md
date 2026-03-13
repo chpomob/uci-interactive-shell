@@ -44,9 +44,15 @@ parameter validation rules before handing control to the command handlers in
 ## Protocol Definition Policy
 
 - `include/uci_pdl.h` is the authoritative source for standard UCI constants in
-  this repository. Those values are kept aligned with Android UWB definitions.
+  this repository. Those values are kept aligned with Android UWB definitions
+  and cross-checked against the Cherry C headers shipped in the local Qorvo
+  SDK tree.
 - `include/uci_opcode_constants.h` is the authoritative source for Qorvo and
   Android vendor opcode values. Qorvo values follow the QM SDK.
+- For `GID 0x0E`, this repository now follows the Cherry C-header assignment
+  `QORVO_MAC`. The Python Qorvo tools still expose `ConfigManager` at the same
+  numeric value; that overlap is treated as a documented SDK inconsistency, not
+  as this repository's public protocol basis.
 - Shared semantic helpers in `uci_packet_utils` are the preferred way to decode
   protocol enums in CLI/analyzer code, so repeated status, device-state,
   session-state, and session-reason switch blocks do not drift apart.
@@ -104,6 +110,11 @@ parameter validation rules before handing control to the command handlers in
   analyzer boundary. It asserts short-header rejection, truncated-payload
   clamping, and that decoders receive the clamped payload length instead of the
   stale header length.
+- `tests/test_cherry_alignment.c` reads the local Cherry headers and Cherry
+  client sources directly so standard FiRa GIDs/OIDs, Qorvo `EXT2` opcodes,
+  Cherry `QORVO_MAC`/`QORVO_CALIB` assignments, and the `SESSION_CONTROL` +
+  `SESSION_INFO` wire mapping cannot silently drift away from the checked-in
+  SDK sources.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

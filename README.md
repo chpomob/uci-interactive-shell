@@ -120,9 +120,14 @@ command tables.
 
 ### Source Of Truth
 - Standard UCI message, group, status, and opcode definitions are pinned to the
-  Android UWB code definitions in `include/uci_pdl.h`.
+  Android UWB code definitions in `include/uci_pdl.h`, with Qorvo vendor-group
+  values cross-checked against the Cherry C headers in
+  `uci_analysis/uwb/Samples/Cherry/uci/uci_core/include/uci`.
 - Qorvo vendor groups and opcodes are pinned to QM SDK values in
   `include/uci_opcode_constants.h`.
+- `GID 0x0E` now follows the Cherry C-header basis as `QORVO_MAC`; the Python
+  Qorvo tools still expose `ConfigManager` at `0x0E`, but this repository does
+  not treat that alias as the authoritative protocol-group definition.
 - Shared enum decoding helpers in `include/uci_packet_utils.h` own the plain
   CLI/analyzer mapping for status, device-state, session-state, and
   session-reason values.
@@ -148,6 +153,10 @@ command tables.
 - Tests in `tests/test_protocol_definitions.c` and
   `tests/test_protocol_fixtures.c` enforce those mappings, the command metadata
   that depends on them, and representative byte-level packet fixtures.
+- `tests/test_cherry_alignment.c` now reads the local Cherry headers and client
+  sources directly, pinning the standard GIDs/OIDs, Qorvo `EXT2` opcodes, the
+  Cherry `QORVO_MAC`/`QORVO_CALIB` group assignments, and the current explicit
+  `GID 0x0E` basis choice against the Python-tool `ConfigManager` overlap.
 - `tests/test_uci_functions.c` now includes analyzer-dispatch regressions for
   live packet routing, so duplicate or unreachable `MT/GID/OID` decode branches
   are caught even when individual decoder helpers still pass in isolation.

@@ -54,6 +54,11 @@ execution path, and changes are currently limited to:
   slipped through. Android response routing is still only covered through the
   generic analyzer fallback path, which is now an explicit tested behavior
   rather than an unexamined gap.
+- Plain/UI semantic parity is now regression-tested for representative
+  `CORE_DEVICE_INFO_RSP`, `SESSION_STATUS_NTF`, and `SESSION_INFO_NTF` payloads.
+  Those tests intentionally compare shared labels and values rather than banner
+  text, which keeps decoder meaning aligned without forcing identical
+  presentation layers.
 - Plain response/notification payload decoding now lives in
   `src/uci_plain_decoders.c`, which trims decoder responsibility out of
   `uci.c` and adds a direct regression check for the plain session-state path.

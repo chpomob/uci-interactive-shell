@@ -161,6 +161,10 @@ command tables.
 - `tests/test_transport_parity.c` verifies that the same command handlers emit
   identical control-packet bytes in simulation mode and hardware mode before
   any hardware response is involved.
+- `tests/test_uci_functions.c` now also pins semantic parity between plain and
+  UI decode paths for representative CORE and SESSION packets, so richer UI
+  formatting cannot silently drift away from the underlying plain-protocol
+  interpretation.
 
 ### Current Consolidation Work
 1. Keep protocol constants centralized and remove local literal fallbacks.

@@ -87,6 +87,89 @@ static void emit_plain_set_app_config_rsp_read_only(void) {
     decode_session_set_app_config_rsp(payload, sizeof(payload));
 }
 
+static void emit_plain_core_device_info_rsp(void) {
+    unsigned char payload[] = {
+        UCI_STATUS_OK,
+        0x00, 0x01,
+        0x00, 0x02,
+        0x00, 0x02,
+        0x00, 0x01,
+        0x00
+    };
+    decode_core_device_info_rsp(payload, sizeof(payload));
+}
+
+static void emit_ui_core_device_info_rsp(void) {
+    unsigned char payload[] = {
+        UCI_STATUS_OK,
+        0x00, 0x01,
+        0x00, 0x02,
+        0x00, 0x02,
+        0x00, 0x01,
+        0x00
+    };
+    int saved = ui_color_enabled;
+    ui_color_enabled = 0;
+    ui_decode_core_device_info_rsp(payload, sizeof(payload));
+    ui_color_enabled = saved;
+}
+
+static void emit_plain_session_status_ntf(void) {
+    unsigned char payload[] = {
+        0x01, 0x00, 0x00, 0x00,
+        SESSION_STATE_ACTIVE,
+        STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS
+    };
+    decode_session_status_ntf(payload, sizeof(payload));
+}
+
+static void emit_ui_session_status_ntf(void) {
+    unsigned char payload[] = {
+        0x01, 0x00, 0x00, 0x00,
+        SESSION_STATE_ACTIVE,
+        STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS
+    };
+    int saved = ui_color_enabled;
+    ui_color_enabled = 0;
+    ui_decode_session_status_ntf(payload, sizeof(payload));
+    ui_color_enabled = saved;
+}
+
+static void emit_plain_session_info_ntf(void) {
+    unsigned char payload[] = {
+        0x00, 0x00, 0x00, 0x00,
+        0x02, 0x03, 0x04, 0x05,
+        0x06,
+        0x07, 0x08, 0x00, 0x00,
+        0x01,
+        0x00,
+        0x01,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00
+    };
+    decode_session_info_ntf(payload, sizeof(payload));
+}
+
+static void emit_ui_session_info_ntf(void) {
+    unsigned char payload[] = {
+        0x00, 0x00, 0x00, 0x00,
+        0x02, 0x03, 0x04, 0x05,
+        0x06,
+        0x07, 0x08, 0x00, 0x00,
+        0x01,
+        0x00,
+        0x01,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00
+    };
+    int saved = ui_color_enabled;
+    ui_color_enabled = 0;
+    ui_decode_session_info_ntf(payload, sizeof(payload));
+    ui_color_enabled = saved;
+}
+
 static unsigned char *g_captured_packet = NULL;
 static size_t g_captured_packet_len = 0;
 static int g_saved_color_enabled = 1;
@@ -502,6 +585,106 @@ int main() {
         TEST_PASS();
     }
     test_case_end_plain_decoder:;
+
+    TEST_CASE(core_device_info_plain_ui_semantic_parity);
+    {
+        char plain_output[1024];
+        char ui_output[1024];
+        static const char* k_expected_lines[] = {
+            "Status: 0x00 (OK)",
+            "UCI Version: 0x0100",
+            "MAC Version: 0x0200",
+            "PHY Version: 0x0200",
+            "UCI Test Version: 0x0100"
+        };
+
+        if (capture_stdout(emit_plain_core_device_info_rsp, plain_output, sizeof(plain_output)) == 0) {
+            TEST_FAIL("Failed to capture plain core device info output");
+            goto test_case_end_core_device_info_parity;
+        }
+
+        if (capture_stdout(emit_ui_core_device_info_rsp, ui_output, sizeof(ui_output)) == 0) {
+            TEST_FAIL("Failed to capture UI core device info output");
+            goto test_case_end_core_device_info_parity;
+        }
+
+        for (size_t i = 0; i < sizeof(k_expected_lines) / sizeof(k_expected_lines[0]); i++) {
+            if (strstr(plain_output, k_expected_lines[i]) == NULL ||
+                strstr(ui_output, k_expected_lines[i]) == NULL) {
+                TEST_FAIL(k_expected_lines[i]);
+                goto test_case_end_core_device_info_parity;
+            }
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_core_device_info_parity:;
+
+    TEST_CASE(session_status_plain_ui_semantic_parity);
+    {
+        char plain_output[1024];
+        char ui_output[1024];
+        static const char* k_expected_lines[] = {
+            "Session Token: 0x00000001",
+            "Session State: 0x02 (ACTIVE)",
+            "STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS"
+        };
+
+        if (capture_stdout(emit_plain_session_status_ntf, plain_output, sizeof(plain_output)) == 0) {
+            TEST_FAIL("Failed to capture plain session status output");
+            goto test_case_end_session_status_parity;
+        }
+
+        if (capture_stdout(emit_ui_session_status_ntf, ui_output, sizeof(ui_output)) == 0) {
+            TEST_FAIL("Failed to capture UI session status output");
+            goto test_case_end_session_status_parity;
+        }
+
+        for (size_t i = 0; i < sizeof(k_expected_lines) / sizeof(k_expected_lines[0]); i++) {
+            if (strstr(plain_output, k_expected_lines[i]) == NULL ||
+                strstr(ui_output, k_expected_lines[i]) == NULL) {
+                TEST_FAIL(k_expected_lines[i]);
+                goto test_case_end_session_status_parity;
+            }
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_session_status_parity:;
+
+    TEST_CASE(session_info_plain_ui_semantic_parity);
+    {
+        char plain_output[2048];
+        char ui_output[2048];
+        static const char* k_expected_lines[] = {
+            "Sequence Number: 0",
+            "Session Token: 0x05040302",
+            "RCR Indicator: 0x06",
+            "Current Ranging Interval: 2055 ms",
+            "HUS Primary Session ID: 0x00000000"
+        };
+
+        if (capture_stdout(emit_plain_session_info_ntf, plain_output, sizeof(plain_output)) == 0) {
+            TEST_FAIL("Failed to capture plain session info output");
+            goto test_case_end_session_info_parity;
+        }
+
+        if (capture_stdout(emit_ui_session_info_ntf, ui_output, sizeof(ui_output)) == 0) {
+            TEST_FAIL("Failed to capture UI session info output");
+            goto test_case_end_session_info_parity;
+        }
+
+        for (size_t i = 0; i < sizeof(k_expected_lines) / sizeof(k_expected_lines[0]); i++) {
+            if (strstr(plain_output, k_expected_lines[i]) == NULL ||
+                strstr(ui_output, k_expected_lines[i]) == NULL) {
+                TEST_FAIL(k_expected_lines[i]);
+                goto test_case_end_session_info_parity;
+            }
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_session_info_parity:;
 
     // Test header field extraction via struct helper
     TEST_CASE(header_struct_extraction);

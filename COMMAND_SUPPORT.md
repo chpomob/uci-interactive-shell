@@ -91,6 +91,10 @@ parameter validation rules before handing control to the command handlers in
   also audits the top-level branch signatures in `src/uci_packet_analyzer.c`
   so duplicate `MT/GID` routes are treated as a test failure instead of
   waiting for runtime symptoms.
+- `tests/test_uci_functions.c` now compares plain and UI decoder output for
+  representative `CORE_DEVICE_INFO_RSP`, `SESSION_STATUS_NTF`, and
+  `SESSION_INFO_NTF` payloads, enforcing shared semantic labels and values even
+  when the UI path uses richer formatting.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

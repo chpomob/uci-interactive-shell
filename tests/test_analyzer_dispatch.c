@@ -28,6 +28,65 @@ typedef struct {
 
 static analyzer_capture_context_t g_capture_ctx;
 
+static char* read_text_file(const char* path) {
+    FILE* file = fopen(path, "rb");
+    long size;
+    char* buffer;
+
+    if (!file) {
+        return NULL;
+    }
+
+    if (fseek(file, 0, SEEK_END) != 0) {
+        fclose(file);
+        return NULL;
+    }
+
+    size = ftell(file);
+    if (size < 0) {
+        fclose(file);
+        return NULL;
+    }
+
+    if (fseek(file, 0, SEEK_SET) != 0) {
+        fclose(file);
+        return NULL;
+    }
+
+    buffer = malloc((size_t)size + 1);
+    if (!buffer) {
+        fclose(file);
+        return NULL;
+    }
+
+    if (fread(buffer, 1, (size_t)size, file) != (size_t)size) {
+        free(buffer);
+        fclose(file);
+        return NULL;
+    }
+
+    buffer[size] = '\0';
+    fclose(file);
+    return buffer;
+}
+
+static size_t count_substring(const char* text, const char* needle) {
+    size_t count = 0;
+    const char* cursor = text;
+    size_t needle_len = strlen(needle);
+
+    if (!text || !needle || needle_len == 0) {
+        return 0;
+    }
+
+    while ((cursor = strstr(cursor, needle)) != NULL) {
+        count++;
+        cursor += needle_len;
+    }
+
+    return count;
+}
+
 static size_t capture_stdout(void (*fn)(void), char* buffer, size_t buffer_len) {
     FILE* tmp = tmpfile();
     int tmp_fd;
@@ -379,6 +438,80 @@ int main(void) {
         TEST_PASS();
     }
     test_case_end_table_driven_fallbacks:;
+#undef test_case_end
+
+#define test_case_end test_case_end_dispatch_registration_audit
+    TEST_CASE(dispatch_registration_routes_are_unique);
+    {
+        static const struct {
+            const char* name;
+            const char* signature;
+        } k_signatures[] = {
+            { "session_config_command_route", "if (mt == COMMAND && gid == SESSION_CONFIG) {" },
+            { "session_control_command_route", "} else if (mt == COMMAND && gid == SESSION_CONTROL) {" },
+            { "core_response_route", "} else if (mt == RESPONSE && gid == CORE) {" },
+            { "core_notification_route", "} else if (mt == NOTIFICATION && gid == CORE) {" },
+            { "session_config_response_route", "} else if (mt == RESPONSE && gid == SESSION_CONFIG) {" },
+            { "session_config_notification_route", "} else if (mt == NOTIFICATION && gid == SESSION_CONFIG) {" },
+            { "session_control_response_route", "} else if (mt == RESPONSE && gid == SESSION_CONTROL) {" },
+            { "session_control_notification_route", "} else if (mt == NOTIFICATION && gid == SESSION_CONTROL) {" },
+            { "android_notification_route", "} else if (mt == NOTIFICATION && gid == ANDROID) {" },
+        };
+        char* source = read_text_file("src/uci_packet_analyzer.c");
+
+        if (!source) {
+            TEST_FAIL("read_uci_packet_analyzer_source");
+            goto test_case_end_dispatch_registration_audit;
+        }
+
+        for (size_t i = 0; i < sizeof(k_signatures) / sizeof(k_signatures[0]); i++) {
+            if (count_substring(source, k_signatures[i].signature) != 1) {
+                free(source);
+                TEST_FAIL(k_signatures[i].name);
+                goto test_case_end_dispatch_registration_audit;
+            }
+        }
+
+        if (count_substring(source, "analyze_data_message_payload(gid, pbf, payload_ptr, payload_len_int);") != 1) {
+            free(source);
+            TEST_FAIL("data_dispatch_call_count");
+            goto test_case_end_dispatch_registration_audit;
+        }
+
+        if (count_substring(source, "No specific decoder for MT=%d, GID=%d, OP=0x%02X") != 2) {
+            free(source);
+            TEST_FAIL("generic_fallback_message_count");
+            goto test_case_end_dispatch_registration_audit;
+        }
+
+        if (count_substring(source, "case SESSION_INFO_NTF:") != 2) {
+            free(source);
+            TEST_FAIL("session_info_case_count");
+            goto test_case_end_dispatch_registration_audit;
+        }
+
+        if (count_substring(source, "case SESSION_STATUS_NTF:") != 2) {
+            free(source);
+            TEST_FAIL("session_status_case_count");
+            goto test_case_end_dispatch_registration_audit;
+        }
+
+        if (count_substring(source, "case SESSION_DATA_CREDIT_NTF:") != 2) {
+            free(source);
+            TEST_FAIL("session_data_credit_case_count");
+            goto test_case_end_dispatch_registration_audit;
+        }
+
+        if (count_substring(source, "case SESSION_DATA_TRANSFER_STATUS_NTF:") != 2) {
+            free(source);
+            TEST_FAIL("session_data_transfer_status_case_count");
+            goto test_case_end_dispatch_registration_audit;
+        }
+
+        free(source);
+        TEST_PASS();
+    }
+    test_case_end_dispatch_registration_audit:;
 #undef test_case_end
 
     TEST_SUITE_END();

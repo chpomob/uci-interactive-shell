@@ -155,6 +155,9 @@ command tables.
   suite for representative command, response, and notification packets across
   the currently supported CORE and SESSION families, plus family-specific
   unsupported-opcode fallback coverage for CORE, SESSION, and Android routing.
+  The same suite now also audits the analyzer source for unique top-level
+  dispatch routes so duplicate `MT/GID` branches are caught before they become
+  unreachable runtime behavior.
 - `tests/test_transport_parity.c` verifies that the same command handlers emit
   identical control-packet bytes in simulation mode and hardware mode before
   any hardware response is involved.

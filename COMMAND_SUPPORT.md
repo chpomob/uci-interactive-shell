@@ -87,7 +87,10 @@ parameter validation rules before handing control to the command handlers in
   `COMMAND`, `RESPONSE`, and `NOTIFICATION` packets in the CORE,
   `SESSION_CONFIG`, and `SESSION_CONTROL` families, and now also asserts the
   family-specific fallback strings for unsupported CORE, SESSION, and Android
-  opcodes so dead branches and accidental generic fallbacks are visible.
+  opcodes so dead branches and accidental generic fallbacks are visible. It
+  also audits the top-level branch signatures in `src/uci_packet_analyzer.c`
+  so duplicate `MT/GID` routes are treated as a test failure instead of
+  waiting for runtime symptoms.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

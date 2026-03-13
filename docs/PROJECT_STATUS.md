@@ -37,6 +37,9 @@ execution path, and changes are currently limited to:
 - Shared plain decode-output helpers now back the `uci.c` and
   `uci_packet_analyzer.c` status/state reporting paths, so those two modules no
   longer maintain separate textual protocol semantics.
+- The plain response decoder now reuses those shared decode helpers for UCI
+  status and data-transfer status output, which removes most of the repeated
+  status-label switch blocks from `src/uci_plain_decoders.c`.
 - Plain response/notification payload decoding now lives in
   `src/uci_plain_decoders.c`, which trims decoder responsibility out of
   `uci.c` and adds a direct regression check for the plain session-state path.

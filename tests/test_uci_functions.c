@@ -76,6 +76,15 @@ static void emit_plain_session_get_state_rsp(void) {
     decode_session_get_state_rsp(payload, sizeof(payload));
 }
 
+static void emit_data_transfer_status_line_error_rejected(void) {
+    uci_print_data_transfer_status_line("Status", UCI_DATA_TRANSFER_STATUS_ERROR_REJECTED);
+}
+
+static void emit_plain_set_app_config_rsp_read_only(void) {
+    unsigned char payload[] = { UCI_STATUS_OK, 0x01, DEVICE_TYPE, UCI_STATUS_READ_ONLY };
+    decode_session_set_app_config_rsp(payload, sizeof(payload));
+}
+
 // Test suite for UCI functions
 int main() {
     TEST_SUITE(uci_functions);
@@ -266,6 +275,47 @@ int main() {
         TEST_PASS();
     }
     test_case_end_dm_session:;
+
+    TEST_CASE(data_transfer_status_line_shared_lookup);
+    {
+        char output[256];
+
+        if (capture_stdout(emit_data_transfer_status_line_error_rejected, output, sizeof(output)) == 0) {
+            TEST_FAIL("Failed to capture data transfer status line output");
+            goto test_case_end_data_transfer_status_line;
+        }
+
+        if (strstr(output, "Status: 0x04 (ERROR_REJECTED)") == NULL) {
+            TEST_FAIL("Data transfer status line did not use shared lookup label");
+            goto test_case_end_data_transfer_status_line;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_data_transfer_status_line:;
+
+    TEST_CASE(plain_set_app_config_rsp_uses_shared_status_label);
+    {
+        char output[512];
+
+        if (capture_stdout(emit_plain_set_app_config_rsp_read_only, output, sizeof(output)) == 0) {
+            TEST_FAIL("Failed to capture plain set_app_config output");
+            goto test_case_end_plain_set_app_config;
+        }
+
+        if (strstr(output, "Status: 0x00 (OK)") == NULL) {
+            TEST_FAIL("Top-level status line missing shared OK label");
+            goto test_case_end_plain_set_app_config;
+        }
+
+        if (strstr(output, "Status: 0x09 (READ_ONLY)") == NULL) {
+            TEST_FAIL("Config status line missing shared READ_ONLY label");
+            goto test_case_end_plain_set_app_config;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_plain_set_app_config:;
 
     TEST_CASE(data_message_builder_invalid_params);
     {

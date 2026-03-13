@@ -350,18 +350,7 @@ void decode_session_data_transfer_status_ntf(unsigned char* payload, int payload
         unsigned char status = payload[6];
         unsigned char tx_count = payload[7];
 
-        printf("      Status: 0x%02X", status);
-        switch (status) {
-            case UCI_DATA_TRANSFER_STATUS_REPETITION_OK: printf(" (REPETITION_OK)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_OK: printf(" (OK)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER: printf(" (ERROR_DATA_TRANSFER)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_ERROR_NO_CREDIT_AVAILABLE: printf(" (ERROR_NO_CREDIT_AVAILABLE)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_ERROR_REJECTED: printf(" (ERROR_REJECTED)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_SESSION_TYPE_NOT_SUPPORTED: printf(" (SESSION_TYPE_NOT_SUPPORTED)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_ERROR_DATA_TRANSFER_IS_ONGOING: printf(" (ERROR_DATA_TRANSFER_IS_ONGOING)\n"); break;
-            case UCI_DATA_TRANSFER_STATUS_INVALID_FORMAT: printf(" (INVALID_FORMAT)\n"); break;
-            default: printf(" (UNKNOWN)\n"); break;
-        }
+        uci_print_data_transfer_status_line("Status", status);
 
         printf("      TX Count: %d\n", tx_count);
     }
@@ -389,17 +378,7 @@ void decode_core_device_info_rsp(unsigned char* payload, int payload_len) {
     unsigned short phy_version = read_u16_le(&payload[5]);
     unsigned short uci_test_version = read_u16_le(&payload[7]);
 
-    printf("      Status: 0x%02X", status);
-    switch (status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_SYNTAX_ERROR: printf(" (SYNTAX_ERROR)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        case UCI_STATUS_INVALID_RANGE: printf(" (INVALID_RANGE)\n"); break;
-        case UCI_STATUS_INVALID_MSG_SIZE: printf(" (INVALID_MSG_SIZE)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    uci_print_status_line("Status", status);
 
     printf("      UCI Version: 0x%04X\n", uci_version);
     printf("      MAC Version: 0x%04X\n", mac_version);
@@ -426,14 +405,7 @@ void decode_core_get_caps_info_rsp(unsigned char* payload, int payload_len) {
     unsigned char status = payload[0];
     unsigned char num_tlvs = payload[1];
 
-    printf("      Status: 0x%02X", status);
-    switch (status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    uci_print_status_line("Status", status);
 
     printf("      Number of TLVs: %d\n", num_tlvs);
 
@@ -527,14 +499,7 @@ void decode_core_set_config_rsp(unsigned char* payload, int payload_len) {
     unsigned char status = payload[0];
     unsigned char num_configs = payload[1];
 
-    printf("      Status: 0x%02X", status);
-    switch (status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    uci_print_status_line("Status", status);
 
     printf("      Number of Config Status: %d\n", num_configs);
 
@@ -553,14 +518,7 @@ void decode_core_set_config_rsp(unsigned char* payload, int payload_len) {
                 default: printf(" (UNKNOWN)\n"); break;
             }
 
-            printf("        Status: 0x%02X", cfg_status);
-            switch (cfg_status) {
-                case UCI_STATUS_OK: printf(" (OK)\n"); break;
-                case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-                case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-                case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-                default: printf(" (UNKNOWN)\n"); break;
-            }
+            uci_print_status_line("Status", cfg_status);
         }
     }
 }
@@ -576,14 +534,7 @@ void decode_core_get_config_rsp(unsigned char* payload, int payload_len) {
     unsigned char status = payload[0];
     unsigned char num_tlvs = payload[1];
 
-    printf("      Status: 0x%02X", status);
-    switch (status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    uci_print_status_line("Status", status);
 
     printf("      Number of TLVs: %d\n", num_tlvs);
 
@@ -693,15 +644,7 @@ void decode_session_init_rsp(unsigned char* payload, int payload_len) {
     unsigned char status = payload[0];
     unsigned int session_handle = read_u32_le(&payload[1]);
 
-    printf("      Status: 0x%02X", status);
-    switch (status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        case UCI_STATUS_SESSION_DUPLICATE: printf(" (SESSION_DUPLICATE)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    uci_print_status_line("Status", status);
 
     printf("      Session Handle: 0x%08X\n", session_handle);
 }
@@ -714,15 +657,7 @@ void decode_session_deinit_rsp(unsigned char* payload, int payload_len) {
         return;
     }
 
-    printf("      Status: 0x%02X", payload[0]);
-    switch (payload[0]) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    uci_print_status_line("Status", payload[0]);
 }
 
 void decode_session_set_app_config_rsp(unsigned char* payload, int payload_len) {
@@ -736,15 +671,7 @@ void decode_session_set_app_config_rsp(unsigned char* payload, int payload_len) 
     unsigned char status = payload[0];
     unsigned char num_configs = payload[1];
 
-    printf("      Status: 0x%02X", status);
-    switch (status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    uci_print_status_line("Status", status);
 
     printf("      Number of Config Status: %d\n", num_configs);
 
@@ -760,15 +687,7 @@ void decode_session_set_app_config_rsp(unsigned char* payload, int payload_len) 
             printf("        Config ID: 0x%02X", cfg_id);
             printf(" (%s)\n", cfg_name ? cfg_name : "UNKNOWN");
 
-            printf("        Status: 0x%02X", cfg_status);
-            switch (cfg_status) {
-                case UCI_STATUS_OK: printf(" (OK)\n"); break;
-                case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-                case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-                case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-                case UCI_STATUS_READ_ONLY: printf(" (READ_ONLY)\n"); break;
-                default: printf(" (UNKNOWN)\n"); break;
-            }
+            uci_print_status_line("Status", cfg_status);
         }
     }
 }
@@ -784,15 +703,7 @@ void decode_session_get_app_config_rsp(unsigned char* payload, int payload_len) 
     unsigned char status = payload[0];
     unsigned char num_tlvs = payload[1];
 
-    printf("      Status: 0x%02X", status);
-    switch (status) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        case UCI_STATUS_INVALID_PARAM: printf(" (INVALID_PARAM)\n"); break;
-        case UCI_STATUS_SESSION_NOT_EXIST: printf(" (SESSION_NOT_EXIST)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    uci_print_status_line("Status", status);
 
     printf("      Number of TLVs: %d\n", num_tlvs);
 
@@ -843,11 +754,7 @@ void decode_range_data_ntf(unsigned char* payload, int payload_len) {
 
     printf("      Session Token: 0x%08X\n", session_token);
     printf("      Sequence Number: %u\n", sequence_number);
-    printf("      Status: 0x%02X", status);
-    if (status == UCI_STATUS_OK) {
-        printf(" (OK)");
-    }
-    printf("\n");
+    uci_print_status_line("Status", status);
     printf("      MAC Indicator: 0x%02X (%s)\n",
            mac_indicator, mac_indicator ? "EXTENDED_ADDRESS" : "SHORT_ADDRESS");
     printf("      Measurement Count: %u\n", measurement_count);
@@ -954,13 +861,7 @@ void decode_session_get_count_rsp(unsigned char* payload, int payload_len) {
         return;
     }
 
-    printf("      Status: 0x%02X", payload[0]);
-    switch (payload[0]) {
-        case UCI_STATUS_OK: printf(" (OK)\n"); break;
-        case UCI_STATUS_REJECTED: printf(" (REJECTED)\n"); break;
-        case UCI_STATUS_FAILED: printf(" (FAILED)\n"); break;
-        default: printf(" (UNKNOWN)\n"); break;
-    }
+    uci_print_status_line("Status", payload[0]);
 
     printf("      Session Count: %d\n", payload[1]);
 }

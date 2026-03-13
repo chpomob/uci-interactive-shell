@@ -136,6 +136,9 @@ command tables.
 - Shared plain-text decode output now lives in `include/uci_decode_utils.h`,
   so `uci.c` and `uci_packet_analyzer.c` do not maintain separate status/state
   printing logic.
+- Plain response decoders in `src/uci_plain_decoders.c` now also use those
+  shared decode helpers for UCI status and data-transfer status lines, so the
+  plain CLI output no longer carries its own repeated status switch blocks.
 - Plain payload response/notification decoding now lives in
   `src/uci_plain_decoders.c`, which removes the bulk decoder table from
   `uci.c` while keeping shared measurement helpers available to the live

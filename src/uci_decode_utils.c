@@ -12,6 +12,11 @@ void uci_print_status_line(const char* label, unsigned char status) {
     uci_print_named_u8_line(label, status, uci_status_to_string(status));
 }
 
+void uci_print_data_transfer_status_line(const char* label, unsigned char status) {
+    const uci_lookup_entry_t* entry = uci_lookup_data_transfer_status(status);
+    uci_print_named_u8_line(label, status, entry ? entry->label : "UNKNOWN");
+}
+
 void uci_print_session_state_line(const char* label, unsigned char session_state) {
     uci_print_named_u8_line(label, session_state, uci_session_state_to_string(session_state));
 }

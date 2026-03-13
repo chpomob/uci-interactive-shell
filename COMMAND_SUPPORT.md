@@ -56,6 +56,9 @@ parameter validation rules before handing control to the command handlers in
 - Shared plain-text decode helpers in `uci_decode_utils` now own the
   human-readable status/state printing used by `uci.c` and
   `uci_packet_analyzer.c`.
+- `src/uci_plain_decoders.c` now uses the same shared decode helpers for UCI
+  status and data-transfer status output, replacing most of the local
+  response-status switch blocks that previously lived in that file.
 - Plain response/notification payload decoders now live in
   `src/uci_plain_decoders.c`, so `uci.c` no longer carries the full plain-text
   decoder block alongside simulation and transport logic.

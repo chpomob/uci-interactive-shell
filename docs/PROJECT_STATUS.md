@@ -44,6 +44,11 @@ execution path, and changes are currently limited to:
   `SESSION_CONTROL + SESSION_INFO_NTF`, which guards against stale duplicate
   branches in `uci_packet_analyzer.c` that helper-only decoder tests would not
   catch.
+- A dedicated table-driven analyzer dispatch suite now runs representative live
+  packets through `uci_analyze_packet_core()` for CORE and SESSION command,
+  response, and notification paths. The next uncovered dispatch area is Android
+  response routing, which is now visible as an explicit gap rather than hidden
+  behind helper-level tests.
 - Plain response/notification payload decoding now lives in
   `src/uci_plain_decoders.c`, which trims decoder responsibility out of
   `uci.c` and adds a direct regression check for the plain session-state path.

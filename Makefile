@@ -25,10 +25,11 @@ HARDWARE_INTEGRATION_TEST_TARGET=test_hardware_integration
 PROTOCOL_DEFINITIONS_TEST_TARGET=test_protocol_definitions
 PROTOCOL_FIXTURES_TEST_TARGET=test_protocol_fixtures
 TRANSPORT_PARITY_TEST_TARGET=test_transport_parity
+ANALYZER_DISPATCH_TEST_TARGET=test_analyzer_dispatch
 
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hardware-acceptance-smoke protocol-definitions-test protocol-fixtures-test transport-parity-test coverage
+.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hardware-acceptance-smoke protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test coverage
 
-all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test protocol-fixtures-test transport-parity-test
+all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
@@ -58,7 +59,7 @@ install: $(TARGET)
 	mkdir -p /usr/local/share/doc/uci-shell/uci_analysis
 	cp -r uci_analysis/* /usr/local/share/doc/uci-shell/uci_analysis/
 
-test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test protocol-fixtures-test transport-parity-test
+test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test
 
 $(TEST_TARGET): src/uci_hw_chardev.o
 	$(CC) $(CFLAGS) -o $(TEST_TARGET) test_chardev.c src/uci_hw_chardev.o
@@ -137,6 +138,12 @@ transport-parity-test: $(TRANSPORT_PARITY_TEST_TARGET)
 
 $(TRANSPORT_PARITY_TEST_TARGET): tests/test_transport_parity.c $(filter-out src/main.o src/uci_hw_chardev.o,$(OBJ))
 	$(CC) $(CFLAGS) -o $(TRANSPORT_PARITY_TEST_TARGET) tests/test_transport_parity.c $(filter-out src/main.o src/uci_hw_chardev.o,$(OBJ)) $(LIBS)
+
+analyzer-dispatch-test: $(ANALYZER_DISPATCH_TEST_TARGET)
+	./$(ANALYZER_DISPATCH_TEST_TARGET)
+
+$(ANALYZER_DISPATCH_TEST_TARGET): tests/test_analyzer_dispatch.c $(filter-out src/main.o,$(OBJ))
+	$(CC) $(CFLAGS) -o $(ANALYZER_DISPATCH_TEST_TARGET) tests/test_analyzer_dispatch.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
 
 
 

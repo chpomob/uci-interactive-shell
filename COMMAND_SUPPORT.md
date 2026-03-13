@@ -83,6 +83,10 @@ parameter validation rules before handing control to the command handlers in
 - `tests/test_uci_functions.c` now exercises `uci_analyze_packet_core()` with a
   real `SESSION_INFO_NTF` packet, closing the gap where decoder helper tests
   could pass while the analyzer dispatch table still contained dead branches.
+- `tests/test_analyzer_dispatch.c` now covers representative live dispatch for
+  `COMMAND`, `RESPONSE`, and `NOTIFICATION` packets in the CORE,
+  `SESSION_CONFIG`, and `SESSION_CONTROL` families, keeping the analyzer’s
+  active branch table under direct regression.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

@@ -64,6 +64,10 @@ execution path, and changes are currently limited to:
   are dispatched through the real command framework in tests, and their
   resulting analyzer output is asserted directly. That closes the gap between
   packet fixtures and the actual simulation command path.
+- Malformed analyzer entrypoint behavior is now regression-tested. Short-header
+  packets are rejected cleanly, truncated payloads emit a clamp warning, and
+  the analyzer now updates the decoder-visible payload length after clamping so
+  truncated packets cannot be decoded using stale header lengths.
 - Plain response/notification payload decoding now lives in
   `src/uci_plain_decoders.c`, which trims decoder responsibility out of
   `uci.c` and adds a direct regression check for the plain session-state path.

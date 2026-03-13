@@ -344,6 +344,11 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
             payload_len_field = (unsigned char)available_payload;
         }
 
+        payload_len_int = (int)payload_len_field;
+        if (payload_len_field == 0) {
+            goto analysis_complete;
+        }
+
         if (ui_color_enabled) {
             printf("  %s%sPayload:%s ", ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_RESET);
         } else {
@@ -676,6 +681,7 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
         }
     }
 
+analysis_complete:
     if (ui_color_enabled) {
         printf("%s%s%s=== Packet Analysis Complete ===%s\n", 
                ANSI_COLOR_BRIGHT_GREEN, ANSI_BOLD, ANSI_BG_GREEN, ANSI_RESET);

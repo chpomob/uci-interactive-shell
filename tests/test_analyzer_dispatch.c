@@ -172,6 +172,26 @@ static int run_dispatch_case(const analyzer_dispatch_case_t* test_case,
     return captured > 0 ? 0 : -1;
 }
 
+static int run_raw_packet_case(const unsigned char* packet,
+                               size_t packet_len,
+                               char* output,
+                               size_t output_len) {
+    if (!packet || packet_len == 0) {
+        return -1;
+    }
+
+    g_capture_ctx.packet = (unsigned char*)packet;
+    g_capture_ctx.packet_len = packet_len;
+    g_capture_ctx.saved_color = ui_color_enabled;
+
+    size_t captured = capture_stdout(emit_captured_packet, output, output_len);
+
+    g_capture_ctx.packet = NULL;
+    g_capture_ctx.packet_len = 0;
+
+    return captured > 0 ? 0 : -1;
+}
+
 int main(void) {
     TEST_SUITE(analyzer_dispatch);
 
@@ -512,6 +532,75 @@ int main(void) {
         TEST_PASS();
     }
     test_case_end_dispatch_registration_audit:;
+#undef test_case_end
+
+#define test_case_end test_case_end_malformed_packets
+    TEST_CASE(malformed_packets_are_bounded_at_analyzer_entry);
+    {
+        char output[4096];
+        static const unsigned char k_too_short_packet[] = {
+            0x60, 0x01, 0x00
+        };
+        static const unsigned char k_zero_available_payload_packet[] = {
+            0x60, 0x01, 0x00, 0x01
+        };
+        static const unsigned char k_truncated_session_status_packet[] = {
+            0x61, 0x02, 0x00, 0x06,
+            0x01, 0x00, 0x00, 0x00, 0x02
+        };
+
+        if (run_raw_packet_case(k_too_short_packet,
+                                sizeof(k_too_short_packet),
+                                output,
+                                sizeof(output)) != 0) {
+            TEST_FAIL("too_short_packet_capture");
+            goto test_case_end_malformed_packets;
+        }
+        if (strstr(output, "Error: UCI packet too short to contain a header") == NULL) {
+            TEST_FAIL("too_short_packet_message");
+            goto test_case_end_malformed_packets;
+        }
+
+        if (run_raw_packet_case(k_zero_available_payload_packet,
+                                sizeof(k_zero_available_payload_packet),
+                                output,
+                                sizeof(output)) != 0) {
+            TEST_FAIL("zero_available_payload_capture");
+            goto test_case_end_malformed_packets;
+        }
+        if (strstr(output, "Warning: Header payload length 1 exceeds available data 0. Clamping.") == NULL) {
+            TEST_FAIL("zero_available_payload_warning");
+            goto test_case_end_malformed_packets;
+        }
+        if (strstr(output, "CORE_DEVICE_STATUS_NTF:") != NULL) {
+            TEST_FAIL("zero_available_payload_decoder_should_not_run");
+            goto test_case_end_malformed_packets;
+        }
+
+        if (run_raw_packet_case(k_truncated_session_status_packet,
+                                sizeof(k_truncated_session_status_packet),
+                                output,
+                                sizeof(output)) != 0) {
+            TEST_FAIL("truncated_session_status_capture");
+            goto test_case_end_malformed_packets;
+        }
+        if (strstr(output, "Warning: Header payload length 6 exceeds available data 5. Clamping.") == NULL) {
+            TEST_FAIL("truncated_session_status_warning");
+            goto test_case_end_malformed_packets;
+        }
+        if (strstr(output, "Error: Payload too short (5 bytes, need at least 6)") == NULL) {
+            TEST_FAIL("truncated_session_status_decoder_length");
+            goto test_case_end_malformed_packets;
+        }
+        if (strstr(output, "Session Token: 0x00000001") != NULL &&
+            strstr(output, "Reason") != NULL) {
+            TEST_FAIL("truncated_session_status_should_not_decode_full_fields");
+            goto test_case_end_malformed_packets;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_malformed_packets:;
 #undef test_case_end
 
     TEST_SUITE_END();

@@ -169,6 +169,9 @@ command tables.
   through framework dispatch and asserts that their emitted notification bytes
   reach the expected analyzer path, closing the gap between command handlers
   and decode fixtures.
+- `tests/test_analyzer_dispatch.c` now also exercises malformed analyzer
+  entrypoint cases, including too-short headers and truncated payloads, so
+  header/data mismatches are clamped safely before any decoder sees them.
 
 ### Current Consolidation Work
 1. Keep protocol constants centralized and remove local literal fallbacks.

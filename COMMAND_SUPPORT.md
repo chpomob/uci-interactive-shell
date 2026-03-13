@@ -100,6 +100,10 @@ parameter validation rules before handing control to the command handlers in
   through the real framework and asserts that the analyzer output matches the
   emitted notification family. That gives you an end-to-end check from command
   parsing to simulated packet construction to decode output.
+- `tests/test_analyzer_dispatch.c` now also covers malformed packets at the
+  analyzer boundary. It asserts short-header rejection, truncated-payload
+  clamping, and that decoders receive the clamped payload length instead of the
+  stale header length.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

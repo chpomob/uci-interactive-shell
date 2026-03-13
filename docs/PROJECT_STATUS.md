@@ -76,6 +76,9 @@ execution path, and changes are currently limited to:
   control/response/notification fragments, and the analyzer now accepts a
   decoded header-plus-payload view so reassembled packets go through the same
   decode path without fabricating fake on-wire payload bytes.
+- The analyzer/UI decoder seam is now const-correct: UI decoder entrypoints
+  take read-only payload buffers, which removes the previous compiler warnings
+  about discarded const qualifiers and makes the decode contract explicit.
 - A dedicated table-driven analyzer dispatch suite now runs representative live
   packets through `uci_analyze_packet_core()` for CORE and SESSION command,
   response, and notification paths, and now also verifies the expected

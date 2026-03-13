@@ -122,48 +122,58 @@ void enhanced_error_analysis(unsigned char status_code) {
     uci_print_status_analysis(status_code, ui_color_enabled);
 }
 
-// Unified packet analyzer that respects ui_color_enabled for formatted output
-// This is the single source of truth for packet analysis logic
-// Enhanced UI version of analyze_uci_packet
-void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
-    if (packet_len < sizeof(struct uci_packet_header)) {
-        if (ui_color_enabled) {
-            printf("%s%sError: UCI packet too short to contain a header (need at least %zu bytes, got %zu)%s\n", 
-                   ANSI_COLOR_RED, ANSI_BOLD, sizeof(struct uci_packet_header), packet_len, ANSI_RESET);
-        } else {
-            printf("Error: UCI packet too short to contain a header (need at least %zu bytes, got %zu)\n", 
-                   sizeof(struct uci_packet_header), packet_len);
-        }
+// Unified packet analyzer that respects ui_color_enabled for formatted output.
+// This is the single source of truth for packet analysis logic.
+void uci_analyze_packet_fields(const uci_header_fields_t* header_fields,
+                               const unsigned char* header_bytes,
+                               const unsigned char* payload,
+                               size_t payload_len,
+                               int segmented_reassembled) {
+    if (!header_fields) {
         return;
     }
 
-    struct uci_packet_header* header = (struct uci_packet_header*)packet;
-    uci_header_fields_t header_fields;
-    uci_extract_header_fields_safe(header, &header_fields);
-
     if (ui_color_enabled) {
-        printf("%s%s%s=== UCI Packet Analysis ===%s\n", 
+        printf("%s%s%s=== UCI Packet Analysis ===%s\n",
                ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD, ANSI_BG_BLUE, ANSI_RESET);
-        printf("%s%sTotal Packet Length:%s %zu bytes\n", 
-               ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, packet_len);
-        printf("%s%sHeader Bytes:%s %02X %02X %02X %02X\n", 
-               ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET, 
-               packet[0], packet[1], packet[2], packet[3]);
+        printf("%s%sTotal Packet Length:%s %zu bytes\n",
+               ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET,
+               sizeof(struct uci_packet_header) + payload_len);
+        if (header_bytes) {
+            printf("%s%sHeader Bytes:%s %02X %02X %02X %02X\n",
+                   ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET,
+                   header_bytes[0], header_bytes[1], header_bytes[2], header_bytes[3]);
+        } else {
+            printf("%s%sHeader Bytes:%s <reassembled>\n",
+                   ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
+        }
+        if (segmented_reassembled) {
+            printf("  %s%sSegmented Reassembly:%s yes\n",
+                   ANSI_COLOR_BRIGHT_YELLOW, ANSI_BOLD, ANSI_RESET);
+        }
     } else {
         printf("=== UCI Packet Analysis ===\n");
-        printf("Total Packet Length: %zu bytes\n", packet_len);
-        printf("Header Bytes: %02X %02X %02X %02X\n", 
-               packet[0], packet[1], packet[2], packet[3]);
+        printf("Total Packet Length: %zu bytes\n",
+               sizeof(struct uci_packet_header) + payload_len);
+        if (header_bytes) {
+            printf("Header Bytes: %02X %02X %02X %02X\n",
+                   header_bytes[0], header_bytes[1], header_bytes[2], header_bytes[3]);
+        } else {
+            printf("Header Bytes: <reassembled>\n");
+        }
+        if (segmented_reassembled) {
+            printf("  Segmented Reassembly: yes\n");
+        }
     }
 
     // Extract header fields
-    unsigned char gid = header_fields.group_id;
-    unsigned char pbf = header_fields.packet_boundary;
-    unsigned char mt = header_fields.message_type;
-    unsigned char opcode = header_fields.opcode_id;
-    unsigned char opcode_reserved_bits = header_fields.reserved_opcode_bits;
-    uint16_t payload_len_field = header_fields.payload_length;
-    unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
+    unsigned char gid = header_fields->group_id;
+    unsigned char pbf = header_fields->packet_boundary;
+    unsigned char mt = header_fields->message_type;
+    unsigned char opcode = header_fields->opcode_id;
+    unsigned char opcode_reserved_bits = header_fields->reserved_opcode_bits;
+    uint16_t payload_len_field = (uint16_t)payload_len;
+    const unsigned char* payload_ptr = payload;
     int payload_len_int = (int)payload_len_field;
 
     if (ui_color_enabled) {
@@ -300,12 +310,12 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
                 }
                 break;
             case 0x0B:  // QORVO_EXT2 - Qorvo vendor-specific commands (QM SDK compatibility)
-                if (ui_color_enabled) {
-                    printf(" %s(QORVO_EXT2)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
-                } else {
-                    printf(" (QORVO_EXT2)");
-                }
-                uci_packet_analyzer_handle_qorvo_ext2(mt, opcode, payload_ptr, payload_len_field);
+            if (ui_color_enabled) {
+                printf(" %s(QORVO_EXT2)%s", ANSI_COLOR_BRIGHT_BLUE, ANSI_RESET);
+            } else {
+                printf(" (QORVO_EXT2)");
+            }
+                uci_packet_analyzer_handle_qorvo_ext2(mt, opcode, (unsigned char*)payload_ptr, payload_len_field);
                 break;
             default: 
                 if (ui_color_enabled) {
@@ -332,18 +342,6 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
 
     // Analyze payload if present
     if (payload_len_field > 0) {
-        size_t available_payload = packet_len - sizeof(struct uci_packet_header);
-        if (payload_len_field > available_payload) {
-            if (ui_color_enabled) {
-                printf("  %s%sWarning: Header payload length %u exceeds available data %zu. Clamping.%s\n", 
-                       ANSI_COLOR_YELLOW, ANSI_BOLD, (unsigned int)payload_len_field, available_payload, ANSI_RESET);
-            } else {
-                printf("  Warning: Header payload length %u exceeds available data %zu. Clamping.\n", 
-                       (unsigned int)payload_len_field, available_payload);
-            }
-            payload_len_field = (uint16_t)available_payload;
-        }
-
         payload_len_int = (int)payload_len_field;
         if (payload_len_field == 0) {
             goto analysis_complete;
@@ -689,4 +687,28 @@ analysis_complete:
         printf("=== Packet Analysis Complete ===\n");
     }
 
+}
+
+void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
+    struct uci_packet_header* header = NULL;
+    uci_header_fields_t header_fields;
+
+    if (packet_len < sizeof(struct uci_packet_header)) {
+        if (ui_color_enabled) {
+            printf("%s%sError: UCI packet too short to contain a header (need at least %zu bytes, got %zu)%s\n",
+                   ANSI_COLOR_RED, ANSI_BOLD, sizeof(struct uci_packet_header), packet_len, ANSI_RESET);
+        } else {
+            printf("Error: UCI packet too short to contain a header (need at least %zu bytes, got %zu)\n",
+                   sizeof(struct uci_packet_header), packet_len);
+        }
+        return;
+    }
+
+    header = (struct uci_packet_header*)packet;
+    uci_extract_header_fields_safe(header, &header_fields);
+    uci_analyze_packet_fields(&header_fields,
+                              packet,
+                              packet + sizeof(struct uci_packet_header),
+                              packet_len - sizeof(struct uci_packet_header),
+                              0);
 }

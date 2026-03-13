@@ -171,6 +171,12 @@ command tables.
   more closely: outbound `DATA` messages fragment into 255-byte wire packets,
   while inbound `DATA` fragments are forwarded packet-by-packet instead of
   being merged through the control-packet reassembly buffer.
+- Segmented non-`DATA` messages are now reassembled in `parse_uci_packet()`
+  before decode/analyzer routing, so hardware-mode receive loops can consume
+  raw wire fragments while still presenting one logical control packet to the
+  existing decoder surface. `tests/test_uci_functions.c` now pins both
+  successful reassembly and mismatch-drop behavior for segmented
+  `SESSION_CONTROL` commands.
 - `tests/test_uci_functions.c` now includes analyzer-dispatch regressions for
   live packet routing, so duplicate or unreachable `MT/GID/OID` decode branches
   are caught even when individual decoder helpers still pass in isolation.

@@ -24,6 +24,34 @@
 
 static uci_command_capture_hook_t g_command_capture_hook = NULL;
 static uci_data_message_hook_t g_data_message_hook = NULL;
+
+#define UCI_MAX_SEGMENTED_MESSAGE_PAYLOAD_SIZE 4096
+
+typedef struct {
+    int active;
+    unsigned char first_header[sizeof(struct uci_packet_header)];
+    uci_header_fields_t fields;
+    size_t payload_len;
+    unsigned char payload[UCI_MAX_SEGMENTED_MESSAGE_PAYLOAD_SIZE];
+} uci_segmented_message_state_t;
+
+static uci_segmented_message_state_t g_segmented_message_state = {0};
+
+static void reset_segmented_message_state(void) {
+    memset(&g_segmented_message_state, 0, sizeof(g_segmented_message_state));
+}
+
+void uci_reset_packet_parser_state(void) {
+    reset_segmented_message_state();
+}
+
+static int segmented_message_matches(const uci_header_fields_t* fields) {
+    return g_segmented_message_state.active &&
+           fields &&
+           g_segmented_message_state.fields.message_type == fields->message_type &&
+           g_segmented_message_state.fields.group_id == fields->group_id &&
+           g_segmented_message_state.fields.opcode_id == fields->opcode_id;
+}
 static uci_notification_callback_t g_notification_callback = NULL;
 
 void uci_set_command_capture_hook(uci_command_capture_hook_t hook) {
@@ -551,36 +579,16 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
         const char* hw_path = uci_get_hardware_device_path();
         log_control_packet_bytes(hw_path, packet, packet_len, 1);
 
-        unsigned char response_buffer[1024];
-        int response_len = uci_hw_interface_exchange_packet(packet,
-                                                            packet_len,
-                                                            response_buffer,
-                                                            sizeof(response_buffer),
-                                                            1000);
-        if (response_len == UCI_HW_EXCHANGE_SEND_ERROR) {
+        if (uci_hw_interface_send_packet(packet, packet_len) != 0) {
             ui_print_error("Failed to send command to hardware");
             UCI_LOG_ERROR("Hardware send failed", UCI_ERROR_INVALID_PARAM);
-            free(packet);
-            return;
-        }
-        if (response_len < 0) {
-            ui_print_error("Error receiving response from hardware");
-            UCI_LOG_ERROR("Error receiving response from hardware", UCI_ERROR_INVALID_PARAM);
             free(packet);
             return;
         }
 
         printf("  -> Sent command to hardware device %s\n", hw_path);
         printf("  <- Waiting for response from hardware device...\n");
-        if (response_len > 0) {
-            printf("Received %d bytes from hardware:\n", response_len);
-            printf("  ");
-            for (int i = 0; i < response_len; i++) {
-                printf("%02X ", response_buffer[i]);
-            }
-            printf("\n");
-            parse_uci_packet(response_buffer, response_len);
-        } else {
+        if (uci_receive_hardware_packets(1000) == 0) {
             ui_print_warning("No response received from hardware (timeout)");
         }
         free(packet);
@@ -790,6 +798,32 @@ void uci_send_data_message(uint32_t identifier,
     uci_process_pending_notifications();
 
     free(payload);
+}
+
+int uci_receive_hardware_packets(int timeout_ms) {
+    unsigned char response_buffer[1024];
+    int received_packets = 0;
+
+    while (1) {
+        int response_len = uci_hw_interface_receive_response(response_buffer,
+                                                             sizeof(response_buffer),
+                                                             timeout_ms);
+        if (response_len < 0) {
+            return (received_packets > 0) ? received_packets : -1;
+        }
+        if (response_len == 0) {
+            return received_packets;
+        }
+
+        printf("Received %d bytes from hardware:\n", response_len);
+        printf("  ");
+        for (int i = 0; i < response_len; i++) {
+            printf("%02X ", response_buffer[i]);
+        }
+        printf("\n");
+        parse_uci_packet(response_buffer, (size_t)response_len);
+        received_packets++;
+    }
 }
 
 static int handle_core_device_info(unsigned char *response_payload, size_t max_len,
@@ -2821,6 +2855,10 @@ void handle_session_info_ntf(unsigned char* payload, int payload_len) {
 }
 
 void parse_uci_packet(uci_uint8* packet, size_t packet_len) {
+    const unsigned char* payload_ptr = NULL;
+    const unsigned char* header_bytes = NULL;
+    int segmented_reassembled = 0;
+
     if (!packet) {
         UCI_LOG_ERROR("parse_uci_packet: NULL packet pointer", UCI_ERROR_INVALID_PARAM);
         return;
@@ -2860,13 +2898,84 @@ void parse_uci_packet(uci_uint8* packet, size_t packet_len) {
                         payload_len, available_payload);
         payload_len = available_payload;
     }
+    payload_ptr = packet + sizeof(struct uci_packet_header);
+
+    if (header_fields.message_type != DATA && header_fields.packet_boundary == NOT_COMPLETE) {
+        if (!segmented_message_matches(&header_fields)) {
+            if (g_segmented_message_state.active) {
+                printf("Warning: Dropping incomplete segmented UCI message due to fragment mismatch.\n");
+                UCI_LOG_WARNING("parse_uci_packet: Dropping incomplete segmented message due to fragment mismatch");
+                reset_segmented_message_state();
+            }
+
+            g_segmented_message_state.active = 1;
+            g_segmented_message_state.fields = header_fields;
+            memcpy(g_segmented_message_state.first_header, packet, sizeof(struct uci_packet_header));
+            g_segmented_message_state.payload_len = 0;
+        }
+
+        if (g_segmented_message_state.payload_len + payload_len > sizeof(g_segmented_message_state.payload)) {
+            printf("Error: Segmented UCI message exceeds reassembly buffer (%zu + %zu).\n",
+                   g_segmented_message_state.payload_len, payload_len);
+            UCI_LOG_ERROR("parse_uci_packet: Segmented message exceeds reassembly buffer", UCI_ERROR_INVALID_PARAM);
+            reset_segmented_message_state();
+            return;
+        }
+
+        memcpy(g_segmented_message_state.payload + g_segmented_message_state.payload_len,
+               payload_ptr,
+               payload_len);
+        g_segmented_message_state.payload_len += payload_len;
+
+        printf("Buffered segmented UCI fragment:\n");
+        printf("  MT: 0x%01X\n", header_fields.message_type);
+        printf("  GID: 0x%01X\n", header_fields.group_id);
+        printf("  Opcode: 0x%02X\n", header_fields.opcode_id);
+        printf("  Fragment Length: %zu\n", payload_len);
+        printf("  Reassembled Length So Far: %zu\n", g_segmented_message_state.payload_len);
+        return;
+    }
+
+    if (g_segmented_message_state.active && header_fields.message_type != DATA) {
+        if (!segmented_message_matches(&header_fields)) {
+            printf("Warning: Dropping incomplete segmented UCI message due to final-fragment mismatch.\n");
+            UCI_LOG_WARNING("parse_uci_packet: Final fragment mismatch, dropping segmented message");
+            reset_segmented_message_state();
+        } else {
+            if (g_segmented_message_state.payload_len + payload_len > sizeof(g_segmented_message_state.payload)) {
+                printf("Error: Segmented UCI message exceeds reassembly buffer (%zu + %zu).\n",
+                       g_segmented_message_state.payload_len, payload_len);
+                UCI_LOG_ERROR("parse_uci_packet: Segmented message exceeds reassembly buffer", UCI_ERROR_INVALID_PARAM);
+                reset_segmented_message_state();
+                return;
+            }
+
+            memcpy(g_segmented_message_state.payload + g_segmented_message_state.payload_len,
+                   payload_ptr,
+                   payload_len);
+            g_segmented_message_state.payload_len += payload_len;
+            header_fields.packet_boundary = COMPLETE;
+            header_fields.payload_length = (uci_uint16)g_segmented_message_state.payload_len;
+            payload_ptr = g_segmented_message_state.payload;
+            payload_len = g_segmented_message_state.payload_len;
+            header_bytes = g_segmented_message_state.first_header;
+            segmented_reassembled = 1;
+        }
+    }
+
+    if (!header_bytes) {
+        header_bytes = packet;
+    }
 
     if (header_fields.message_type == NOTIFICATION && g_notification_callback) {
-        const unsigned char* payload_ptr = packet + sizeof(struct uci_packet_header);
         g_notification_callback(header, &header_fields, payload_ptr, payload_len);
     }
 
-    printf("Received UCI packet:\n");
+    if (segmented_reassembled) {
+        printf("Received reassembled segmented UCI packet:\n");
+    } else {
+        printf("Received UCI packet:\n");
+    }
     printf("  MT: 0x%01X\n", header_fields.message_type);
     printf("  PBF: 0x%01X\n", header_fields.packet_boundary);
     printf("  GID: 0x%01X\n", header_fields.group_id);
@@ -2876,17 +2985,25 @@ void parse_uci_packet(uci_uint8* packet, size_t packet_len) {
     if (payload_len > 0) {
         printf("  Payload: ");
         for (size_t i = 0; i < payload_len; i++) {
-            printf("%02X ", packet[sizeof(struct uci_packet_header) + i]);
+            printf("%02X ", payload_ptr[i]);
         }
         printf("\n");
     }
 
     // Use unified packet analyzer for consistent decoding across the codebase
     printf("\n");  // Add blank line before detailed analysis
-    uci_analyze_packet_core(packet, packet_len);
+    uci_analyze_packet_fields(&header_fields,
+                              header_bytes,
+                              payload_ptr,
+                              payload_len,
+                              segmented_reassembled);
     
     // Log detailed packet information for debugging
     UCI_LOG_DEBUG("parse_uci_packet: Received packet - MT:0x%02X GID:0x%02X OID:0x%02X PBF:0x%02X Len:%zu", 
                   header_fields.message_type, header_fields.group_id, header_fields.opcode_id,
                   header_fields.packet_boundary, payload_len);
+
+    if (segmented_reassembled) {
+        reset_segmented_message_state();
+    }
 }

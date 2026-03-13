@@ -180,6 +180,10 @@ static uint64_t g_large_data_destination = 0;
 static uint16_t g_large_data_sequence = 0;
 static unsigned char g_large_data_app_payload[512];
 static size_t g_large_data_app_payload_len = 0;
+static unsigned char g_segmented_packet_a[sizeof(struct uci_packet_header) + 255];
+static size_t g_segmented_packet_a_len = 0;
+static unsigned char g_segmented_packet_b[sizeof(struct uci_packet_header) + 255];
+static size_t g_segmented_packet_b_len = 0;
 
 static void emit_analyzer_captured_packet(void) {
     ui_color_enabled = 0;
@@ -205,6 +209,14 @@ static void emit_large_data_message(void) {
                           g_large_data_sequence,
                           g_large_data_app_payload,
                           g_large_data_app_payload_len);
+}
+
+static void emit_segmented_packets(void) {
+    int saved = ui_color_enabled;
+    ui_color_enabled = 0;
+    parse_uci_packet(g_segmented_packet_a, g_segmented_packet_a_len);
+    parse_uci_packet(g_segmented_packet_b, g_segmented_packet_b_len);
+    ui_color_enabled = saved;
 }
 
 static uint16_t test_header_payload_length(const struct uci_packet_header* header) {
@@ -689,6 +701,118 @@ int main() {
         TEST_PASS();
     }
     test_case_end_large_data_message:;
+
+#define test_case_end test_case_end_segmented_control_reassembly
+    TEST_CASE(segmented_control_packet_reassembles_before_analysis);
+    {
+        unsigned char payload[300];
+        struct uci_packet_header first_header;
+        struct uci_packet_header second_header;
+        char output[8192];
+
+        for (size_t i = 0; i < sizeof(payload); ++i) {
+            payload[i] = (unsigned char)(i & 0xFF);
+        }
+
+        if (set_header_values_safe(&first_header,
+                                   COMMAND,
+                                   NOT_COMPLETE,
+                                   SESSION_CONTROL,
+                                   0x0B,
+                                   255) != UCI_SUCCESS) {
+            TEST_FAIL("Failed to create first segmented command header");
+            goto test_case_end_segmented_control_reassembly;
+        }
+
+        if (set_header_values_safe(&second_header,
+                                   COMMAND,
+                                   COMPLETE,
+                                   SESSION_CONTROL,
+                                   0x0B,
+                                   45) != UCI_SUCCESS) {
+            TEST_FAIL("Failed to create final segmented command header");
+            goto test_case_end_segmented_control_reassembly;
+        }
+
+        memcpy(g_segmented_packet_a, &first_header, sizeof(first_header));
+        memcpy(g_segmented_packet_a + sizeof(first_header), payload, 255);
+        g_segmented_packet_a_len = sizeof(first_header) + 255;
+
+        memcpy(g_segmented_packet_b, &second_header, sizeof(second_header));
+        memcpy(g_segmented_packet_b + sizeof(second_header), payload + 255, 45);
+        g_segmented_packet_b_len = sizeof(second_header) + 45;
+
+        uci_reset_packet_parser_state();
+        if (capture_stdout(emit_segmented_packets, output, sizeof(output)) == 0) {
+            TEST_FAIL("Failed to capture segmented packet output");
+            goto test_case_end_segmented_control_reassembly;
+        }
+
+        ASSERT_TRUE(strstr(output, "Buffered segmented UCI fragment:") != NULL);
+        ASSERT_TRUE(strstr(output, "Received reassembled segmented UCI packet:") != NULL);
+        ASSERT_TRUE(strstr(output, "Segmented Reassembly: yes") != NULL);
+        ASSERT_TRUE(strstr(output, "Payload Length: 300") != NULL);
+        ASSERT_TRUE(strstr(output, "No specific decoder for SESSION_CONTROL_COMMAND opcode 0x0B") != NULL);
+
+        TEST_PASS();
+    }
+    test_case_end_segmented_control_reassembly:;
+#undef test_case_end
+
+#define test_case_end test_case_end_segmented_control_mismatch
+    TEST_CASE(segmented_control_mismatch_drops_buffered_message);
+    {
+        unsigned char payload[16];
+        struct uci_packet_header first_header;
+        struct uci_packet_header second_header;
+        char output[4096];
+
+        memset(payload, 0x5A, sizeof(payload));
+
+        if (set_header_values_safe(&first_header,
+                                   COMMAND,
+                                   NOT_COMPLETE,
+                                   SESSION_CONTROL,
+                                   0x0B,
+                                   8) != UCI_SUCCESS) {
+            TEST_FAIL("Failed to create buffered segmented command header");
+            goto test_case_end_segmented_control_mismatch;
+        }
+
+        if (set_header_values_safe(&second_header,
+                                   COMMAND,
+                                   COMPLETE,
+                                   SESSION_CONTROL,
+                                   0x0C,
+                                   8) != UCI_SUCCESS) {
+            TEST_FAIL("Failed to create mismatched final command header");
+            goto test_case_end_segmented_control_mismatch;
+        }
+
+        memcpy(g_segmented_packet_a, &first_header, sizeof(first_header));
+        memcpy(g_segmented_packet_a + sizeof(first_header), payload, 8);
+        g_segmented_packet_a_len = sizeof(first_header) + 8;
+
+        memcpy(g_segmented_packet_b, &second_header, sizeof(second_header));
+        memcpy(g_segmented_packet_b + sizeof(second_header), payload + 8, 8);
+        g_segmented_packet_b_len = sizeof(second_header) + 8;
+
+        uci_reset_packet_parser_state();
+        if (capture_stdout(emit_segmented_packets, output, sizeof(output)) == 0) {
+            TEST_FAIL("Failed to capture segmented mismatch output");
+            goto test_case_end_segmented_control_mismatch;
+        }
+
+        ASSERT_TRUE(strstr(output,
+                           "Warning: Dropping incomplete segmented UCI message due to final-fragment mismatch.") != NULL);
+        ASSERT_TRUE(strstr(output, "Received reassembled segmented UCI packet:") == NULL);
+        ASSERT_TRUE(strstr(output, "Received UCI packet:") != NULL);
+        ASSERT_TRUE(strstr(output, "Opcode: 0x0C") != NULL);
+
+        TEST_PASS();
+    }
+    test_case_end_segmented_control_mismatch:;
+#undef test_case_end
 
     TEST_CASE(data_message_unknown_session);
     {

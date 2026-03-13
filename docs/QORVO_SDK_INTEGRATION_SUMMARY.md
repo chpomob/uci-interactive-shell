@@ -146,6 +146,11 @@ The SDK enables:
   `DATA` runtime model more closely: large outbound `DATA` payloads become
   255-byte wire fragments, and inbound `DATA` fragments are no longer merged
   through the control-oriented reassembly buffer.
+- Segmented non-`DATA` support now follows a parser-owned model: raw control
+  fragments are drained from transport as they arrive, then `parse_uci_packet()`
+  reassembles them before handing the logical packet to the analyzer/decoder
+  layer. Local regression tests now pin both successful reassembly and
+  mismatch-drop behavior for segmented control packets.
 - The Qorvo SDK is not internally uniform for `GID 0x0E`: Cherry C headers use
   `QORVO_MAC`, while the Python Qorvo tools expose `ConfigManager`. This
   repository currently follows the Cherry C-header basis and documents that

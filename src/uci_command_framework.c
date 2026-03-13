@@ -220,29 +220,20 @@ int uci_cmd_execute_unified(uci_command_context_t* ctx) {
     }
 
     if (uci_is_hardware_mode_enabled()) {
-        unsigned char response_buffer[1024];
-        int response_len = uci_hw_interface_exchange_command(ctx->mt, ctx->pbf, ctx->gid, ctx->oid,
-                                                             ctx->payload, (int)ctx->payload_len,
-                                                             response_buffer, sizeof(response_buffer),
-                                                             1000);
-        if (response_len == UCI_HW_EXCHANGE_SEND_ERROR) {
+        int response_count;
+        if (uci_hw_interface_send_command(ctx->mt, ctx->pbf, ctx->gid, ctx->oid,
+                                          ctx->payload, (int)ctx->payload_len) != 0) {
             ui_print_error("Failed to send command to hardware");
             return -1;
         }
-        if (response_len < 0) {
+        response_count = uci_receive_hardware_packets(1000);
+        if (response_count < 0) {
             ui_print_error("Error receiving response from hardware");
             return -1;
         }
 
         ui_print_success("Command sent to hardware successfully");
-        if (response_len > 0) {
-            ui_print_info("Received response from hardware: ");
-            for (int i = 0; i < response_len; i++) {
-                printf("%02X ", response_buffer[i]);
-            }
-            printf("\n");
-            parse_uci_packet(response_buffer, response_len);
-        } else {
+        if (response_count == 0) {
             ui_print_warning("No response received from hardware (timeout)");
         }
         return 0;

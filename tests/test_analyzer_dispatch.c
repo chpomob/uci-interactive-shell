@@ -1,6 +1,7 @@
 #include "test_runner.h"
 
 #include "../include/uci.h"
+#include "../include/uci_functions.h"
 #include "../include/uci_packet_analyzer.h"
 #include "../include/uci_packet_utils.h"
 #include "../include/uci_ui.h"
@@ -144,6 +145,12 @@ static void emit_captured_packet(void) {
     ui_color_enabled = g_capture_ctx.saved_color;
 }
 
+static void emit_captured_packet_via_parser(void) {
+    ui_color_enabled = 0;
+    parse_uci_packet(g_capture_ctx.packet, g_capture_ctx.packet_len);
+    ui_color_enabled = g_capture_ctx.saved_color;
+}
+
 static int run_dispatch_case(const analyzer_dispatch_case_t* test_case,
                              char* output,
                              size_t output_len) {
@@ -172,7 +179,7 @@ static int run_dispatch_case(const analyzer_dispatch_case_t* test_case,
     return captured > 0 ? 0 : -1;
 }
 
-static int run_raw_packet_case(const unsigned char* packet,
+static int run_raw_parser_case(const unsigned char* packet,
                                size_t packet_len,
                                char* output,
                                size_t output_len) {
@@ -184,7 +191,7 @@ static int run_raw_packet_case(const unsigned char* packet,
     g_capture_ctx.packet_len = packet_len;
     g_capture_ctx.saved_color = ui_color_enabled;
 
-    size_t captured = capture_stdout(emit_captured_packet, output, output_len);
+    size_t captured = capture_stdout(emit_captured_packet_via_parser, output, output_len);
 
     g_capture_ctx.packet = NULL;
     g_capture_ctx.packet_len = 0;
@@ -549,7 +556,7 @@ int main(void) {
             0x01, 0x00, 0x00, 0x00, 0x02
         };
 
-        if (run_raw_packet_case(k_too_short_packet,
+        if (run_raw_parser_case(k_too_short_packet,
                                 sizeof(k_too_short_packet),
                                 output,
                                 sizeof(output)) != 0) {
@@ -561,7 +568,7 @@ int main(void) {
             goto test_case_end_malformed_packets;
         }
 
-        if (run_raw_packet_case(k_zero_available_payload_packet,
+        if (run_raw_parser_case(k_zero_available_payload_packet,
                                 sizeof(k_zero_available_payload_packet),
                                 output,
                                 sizeof(output)) != 0) {
@@ -577,7 +584,7 @@ int main(void) {
             goto test_case_end_malformed_packets;
         }
 
-        if (run_raw_packet_case(k_truncated_session_status_packet,
+        if (run_raw_parser_case(k_truncated_session_status_packet,
                                 sizeof(k_truncated_session_status_packet),
                                 output,
                                 sizeof(output)) != 0) {

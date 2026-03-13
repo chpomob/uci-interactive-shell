@@ -101,32 +101,21 @@ int handle_hw_send_command(char* mt_str,
         }
     }
 
-    unsigned char response_buffer[1024];
-    int response_len = uci_hw_interface_exchange_command(mt, pbf, gid, oid,
-                                                         payload, payload_len,
-                                                         response_buffer, sizeof(response_buffer),
-                                                         1000);
-    if (response_len == UCI_HW_EXCHANGE_SEND_ERROR) {
+    int response_count = 0;
+    if (uci_hw_interface_send_command(mt, pbf, gid, oid, payload, payload_len) != 0) {
         ui_print_error("Failed to send command to hardware");
         UCI_LOG_ERROR("Failed to send command to hardware", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
-    if (response_len < 0) {
+    response_count = uci_receive_hardware_packets(1000);
+    if (response_count < 0) {
         ui_print_error("Error receiving response from hardware");
         UCI_LOG_ERROR("Error receiving response from hardware", UCI_ERROR_INVALID_PARAM);
         return -1;
     }
 
     printf("Command sent to hardware successfully\n");
-    if (response_len > 0) {
-        printf("Received %d bytes from hardware:\n", response_len);
-        printf("  ");
-        for (int i = 0; i < response_len; i++) {
-            printf("%02X ", response_buffer[i]);
-        }
-        printf("\n");
-        parse_uci_packet(response_buffer, response_len);
-    } else {
+    if (response_count == 0) {
         ui_print_warning("No response received from hardware (timeout)");
     }
     return 0;

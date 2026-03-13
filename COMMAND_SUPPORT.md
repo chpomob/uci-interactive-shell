@@ -106,6 +106,10 @@ parameter validation rules before handing control to the command handlers in
   `PBF=NOT_COMPLETE`, instead of being combined through the non-DATA
   reassembly buffer. The same transport layer still builds 255-byte outbound
   `DATA` wire fragments for larger payloads.
+- Segmented non-`DATA` messages now reassemble in `parse_uci_packet()` rather
+  than in the hardware transport layer. That keeps the transport path close to
+  raw Cherry wire behavior while still giving analyzer/plain/UI decoders a
+  single logical control packet once all fragments arrive.
 - `tests/test_analyzer_dispatch.c` now covers representative live dispatch for
   `COMMAND`, `RESPONSE`, and `NOTIFICATION` packets in the CORE,
   `SESSION_CONFIG`, and `SESSION_CONTROL` families, and now also asserts the
@@ -141,6 +145,9 @@ parameter validation rules before handing control to the command handlers in
   fragmentation helpers directly, pinning Cherry-style 255-byte outbound
   `DATA` fragmentation and inbound `DATA` fragment passthrough without relying
   on a real device.
+- `tests/test_uci_functions.c` now also exercises parser-level segmented
+  control-message reassembly and mismatch handling, so full multi-fragment
+  control packets are validated separately from `DATA` transport behavior.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

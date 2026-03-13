@@ -5,8 +5,9 @@
 
 /*
  * Internal transport helpers shared with tests. These are not part of the
- * user-facing hardware API, but they let the regression suite exercise the
- * same fragmentation/reassembly logic used by the hardware path.
+ * user-facing hardware API. They let the regression suite exercise outbound
+ * fragment construction plus the direct transport fragment handling used by
+ * the hardware path.
  */
 void uci_hw_interface_reset_transport_state_for_test(void);
 int uci_hw_interface_process_fragment_for_test(const unsigned char* fragment,

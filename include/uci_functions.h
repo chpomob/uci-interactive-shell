@@ -41,5 +41,7 @@ void uci_set_notification_callback(uci_notification_callback_t callback);
 
 void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid, uci_uint8* payload, int payload_len);
 void parse_uci_packet(uci_uint8* packet, size_t packet_len);
+int uci_receive_hardware_packets(int timeout_ms);
+void uci_reset_packet_parser_state(void);
 
 #endif // UCI_FUNCTIONS_H

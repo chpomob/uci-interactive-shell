@@ -71,6 +71,11 @@ execution path, and changes are currently limited to:
   fragments, but inbound `DATA` fragments are no longer reassembled through the
   non-DATA fragment buffer. They are forwarded packet-by-packet so MAC/data
   consumers can observe the original fragment boundaries.
+- Segmented non-`DATA` runtime support is now present end-to-end. Hardware-mode
+  receive loops drain raw fragments, `parse_uci_packet()` owns reassembly for
+  control/response/notification fragments, and the analyzer now accepts a
+  decoded header-plus-payload view so reassembled packets go through the same
+  decode path without fabricating fake on-wire payload bytes.
 - A dedicated table-driven analyzer dispatch suite now runs representative live
   packets through `uci_analyze_packet_core()` for CORE and SESSION command,
   response, and notification paths, and now also verifies the expected
@@ -116,6 +121,9 @@ execution path, and changes are currently limited to:
 - A dedicated hardware-fragmentation suite now exercises the transport
   fragmentation helpers directly, proving both Cherry-style 255-byte outbound
   `DATA` chunking and inbound `DATA` fragment passthrough.
+- The unit suite now also covers segmented non-`DATA` parser behavior,
+  including successful multi-fragment `SESSION_CONTROL` reassembly and
+  deliberate final-fragment mismatch handling.
 - A new transport parity suite now runs representative handlers through both
   simulation mode and a stubbed hardware transport to prove the emitted command
   bytes match before real-device testing.

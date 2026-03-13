@@ -153,7 +153,8 @@ command tables.
   are caught even when individual decoder helpers still pass in isolation.
 - `tests/test_analyzer_dispatch.c` provides a table-driven analyzer dispatch
   suite for representative command, response, and notification packets across
-  the currently supported CORE and SESSION families.
+  the currently supported CORE and SESSION families, plus family-specific
+  unsupported-opcode fallback coverage for CORE, SESSION, and Android routing.
 - `tests/test_transport_parity.c` verifies that the same command handlers emit
   identical control-packet bytes in simulation mode and hardware mode before
   any hardware response is involved.

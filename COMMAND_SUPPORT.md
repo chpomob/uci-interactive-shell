@@ -85,8 +85,9 @@ parameter validation rules before handing control to the command handlers in
   could pass while the analyzer dispatch table still contained dead branches.
 - `tests/test_analyzer_dispatch.c` now covers representative live dispatch for
   `COMMAND`, `RESPONSE`, and `NOTIFICATION` packets in the CORE,
-  `SESSION_CONFIG`, and `SESSION_CONTROL` families, keeping the analyzer’s
-  active branch table under direct regression.
+  `SESSION_CONFIG`, and `SESSION_CONTROL` families, and now also asserts the
+  family-specific fallback strings for unsupported CORE, SESSION, and Android
+  opcodes so dead branches and accidental generic fallbacks are visible.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

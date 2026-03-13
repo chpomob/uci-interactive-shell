@@ -46,9 +46,11 @@ execution path, and changes are currently limited to:
   catch.
 - A dedicated table-driven analyzer dispatch suite now runs representative live
   packets through `uci_analyze_packet_core()` for CORE and SESSION command,
-  response, and notification paths. The next uncovered dispatch area is Android
-  response routing, which is now visible as an explicit gap rather than hidden
-  behind helper-level tests.
+  response, and notification paths, and now also verifies the expected
+  family-specific fallback output for unsupported CORE, SESSION, and Android
+  opcodes. Android response routing is still only covered through the generic
+  analyzer fallback path, which is now an explicit tested behavior rather than
+  an unexamined gap.
 - Plain response/notification payload decoding now lives in
   `src/uci_plain_decoders.c`, which trims decoder responsibility out of
   `uci.c` and adds a direct regression check for the plain session-state path.

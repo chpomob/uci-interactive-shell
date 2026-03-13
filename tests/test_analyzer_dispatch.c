@@ -23,6 +23,7 @@ typedef struct {
     const unsigned char* payload;
     size_t payload_len;
     const char* expected_marker;
+    const char* forbidden_marker;
 } analyzer_dispatch_case_t;
 
 static analyzer_capture_context_t g_capture_ctx;
@@ -163,7 +164,8 @@ int main(void) {
                 CORE_DEVICE_INFO,
                 k_core_device_info_rsp,
                 sizeof(k_core_device_info_rsp),
-                "CORE_DEVICE_INFO Response"
+                "CORE_DEVICE_INFO Response",
+                NULL
             },
             {
                 "core_device_status_ntf",
@@ -172,7 +174,8 @@ int main(void) {
                 CORE_DEVICE_STATUS_NTF,
                 k_core_device_status_ntf,
                 sizeof(k_core_device_status_ntf),
-                "CORE_DEVICE_STATUS_NTF:"
+                "CORE_DEVICE_STATUS_NTF:",
+                NULL
             },
             {
                 "session_init_rsp",
@@ -181,7 +184,8 @@ int main(void) {
                 SESSION_INIT,
                 k_session_init_rsp,
                 sizeof(k_session_init_rsp),
-                "SESSION_INIT Response"
+                "SESSION_INIT Response",
+                NULL
             },
             {
                 "session_status_ntf",
@@ -190,7 +194,8 @@ int main(void) {
                 SESSION_STATUS_NTF,
                 k_session_status_ntf,
                 sizeof(k_session_status_ntf),
-                "SESSION_STATUS_NTF:"
+                "SESSION_STATUS_NTF:",
+                NULL
             },
             {
                 "session_start_rsp",
@@ -199,7 +204,8 @@ int main(void) {
                 SESSION_START,
                 k_session_start_rsp,
                 sizeof(k_session_start_rsp),
-                "SESSION_START Response"
+                "SESSION_START Response",
+                NULL
             },
             {
                 "session_info_ntf",
@@ -208,7 +214,8 @@ int main(void) {
                 SESSION_INFO_NTF,
                 k_session_info_ntf,
                 sizeof(k_session_info_ntf),
-                "SESSION_INFO_NTF - Standard FiRa Ranging Notification"
+                "SESSION_INFO_NTF - Standard FiRa Ranging Notification",
+                "RANGE_DATA_NTF"
             },
             {
                 "session_start_cmd",
@@ -217,7 +224,8 @@ int main(void) {
                 SESSION_START,
                 k_session_start_cmd,
                 sizeof(k_session_start_cmd),
-                "SESSION_START_CMD - Start Session Command"
+                "SESSION_START_CMD - Start Session Command",
+                NULL
             },
         };
         char output[4096];
@@ -237,11 +245,140 @@ int main(void) {
                 TEST_FAIL(k_cases[i].name);
                 goto test_case_end_table_driven_dispatch;
             }
+
+            if (k_cases[i].forbidden_marker &&
+                strstr(output, k_cases[i].forbidden_marker) != NULL) {
+                TEST_FAIL(k_cases[i].name);
+                goto test_case_end_table_driven_dispatch;
+            }
         }
 
         TEST_PASS();
     }
     test_case_end_table_driven_dispatch:;
+#undef test_case_end
+
+#define test_case_end test_case_end_table_driven_fallbacks
+    TEST_CASE(table_driven_dispatch_reports_family_specific_fallbacks);
+    {
+        static const unsigned char k_minimal_payload[] = {
+            0x00
+        };
+        static const analyzer_dispatch_case_t k_cases[] = {
+            {
+                "core_rsp_unknown_oid",
+                RESPONSE,
+                CORE,
+                0x3F,
+                k_minimal_payload,
+                sizeof(k_minimal_payload),
+                "No specific decoder for CORE_RESPONSE opcode 0x3F",
+                "CORE_DEVICE_INFO Response"
+            },
+            {
+                "core_ntf_unknown_oid",
+                NOTIFICATION,
+                CORE,
+                0x3F,
+                k_minimal_payload,
+                sizeof(k_minimal_payload),
+                "No specific decoder for CORE_NOTIFICATION opcode 0x3F",
+                "CORE_DEVICE_STATUS_NTF:"
+            },
+            {
+                "session_config_rsp_unknown_oid",
+                RESPONSE,
+                SESSION_CONFIG,
+                0x3F,
+                k_minimal_payload,
+                sizeof(k_minimal_payload),
+                "No specific decoder for SESSION_CONFIG_RESPONSE opcode 0x3F",
+                "SESSION_INIT Response"
+            },
+            {
+                "session_config_ntf_unknown_oid",
+                NOTIFICATION,
+                SESSION_CONFIG,
+                0x3F,
+                k_minimal_payload,
+                sizeof(k_minimal_payload),
+                "No specific decoder for SESSION_CONFIG_NOTIFICATION opcode 0x3F",
+                "SESSION_STATUS_NTF:"
+            },
+            {
+                "session_control_cmd_unknown_oid",
+                COMMAND,
+                SESSION_CONTROL,
+                0x3F,
+                k_minimal_payload,
+                sizeof(k_minimal_payload),
+                "No specific decoder for SESSION_CONTROL_COMMAND opcode 0x3F",
+                "SESSION_START_CMD - Start Session Command"
+            },
+            {
+                "session_control_rsp_unknown_oid",
+                RESPONSE,
+                SESSION_CONTROL,
+                0x3F,
+                k_minimal_payload,
+                sizeof(k_minimal_payload),
+                "No specific decoder for SESSION_CONTROL_RESPONSE opcode 0x3F",
+                "SESSION_START Response"
+            },
+            {
+                "session_control_ntf_unknown_oid",
+                NOTIFICATION,
+                SESSION_CONTROL,
+                0x3F,
+                k_minimal_payload,
+                sizeof(k_minimal_payload),
+                "No specific decoder for SESSION_CONTROL_NOTIFICATION opcode 0x3F",
+                "SESSION_INFO_NTF - Standard FiRa Ranging Notification"
+            },
+            {
+                "android_ntf_unknown_oid",
+                NOTIFICATION,
+                ANDROID,
+                0x3F,
+                k_minimal_payload,
+                sizeof(k_minimal_payload),
+                "No specific decoder for ANDROID_NOTIFICATION opcode 0x3F",
+                NULL
+            },
+            {
+                "android_rsp_generic_fallback",
+                RESPONSE,
+                ANDROID,
+                0x3F,
+                k_minimal_payload,
+                sizeof(k_minimal_payload),
+                "No specific decoder for MT=2, GID=12, OP=0x3F",
+                NULL
+            },
+        };
+        char output[4096];
+
+        for (size_t i = 0; i < sizeof(k_cases) / sizeof(k_cases[0]); i++) {
+            if (run_dispatch_case(&k_cases[i], output, sizeof(output)) != 0) {
+                TEST_FAIL(k_cases[i].name);
+                goto test_case_end_table_driven_fallbacks;
+            }
+
+            if (strstr(output, k_cases[i].expected_marker) == NULL) {
+                TEST_FAIL(k_cases[i].name);
+                goto test_case_end_table_driven_fallbacks;
+            }
+
+            if (k_cases[i].forbidden_marker &&
+                strstr(output, k_cases[i].forbidden_marker) != NULL) {
+                TEST_FAIL(k_cases[i].name);
+                goto test_case_end_table_driven_fallbacks;
+            }
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_table_driven_fallbacks:;
 #undef test_case_end
 
     TEST_SUITE_END();

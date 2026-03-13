@@ -4,7 +4,9 @@
 #include "../include/uci_cmd_framework_bridge.h"
 #include "../include/uci_cmd_framework_device.h"
 #include "../include/uci_cmd_framework_session.h"
+#include "../include/uci_cmd_framework_simulation.h"
 #include "../include/uci_pdl.h"
+#include "../include/uci_ui.h"
 #include <stddef.h>
 #include <string.h>
 #include <unistd.h>
@@ -472,6 +474,87 @@ int main(void) {
         ASSERT_EQUAL(0, capture_cli_output(argv_help, 2, buffer, sizeof(buffer)));
         ASSERT_TRUE(strstr(buffer, "UCI Enhanced Packet Analysis Help") != NULL);
         ASSERT_TRUE(strstr(buffer, "Usage:") != NULL);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_simulate_notification_integration
+    TEST_CASE(simulate_notification_routes_to_analyzer);
+    {
+        char capture_buffer[4096];
+        int saved_color = ui_color_enabled;
+        const uci_command_def_t* def =
+            find_command_by_name(g_uci_simulation_command_defs,
+                                 g_uci_simulation_command_defs_count,
+                                 "simulate_notification");
+        char* argv[] = { "simulate_notification", "device_status", "ready" };
+
+        ASSERT_TRUE(def != NULL);
+        ui_color_enabled = 0;
+        ASSERT_EQUAL(0, dispatch_and_capture_output(def,
+                                                    3,
+                                                    argv,
+                                                    capture_buffer,
+                                                    sizeof(capture_buffer)));
+        ui_color_enabled = saved_color;
+        ASSERT_TRUE(strstr(capture_buffer, "CORE_DEVICE_STATUS_NTF:") != NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "Device State: 0x01 (READY)") != NULL);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_simulate_session_status_integration
+    TEST_CASE(simulate_session_status_routes_to_analyzer);
+    {
+        char capture_buffer[4096];
+        int saved_color = ui_color_enabled;
+        const uci_command_def_t* def =
+            find_command_by_name(g_uci_simulation_command_defs,
+                                 g_uci_simulation_command_defs_count,
+                                 "simulate_session_status");
+        char* argv[] = { "simulate_session_status", "7", "active", "mgmt_cmd" };
+
+        ASSERT_TRUE(def != NULL);
+        ui_color_enabled = 0;
+        ASSERT_EQUAL(0, dispatch_and_capture_output(def,
+                                                    4,
+                                                    argv,
+                                                    capture_buffer,
+                                                    sizeof(capture_buffer)));
+        ui_color_enabled = saved_color;
+        ASSERT_TRUE(strstr(capture_buffer, "SESSION_STATUS_NTF:") != NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "Session Token: 0x00000007") != NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "Session State: 0x02 (ACTIVE)") != NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS") != NULL);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_simulate_ranging_integration
+    TEST_CASE(simulate_ranging_routes_to_standard_session_info_decoder);
+    {
+        char capture_buffer[8192];
+        int saved_color = ui_color_enabled;
+        const uci_command_def_t* def =
+            find_command_by_name(g_uci_simulation_command_defs,
+                                 g_uci_simulation_command_defs_count,
+                                 "simulate_ranging");
+        char* argv[] = { "simulate_ranging" };
+
+        ASSERT_TRUE(def != NULL);
+        ui_color_enabled = 0;
+        ASSERT_EQUAL(0, dispatch_and_capture_output(def,
+                                                    1,
+                                                    argv,
+                                                    capture_buffer,
+                                                    sizeof(capture_buffer)));
+        ui_color_enabled = saved_color;
+        ASSERT_TRUE(strstr(capture_buffer, "SESSION_INFO_NTF - Standard FiRa Ranging Notification") != NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "Sequence Number:") != NULL);
+        ASSERT_TRUE(strstr(capture_buffer, "RANGE_DATA_NTF") == NULL);
         TEST_PASS();
     }
     test_case_end:;

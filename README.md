@@ -165,6 +165,10 @@ command tables.
   UI decode paths for representative CORE and SESSION packets, so richer UI
   formatting cannot silently drift away from the underlying plain-protocol
   interpretation.
+- `tests/test_command_framework_validation.c` now runs real simulation commands
+  through framework dispatch and asserts that their emitted notification bytes
+  reach the expected analyzer path, closing the gap between command handlers
+  and decode fixtures.
 
 ### Current Consolidation Work
 1. Keep protocol constants centralized and remove local literal fallbacks.

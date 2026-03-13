@@ -59,6 +59,11 @@ execution path, and changes are currently limited to:
   Those tests intentionally compare shared labels and values rather than banner
   text, which keeps decoder meaning aligned without forcing identical
   presentation layers.
+- Framework-level simulation commands now have end-to-end analyzer coverage.
+  `simulate_notification`, `simulate_session_status`, and `simulate_ranging`
+  are dispatched through the real command framework in tests, and their
+  resulting analyzer output is asserted directly. That closes the gap between
+  packet fixtures and the actual simulation command path.
 - Plain response/notification payload decoding now lives in
   `src/uci_plain_decoders.c`, which trims decoder responsibility out of
   `uci.c` and adds a direct regression check for the plain session-state path.

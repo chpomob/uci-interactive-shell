@@ -95,6 +95,11 @@ parameter validation rules before handing control to the command handlers in
   representative `CORE_DEVICE_INFO_RSP`, `SESSION_STATUS_NTF`, and
   `SESSION_INFO_NTF` payloads, enforcing shared semantic labels and values even
   when the UI path uses richer formatting.
+- `tests/test_command_framework_validation.c` now dispatches
+  `simulate_notification`, `simulate_session_status`, and `simulate_ranging`
+  through the real framework and asserts that the analyzer output matches the
+  emitted notification family. That gives you an end-to-end check from command
+  parsing to simulated packet construction to decode output.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

@@ -148,6 +148,9 @@ command tables.
 - Tests in `tests/test_protocol_definitions.c` and
   `tests/test_protocol_fixtures.c` enforce those mappings, the command metadata
   that depends on them, and representative byte-level packet fixtures.
+- `tests/test_uci_functions.c` now includes analyzer-dispatch regressions for
+  live packet routing, so duplicate or unreachable `MT/GID/OID` decode branches
+  are caught even when individual decoder helpers still pass in isolation.
 - `tests/test_transport_parity.c` verifies that the same command handlers emit
   identical control-packet bytes in simulation mode and hardware mode before
   any hardware response is involved.

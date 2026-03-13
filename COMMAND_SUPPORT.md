@@ -80,6 +80,9 @@ parameter validation rules before handing control to the command handlers in
   any device response is processed.
 - `tests/test_protocol_definitions.c` now also pins the exported lookup-table
   labels/descriptions that back analyzer and UI semantic output.
+- `tests/test_uci_functions.c` now exercises `uci_analyze_packet_core()` with a
+  real `SESSION_INFO_NTF` packet, closing the gap where decoder helper tests
+  could pass while the analyzer dispatch table still contained dead branches.
 
 ### Migration Status
 - Help output, readline completion, and the `help` command itself all read from

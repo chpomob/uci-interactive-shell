@@ -40,6 +40,10 @@ execution path, and changes are currently limited to:
 - The plain response decoder now reuses those shared decode helpers for UCI
   status and data-transfer status output, which removes most of the repeated
   status-label switch blocks from `src/uci_plain_decoders.c`.
+- Analyzer dispatch now has a direct regression check for
+  `SESSION_CONTROL + SESSION_INFO_NTF`, which guards against stale duplicate
+  branches in `uci_packet_analyzer.c` that helper-only decoder tests would not
+  catch.
 - Plain response/notification payload decoding now lives in
   `src/uci_plain_decoders.c`, which trims decoder responsibility out of
   `uci.c` and adds a direct regression check for the plain session-state path.

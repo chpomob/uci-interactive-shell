@@ -6,6 +6,8 @@
 #include "../include/uci_packet_utils.h"
 #include "../include/uci_decode_utils.h"
 #include "../include/uci_qorvo_utils.h"
+#include "../include/uci_packet_analyzer.h"
+#include "../include/uci_ui.h"
 #include "../include/uci_ui_packet_decoder.h"
 #include <string.h>
 #include <stdint.h>
@@ -83,6 +85,16 @@ static void emit_data_transfer_status_line_error_rejected(void) {
 static void emit_plain_set_app_config_rsp_read_only(void) {
     unsigned char payload[] = { UCI_STATUS_OK, 0x01, DEVICE_TYPE, UCI_STATUS_READ_ONLY };
     decode_session_set_app_config_rsp(payload, sizeof(payload));
+}
+
+static unsigned char *g_captured_packet = NULL;
+static size_t g_captured_packet_len = 0;
+static int g_saved_color_enabled = 1;
+
+static void emit_analyzer_captured_packet(void) {
+    ui_color_enabled = 0;
+    uci_analyze_packet_core(g_captured_packet, g_captured_packet_len);
+    ui_color_enabled = g_saved_color_enabled;
 }
 
 // Test suite for UCI functions
@@ -316,6 +328,70 @@ int main() {
         TEST_PASS();
     }
     test_case_end_plain_set_app_config:;
+
+    TEST_CASE(packet_analyzer_dispatches_session_info_notification);
+    {
+        char output[4096];
+        size_t packet_len = 0;
+        const unsigned char payload[] = {
+            0x00, 0x00, 0x00, 0x00,
+            0x02, 0x03, 0x04, 0x05,
+            0x06,
+            0x07, 0x08, 0x00, 0x00,
+            0x01,
+            0x00,
+            0x01,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00
+        };
+        unsigned char* packet = create_uci_packet(NOTIFICATION,
+                                                  COMPLETE,
+                                                  SESSION_CONTROL,
+                                                  SESSION_INFO_NTF,
+                                                  payload,
+                                                  sizeof(payload),
+                                                  &packet_len);
+
+        if (!packet) {
+            TEST_FAIL("Failed to create SESSION_INFO_NTF packet");
+            goto test_case_end_packet_analyzer_dispatch;
+        }
+
+        g_captured_packet = packet;
+        g_captured_packet_len = packet_len;
+        g_saved_color_enabled = ui_color_enabled;
+
+        if (capture_stdout(emit_analyzer_captured_packet, output, sizeof(output)) == 0) {
+            TEST_FAIL("Failed to capture analyzer output");
+            free(packet);
+            g_captured_packet = NULL;
+            g_captured_packet_len = 0;
+            goto test_case_end_packet_analyzer_dispatch;
+        }
+
+        g_captured_packet = NULL;
+        g_captured_packet_len = 0;
+        free(packet);
+
+        if (strstr(output, "SESSION_INFO_NTF - Standard FiRa Ranging Notification") == NULL) {
+            TEST_FAIL("Analyzer did not dispatch SESSION_INFO_NTF to the standard session info decoder");
+            goto test_case_end_packet_analyzer_dispatch;
+        }
+
+        if (strstr(output, "RANGE_DATA_NTF") != NULL) {
+            TEST_FAIL("Analyzer dispatched SESSION_INFO_NTF through the stale range data path");
+            goto test_case_end_packet_analyzer_dispatch;
+        }
+
+        if (strstr(output, "No specific decoder for SESSION_CONTROL_NOTIFICATION") != NULL) {
+            TEST_FAIL("Analyzer fell through instead of dispatching the session info decoder");
+            goto test_case_end_packet_analyzer_dispatch;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_packet_analyzer_dispatch:;
 
     TEST_CASE(data_message_builder_invalid_params);
     {

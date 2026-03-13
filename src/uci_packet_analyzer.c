@@ -666,20 +666,6 @@ void uci_analyze_packet_core(unsigned char* packet, size_t packet_len) {
             } else {
                 printf("  No specific decoder for ANDROID_NOTIFICATION opcode 0x%02X\n", opcode);
             }
-        } else if (mt == NOTIFICATION && gid == SESSION_CONTROL) {
-            switch(opcode) {
-                case SESSION_INFO_NTF_OPCODE:
-                    ui_decode_range_data_ntf(payload_ptr, payload_len_int);
-                    break;
-                default:
-                    if (ui_color_enabled) {
-                        printf("  %s%sNo specific decoder for SESSION_CONTROL_NOTIFICATION opcode 0x%02X%s\n", 
-                               ANSI_COLOR_BRIGHT_BLACK, ANSI_BOLD, opcode, ANSI_RESET);
-                    } else {
-                        printf("  No specific decoder for SESSION_CONTROL_NOTIFICATION opcode 0x%02X\n", opcode);
-                    }
-                    break;
-            }
         } else {
             if (ui_color_enabled) {
                 printf("  %s%sNo specific decoder for MT=%d, GID=%d, OP=0x%02X%s\n", 

@@ -142,6 +142,8 @@ execution path, and changes are currently limited to:
   end-to-end, including `CORE_SET_CONFIG`, `CORE_GET_CONFIG`,
   `SESSION_SET_APP_CONFIG`, and `SESSION_GET_APP_CONFIG`, without turning
   cross-repo network tests into part of default `make test`.
+  The current scripted coverage now exercises `device_state`,
+  `low_power_mode`, and `device_pan_id` over the TCP simulator path.
 - `make test` now runs the canonical non-hardware regression suites, including
   the protocol definition suite.
 

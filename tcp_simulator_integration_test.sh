@@ -35,6 +35,10 @@ get_device_info
 get_caps_info
 set_config device_state active
 get_config device_state
+set_config low_power_mode on
+get_config low_power_mode
+set_config device_pan_id 0x1234
+get_config device_pan_id
 session_init 305419896 fira_ranging
 set_app_config 305419896 device_type responder
 get_app_config 305419896 device_type
@@ -64,6 +68,10 @@ require_line "CORE_SET_CONFIG Response:"
 require_line "Config[0]: ID=0x00 (device_state), Status=0x00 (OK)"
 require_line "CORE_GET_CONFIG Response:"
 require_line "Interpreted: ACTIVE (0x02)"
+require_line "Config[0]: ID=0x01 (low_power_mode), Status=0x00 (OK)"
+require_line "Interpreted: ON (0x01)"
+require_line "Config[0]: ID=0xA2 (device_pan_id), Status=0x00 (OK)"
+require_line "4660 (0x34 12)"
 require_line "SESSION_INIT Response:"
 require_line "Session Handle: 0x12345678"
 require_line "SESSION_SET_APP_CONFIG Response:"

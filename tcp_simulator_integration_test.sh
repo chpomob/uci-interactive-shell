@@ -94,6 +94,10 @@ require_line "SESSION_STOP Response:"
 
 if [[ "${SCENARIO}" == "ranging_stream" ]]; then
     require_line "RANGE_DATA_NTF (SESSION_INFO_NTF):"
+    require_line "Sequence Number"
+    require_line "Sequence Number: 1"
+    require_line "Sequence Number: 2"
+    require_line "Sequence Number: 3"
     require_line "Measurement Count"
 fi
 

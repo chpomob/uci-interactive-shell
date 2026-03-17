@@ -10,6 +10,7 @@
 #include "../include/uci_hw.h"
 #include "../include/uci_hw_interface.h"
 #include "../include/uci_hw_chardev.h"
+#include "../include/uci_tcp_transport.h"
 #include "../include/uci_ui.h"
 #include "../include/uci_ui_main_patch.h"
 #include "../include/uci_response_core.h"
@@ -347,27 +348,36 @@ void analyze_uci_packet(unsigned char* packet, size_t packet_len) {
 // Function to enable hardware mode
 void uci_enable_hardware_mode(const char* device_path) {
     extern int g_hardware_mode;
+    extern uci_transport_mode_t g_transport_mode;
 
     if (!device_path || device_path[0] == '\0') {
         UCI_LOG_WARNING("Cannot enable hardware mode without a device path");
         g_hardware_mode = 0;
+        g_transport_mode = UCI_TRANSPORT_MODE_SIMULATION;
         return;
     }
 
+    uci_tcp_transport_disconnect();
     if (uci_hw_interface_init(device_path) == 0) {
         g_hardware_mode = 1;
+        g_transport_mode = UCI_TRANSPORT_MODE_HARDWARE;
         printf("Hardware mode enabled with device: %s\n", device_path);
     } else {
         UCI_LOG_WARNING("Failed to initialize hardware device: %s", device_path);
         g_hardware_mode = 0;
+        g_transport_mode = UCI_TRANSPORT_MODE_SIMULATION;
     }
 }
 
 // Function to disable hardware mode
 void uci_disable_hardware_mode() {
     extern int g_hardware_mode;
+    extern uci_transport_mode_t g_transport_mode;
     uci_hw_interface_cleanup();
     g_hardware_mode = 0;
+    if (g_transport_mode == UCI_TRANSPORT_MODE_HARDWARE) {
+        g_transport_mode = UCI_TRANSPORT_MODE_SIMULATION;
+    }
     printf("Hardware mode disabled\n");
 }
 
@@ -375,6 +385,59 @@ void uci_disable_hardware_mode() {
 int uci_is_hardware_mode_enabled() {
     extern int g_hardware_mode;
     return g_hardware_mode;
+}
+
+int uci_enable_tcp_mode(const char* host, uci_uint16 port) {
+    extern int g_hardware_mode;
+    extern uci_transport_mode_t g_transport_mode;
+
+    if (!host || host[0] == '\0' || port == 0) {
+        return -1;
+    }
+
+    uci_hw_interface_cleanup();
+    g_hardware_mode = 0;
+
+    if (uci_tcp_transport_connect(host, port) != 0) {
+        g_transport_mode = UCI_TRANSPORT_MODE_SIMULATION;
+        return -1;
+    }
+
+    g_transport_mode = UCI_TRANSPORT_MODE_TCP;
+    printf("TCP mode enabled with endpoint: %s\n", uci_get_tcp_endpoint());
+    return 0;
+}
+
+void uci_disable_tcp_mode(void) {
+    extern uci_transport_mode_t g_transport_mode;
+
+    if (g_transport_mode == UCI_TRANSPORT_MODE_TCP) {
+        uci_tcp_transport_disconnect();
+        g_transport_mode = UCI_TRANSPORT_MODE_SIMULATION;
+        printf("TCP mode disabled\n");
+    } else {
+        uci_tcp_transport_disconnect();
+    }
+}
+
+int uci_is_tcp_mode_enabled(void) {
+    extern uci_transport_mode_t g_transport_mode;
+    return g_transport_mode == UCI_TRANSPORT_MODE_TCP;
+}
+
+const char* uci_get_tcp_endpoint(void) {
+    const char* endpoint = uci_tcp_transport_get_endpoint();
+    return (endpoint && endpoint[0] != '\0') ? endpoint : "127.0.0.1:9000";
+}
+
+uci_transport_mode_t uci_get_transport_mode(void) {
+    extern uci_transport_mode_t g_transport_mode;
+    return g_transport_mode;
+}
+
+int uci_is_external_transport_enabled(void) {
+    uci_transport_mode_t mode = uci_get_transport_mode();
+    return mode == UCI_TRANSPORT_MODE_HARDWARE || mode == UCI_TRANSPORT_MODE_TCP;
 }
 
 // Function to get the current hardware device path
@@ -535,13 +598,13 @@ static void send_sim_status(uint8_t gid, uint8_t oid, uint8_t status) {
 void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
                       uci_uint8 *payload, int payload_len) {
     static int initialized = 0;
+    uci_transport_mode_t transport_mode;
     if (!initialized) {
         init_uci_sessions();
         sim_queue_reset();
         initialized = 1;
     }
 
-    extern int g_hardware_mode;
     size_t packet_len = 0;
     unsigned char *packet = NULL;
     const unsigned char *packet_payload = NULL;
@@ -573,8 +636,9 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
     }
 
     packet_payload = packet + sizeof(struct uci_packet_header);
+    transport_mode = uci_get_transport_mode();
 
-    if (g_hardware_mode) {
+    if (transport_mode == UCI_TRANSPORT_MODE_HARDWARE) {
         printf("[HARDWARE MODE] ");
         const char* hw_path = uci_get_hardware_device_path();
         log_control_packet_bytes(hw_path, packet, packet_len, 1);
@@ -590,6 +654,27 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
         printf("  <- Waiting for response from hardware device...\n");
         if (uci_receive_hardware_packets(1000) == 0) {
             ui_print_warning("No response received from hardware (timeout)");
+        }
+        free(packet);
+        return;
+    }
+
+    if (transport_mode == UCI_TRANSPORT_MODE_TCP) {
+        const char* endpoint = uci_get_tcp_endpoint();
+        printf("[TCP MODE] ");
+        log_control_packet_bytes(endpoint, packet, packet_len, 1);
+
+        if (uci_tcp_transport_send_packet(packet, packet_len) != 0) {
+            ui_print_error("Failed to send command to TCP endpoint");
+            UCI_LOG_ERROR("TCP send failed", UCI_ERROR_INVALID_PARAM);
+            free(packet);
+            return;
+        }
+
+        printf("  -> Sent command to TCP endpoint %s\n", endpoint);
+        printf("  <- Waiting for response from TCP endpoint...\n");
+        if (uci_receive_tcp_packets(1000) == 0) {
+            ui_print_warning("No response received from TCP endpoint (timeout)");
         }
         free(packet);
         return;
@@ -770,7 +855,12 @@ void uci_send_data_message(uint32_t identifier,
         return;
     }
 
-    const char *target = g_hardware_mode ? g_hardware_device_path : "simulator";
+    const char *target = "simulator";
+    if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_HARDWARE) {
+        target = g_hardware_device_path;
+    } else if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_TCP) {
+        target = uci_get_tcp_endpoint();
+    }
     ui_print_sending_uci_packet(target);
 
     size_t remaining = payload_len;
@@ -790,7 +880,7 @@ void uci_send_data_message(uint32_t identifier,
         remaining -= chunk;
     }
 
-    if (g_hardware_mode) {
+    if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_HARDWARE) {
         printf("  -> Would send to hardware device %s\n", g_hardware_device_path);
     }
 
@@ -823,6 +913,33 @@ int uci_receive_hardware_packets(int timeout_ms) {
         printf("\n");
         parse_uci_packet(response_buffer, (size_t)response_len);
         received_packets++;
+    }
+}
+
+int uci_receive_tcp_packets(int timeout_ms) {
+    unsigned char response_buffer[1024];
+    int received_packets = 0;
+
+    while (1) {
+        int response_len = uci_tcp_transport_receive_packet(response_buffer,
+                                                            sizeof(response_buffer),
+                                                            timeout_ms);
+        if (response_len < 0) {
+            return (received_packets > 0) ? received_packets : -1;
+        }
+        if (response_len == 0) {
+            return received_packets;
+        }
+
+        printf("Received %d bytes from TCP endpoint:\n", response_len);
+        printf("  ");
+        for (int i = 0; i < response_len; i++) {
+            printf("%02X ", response_buffer[i]);
+        }
+        printf("\n");
+        parse_uci_packet(response_buffer, (size_t)response_len);
+        received_packets++;
+        timeout_ms = 20;
     }
 }
 

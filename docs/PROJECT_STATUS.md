@@ -130,6 +130,9 @@ execution path, and changes are currently limited to:
 - A new transport parity suite now runs representative handlers through both
   simulation mode and a stubbed hardware transport to prove the emitted command
   bytes match before real-device testing.
+- External transport is now explicit rather than hardware-only. The shell has
+  separate simulation, hardware chardev, and TCP simulator modes, while packet
+  construction still flows through the same canonical builder path.
 - A minimal real-device acceptance script now exercises the CLI hardware flow
   for `mode_hw`, `get_device_info`, `get_caps_info`, `session_init`,
   `get_session_state`, and `session_deinit`, with `session_start` kept opt-in

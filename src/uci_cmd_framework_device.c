@@ -174,6 +174,27 @@ static const uci_param_def_t k_device_path_param[] = {
     },
 };
 
+static const uci_param_def_t k_tcp_endpoint_params[] = {
+    {
+        .name = "host",
+        .type = PARAM_TYPE_STRING,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 127,
+        .min_value = 0,
+        .max_value = 0,
+        .description = "TCP host or IPv4 address for the simulator",
+    },
+    {
+        .name = "port",
+        .type = PARAM_TYPE_UINT16,
+        .flags = PARAM_FLAG_REQUIRED,
+        .max_len = 0,
+        .min_value = 1,
+        .max_value = 65535,
+        .description = "TCP port for the simulator endpoint",
+    },
+};
+
 const uci_command_def_t g_uci_device_command_defs[] = {
     {
         .name = "mode_sim",
@@ -204,6 +225,16 @@ const uci_command_def_t g_uci_device_command_defs[] = {
         .params = NULL,
         .param_count = 0,
         .handler = handle_mode_info_command_typed,
+    },
+    {
+        .name = "mode_tcp",
+        .aliases = { "tcp_mode", NULL, NULL, NULL },
+        .group = CLI_GROUP_HARDWARE,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Switch to TCP simulator mode",
+        .params = k_tcp_endpoint_params,
+        .param_count = ARRAY_SIZE(k_tcp_endpoint_params),
+        .handler = handle_mode_tcp_command_typed,
     },
     {
         .name = "hw_init",

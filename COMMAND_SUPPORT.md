@@ -110,6 +110,10 @@ parameter validation rules before handing control to the command handlers in
   than in the hardware transport layer. That keeps the transport path close to
   raw Cherry wire behavior while still giving analyzer/plain/UI decoders a
   single logical control packet once all fragments arrive.
+- Standard command handlers now also support a dedicated TCP transport mode for
+  the external simulator project. Packet construction remains shared, and the
+  transport decision happens only after the canonical UCI packet has been
+  built.
 - `tests/test_analyzer_dispatch.c` now covers representative live dispatch for
   `COMMAND`, `RESPONSE`, and `NOTIFICATION` packets in the CORE,
   `SESSION_CONFIG`, and `SESSION_CONTROL` families, and now also asserts the

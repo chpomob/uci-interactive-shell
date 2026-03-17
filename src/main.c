@@ -25,6 +25,7 @@
 #include "../include/uci_hw.h"
 #include "../include/uci_hw_interface.h"
 #include "../include/uci_hw_chardev.h"
+#include "../include/uci_tcp_transport.h"
 #include "../include/uci_ui.h"
 #include "../include/uci_ui_main_patch.h"
 #include "../include/uci_packet_utils.h"
@@ -104,10 +105,16 @@ int main(int argc, char** argv) {
         FD_SET(STDIN_FILENO, &read_fds);
         max_fd = STDIN_FILENO;
 
-        if (g_hardware_mode && g_uwb_chardev.fd >= 0) {
+        if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_HARDWARE && g_uwb_chardev.fd >= 0) {
             FD_SET(g_uwb_chardev.fd, &read_fds);
             if (g_uwb_chardev.fd > max_fd) {
                 max_fd = g_uwb_chardev.fd;
+            }
+        } else if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_TCP && uci_tcp_transport_get_fd() >= 0) {
+            int tcp_fd = uci_tcp_transport_get_fd();
+            FD_SET(tcp_fd, &read_fds);
+            if (tcp_fd > max_fd) {
+                max_fd = tcp_fd;
             }
         }
         
@@ -137,12 +144,18 @@ int main(int argc, char** argv) {
             }
         }
 
-        if (g_hardware_mode && g_uwb_chardev.fd >= 0 && FD_ISSET(g_uwb_chardev.fd, &read_fds)) {
+        if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_HARDWARE &&
+            g_uwb_chardev.fd >= 0 &&
+            FD_ISSET(g_uwb_chardev.fd, &read_fds)) {
             unsigned char buffer[1024];
             int len = uci_hw_chardev_receive(&g_uwb_chardev, buffer, sizeof(buffer), 0);
             if (len > 0) {
                 parse_uci_packet(buffer, len);
             }
+        } else if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_TCP &&
+                   uci_tcp_transport_get_fd() >= 0 &&
+                   FD_ISSET(uci_tcp_transport_get_fd(), &read_fds)) {
+            uci_receive_tcp_packets(0);
         }
     }
 #endif

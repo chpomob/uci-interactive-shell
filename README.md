@@ -58,9 +58,10 @@ Once the shell is running, you can use the following commands:
 
 ### Hardware Mode
 - `mode_hw <device_path>`, `hw_init <device_path>` (alias `hw_connect`)
+- `mode_tcp <host> <port>` (alias `tcp_mode`)
 - `mode_sim` / `mode_info` – switch modes and display active transport
 - `hw_send <mt> <pbf> <gid> <oid> [payload...]` – stream raw hex to the connected device
-- After connecting, reuse the standard device/session commands (e.g. `get_device_info`, `session_start 1`) to operate on hardware.
+- After connecting, reuse the standard device/session commands (e.g. `get_device_info`, `session_start 1`) to operate on the active external transport.
 
 ## Command Examples
 
@@ -97,9 +98,10 @@ Once the shell is running, you can use the following commands:
 
 ### Hardware Commands
 - Connect to hardware: `mode_hw /dev/ttyUSB0` (alias `hw_init`)
+- Connect to a TCP simulator: `mode_tcp 127.0.0.1 9000`
 - Inspect active transport: `mode_info`
 - Send raw command: `hw_send 01 00 00 02` (MT=1, PBF=0, GID=0, OID=2 for CORE_DEVICE_INFO)
-- Once connected, issue any standard command (`get_device_info`, `session_start 1`, etc.) to act on hardware.
+- Once connected, issue any standard command (`get_device_info`, `session_start 1`, etc.) to act on the active external endpoint.
 
 ### Simulation Commands
 - Simulate ranging notification: `simulate_ranging`
@@ -116,7 +118,8 @@ The UCI protocol is a communication interface used for Ultra-Wideband (UWB) devi
 The shell is in consolidation mode. The active architecture is the declarative
 command framework in `src/uci_cmd_framework_*` and `src/uci_command_framework.c`.
 Help text, completion, validation, and dispatch now read from those shared
-command tables.
+command tables. External transport selection now has three explicit modes:
+simulation, hardware chardev, and TCP simulator.
 
 ### Source Of Truth
 - Standard UCI message, group, status, and opcode definitions are pinned to the

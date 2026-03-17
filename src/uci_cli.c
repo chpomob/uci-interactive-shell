@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include "../include/uci.h"
 #include "../include/uci_cli.h"
 #include "../include/uci_ui.h"
 
@@ -52,8 +53,8 @@ int cli_dispatch(int argc, char** argv) {
         return -1;
     }
 
-    if ((command->flags & CLI_CMD_FLAG_REQUIRES_HW_MODE) && !g_hardware_mode) {
-        ui_print_error("Command requires hardware mode. Run hw_init or mode_hw first.");
+    if ((command->flags & CLI_CMD_FLAG_REQUIRES_HW_MODE) && !uci_is_external_transport_enabled()) {
+        ui_print_error("Command requires external transport mode. Run hw_init, mode_hw, or mode_tcp first.");
         return -1;
     }
 

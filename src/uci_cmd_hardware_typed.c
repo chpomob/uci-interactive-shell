@@ -55,6 +55,30 @@ int handle_mode_hw_command_typed(const char* cmd_name,
     return handle_mode_hw_command((char*)device_path);
 }
 
+int handle_mode_tcp_command_typed(const char* cmd_name,
+                                int argc,
+                                char** argv,
+                                const uci_param_def_t* params,
+                                int param_count) {
+    const uci_cmd_parsed_param_t* host_param;
+    const uci_cmd_parsed_param_t* port_param;
+
+    (void)cmd_name;
+    (void)argc;
+    (void)argv;
+    (void)params;
+    (void)param_count;
+
+    host_param = uci_cmd_get_parsed_param(0);
+    port_param = uci_cmd_get_parsed_param(1);
+    if (!host_param || !host_param->present || !port_param || !port_param->present) {
+        ui_print_error("mode_tcp requires host and port");
+        return -1;
+    }
+
+    return handle_mode_tcp_command((char*)host_param->raw_value, port_param->value.u16);
+}
+
 int handle_mode_info_command_typed(const char* cmd_name,
                                  int argc,
                                  char** argv,

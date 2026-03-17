@@ -122,6 +122,7 @@ int handle_hw_send_command(char* mt_str,
 }
 
 void handle_mode_sim_command(void) {
+    uci_disable_tcp_mode();
     uci_disable_hardware_mode();
 }
 
@@ -150,10 +151,37 @@ int handle_mode_hw_command(char* device_path) {
     return handle_hw_init_command(device_path);
 }
 
+int handle_mode_tcp_command(char* host, unsigned short port) {
+    if (!host || host[0] == '\0' || port == 0) {
+        printf("Usage: mode_tcp <host> <port>\n");
+        printf("  Example: mode_tcp 127.0.0.1 9000\n");
+        UCI_LOG_ERROR("host or port is invalid", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+
+    if (strlen(host) >= 128) {
+        printf("Host too long\n");
+        UCI_LOG_ERROR("TCP host too long", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+
+    if (uci_enable_tcp_mode(host, port) != 0) {
+        ui_print_error("Failed to initialize TCP mode");
+        UCI_LOG_ERROR("Failed to initialize TCP mode", UCI_ERROR_INVALID_PARAM);
+        return -1;
+    }
+
+    printf("TCP simulator mode enabled for %s\n", uci_get_tcp_endpoint());
+    return 0;
+}
+
 void handle_mode_info_command(void) {
-    if (uci_is_hardware_mode_enabled()) {
+    if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_HARDWARE) {
         printf("Current mode: HARDWARE\n");
         printf("Hardware device: %s\n", uci_get_hardware_device_path());
+    } else if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_TCP) {
+        printf("Current mode: TCP\n");
+        printf("TCP endpoint: %s\n", uci_get_tcp_endpoint());
     } else {
         printf("Current mode: SIMULATION\n");
     }

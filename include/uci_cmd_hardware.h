@@ -18,6 +18,7 @@ int handle_hw_send_command(char* mt_str,
 // Mode switching commands
 void handle_mode_sim_command(void);
 int handle_mode_hw_command(char* device_path);
+int handle_mode_tcp_command(char* host, unsigned short port);
 void handle_mode_info_command(void);
 
 #endif // UCI_CMD_HARDWARE_H

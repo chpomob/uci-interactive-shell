@@ -95,6 +95,12 @@ struct uci_session {
     uci_uint8 last_data_preview_len;
 };
 
+typedef enum {
+    UCI_TRANSPORT_MODE_SIMULATION = 0,
+    UCI_TRANSPORT_MODE_HARDWARE = 1,
+    UCI_TRANSPORT_MODE_TCP = 2,
+} uci_transport_mode_t;
+
 // Global session storage
 extern struct uci_session uci_sessions[MAX_SESSIONS];
 
@@ -226,6 +232,12 @@ void uci_enable_hardware_mode(const char* device_path);
 void uci_disable_hardware_mode();
 int uci_is_hardware_mode_enabled();
 const char* uci_get_hardware_device_path();
+int uci_enable_tcp_mode(const char* host, uci_uint16 port);
+void uci_disable_tcp_mode(void);
+int uci_is_tcp_mode_enabled(void);
+const char* uci_get_tcp_endpoint(void);
+uci_transport_mode_t uci_get_transport_mode(void);
+int uci_is_external_transport_enabled(void);
 
 // Payload decoding functions
 // CORE group decoders

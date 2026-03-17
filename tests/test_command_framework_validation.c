@@ -5,9 +5,17 @@
 #include "../include/uci_cmd_framework_device.h"
 #include "../include/uci_cmd_framework_session.h"
 #include "../include/uci_cmd_framework_simulation.h"
+#include "../include/uci_cmd_hardware.h"
 #include "../include/uci_pdl.h"
 #include "../include/uci_ui.h"
+#include "../include/uci_functions.h"
 #include <stddef.h>
+#include <arpa/inet.h>
+#include <errno.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -32,6 +40,8 @@ static unsigned char g_captured_session_type = 0;
 static size_t g_captured_hex_len = 0;
 static unsigned char g_captured_hex_bytes[8];
 static int g_capture_handler_calls = 0;
+static pid_t g_tcp_server_pid = 0;
+static uint16_t g_tcp_server_port = 0;
 
 static int capture_handler(const char* cmd_name,
                            int argc,
@@ -167,6 +177,55 @@ static int capture_cli_output(char** argv, int argc, char* buffer, size_t buffer
     close(saved_stdout);
     fclose(tmp);
     return rc;
+}
+
+static int start_tcp_stub_server(void) {
+    static const char* k_simulator_binary =
+        "/media/chpo/HDD-papa/gemini_test/uci_device_simulator/build/uci-device-sim";
+    char port_text[16];
+    pid_t pid;
+    int probe_fd;
+
+    if (access(k_simulator_binary, X_OK) != 0) {
+        return 1;
+    }
+
+    probe_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (probe_fd < 0) {
+        return (errno == EPERM) ? 1 : -1;
+    }
+    close(probe_fd);
+
+    g_tcp_server_port = (uint16_t)(24000 + (getpid() % 1000));
+    snprintf(port_text, sizeof(port_text), "%u", (unsigned)g_tcp_server_port);
+    pid = fork();
+    if (pid < 0) {
+        if (errno == EPERM) {
+            return 1;
+        }
+        return -1;
+    }
+
+    if (pid == 0) {
+        execl(k_simulator_binary, k_simulator_binary, "127.0.0.1", port_text, (char*)NULL);
+        _exit(1);
+    }
+
+    g_tcp_server_pid = pid;
+    usleep(200000);
+    return 0;
+}
+
+static void stop_tcp_stub_server(void) {
+    int status = 0;
+
+    if (g_tcp_server_pid <= 0) {
+        return;
+    }
+
+    kill(g_tcp_server_pid, SIGTERM);
+    waitpid(g_tcp_server_pid, &status, 0);
+    g_tcp_server_pid = 0;
 }
 
 int main(void) {
@@ -456,6 +515,60 @@ int main(void) {
         ASSERT_EQUAL(0, capture_cli_output(argv, 1, buffer, sizeof(buffer)));
         ASSERT_TRUE(strstr(buffer, "UCI Shell Commands") != NULL);
         ASSERT_TRUE(strstr(buffer, "mode_hw") != NULL);
+        ASSERT_TRUE(strstr(buffer, "mode_tcp") != NULL);
+        TEST_PASS();
+    }
+    test_case_end:;
+#undef test_case_end
+
+#define test_case_end test_case_end_mode_tcp
+    TEST_CASE(mode_tcp_switches_transport_mode);
+    {
+        char buffer[4096];
+        char port_text[16];
+        const uci_command_def_t* mode_tcp_def =
+            find_command_by_name(g_uci_device_command_defs,
+                                 g_uci_device_command_defs_count,
+                                 "mode_tcp");
+        const uci_command_def_t* mode_info_def =
+            find_command_by_name(g_uci_device_command_defs,
+                                 g_uci_device_command_defs_count,
+                                 "mode_info");
+
+        ASSERT_TRUE(mode_tcp_def != NULL);
+        ASSERT_TRUE(mode_info_def != NULL);
+        {
+            int server_rc = start_tcp_stub_server();
+            if (server_rc == 1) {
+                printf(" SKIPPED (TCP integration unavailable in this environment)\n");
+                total_tests_passed++;
+                goto test_case_end;
+            }
+            ASSERT_EQUAL(0, server_rc);
+        }
+
+        snprintf(port_text, sizeof(port_text), "%u", (unsigned)g_tcp_server_port);
+        char* mode_tcp_argv[] = { "mode_tcp", "127.0.0.1", port_text };
+        ASSERT_EQUAL(0, dispatch_and_capture_output(mode_tcp_def,
+                                                    3,
+                                                    mode_tcp_argv,
+                                                    buffer,
+                                                    sizeof(buffer)));
+        ASSERT_TRUE(strstr(buffer, "TCP simulator mode enabled") != NULL);
+        ASSERT_TRUE(uci_get_transport_mode() == UCI_TRANSPORT_MODE_TCP);
+
+        char* mode_info_argv[] = { "mode_info" };
+        ASSERT_EQUAL(0, dispatch_and_capture_output(mode_info_def,
+                                                    1,
+                                                    mode_info_argv,
+                                                    buffer,
+                                                    sizeof(buffer)));
+        ASSERT_TRUE(strstr(buffer, "Current mode: TCP") != NULL);
+        ASSERT_TRUE(strstr(buffer, "127.0.0.1") != NULL);
+
+        handle_mode_sim_command();
+        stop_tcp_stub_server();
+        ASSERT_TRUE(uci_get_transport_mode() == UCI_TRANSPORT_MODE_SIMULATION);
         TEST_PASS();
     }
     test_case_end:;

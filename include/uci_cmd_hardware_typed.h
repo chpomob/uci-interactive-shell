@@ -13,6 +13,11 @@ int handle_mode_hw_command_typed(const char* cmd_name,
                                  char** argv,
                                  const uci_param_def_t* params,
                                  int param_count);
+int handle_mode_tcp_command_typed(const char* cmd_name,
+                                  int argc,
+                                  char** argv,
+                                  const uci_param_def_t* params,
+                                  int param_count);
 int handle_mode_info_command_typed(const char* cmd_name,
                                    int argc,
                                    char** argv,

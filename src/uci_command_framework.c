@@ -219,7 +219,7 @@ int uci_cmd_execute_unified(uci_command_context_t* ctx) {
         return -1;
     }
 
-    if (uci_is_hardware_mode_enabled()) {
+    if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_HARDWARE) {
         int response_count;
         if (uci_hw_interface_send_command(ctx->mt, ctx->pbf, ctx->gid, ctx->oid,
                                           ctx->payload, (int)ctx->payload_len) != 0) {
@@ -237,11 +237,10 @@ int uci_cmd_execute_unified(uci_command_context_t* ctx) {
             ui_print_warning("No response received from hardware (timeout)");
         }
         return 0;
-    } else {
-        // Simulation mode
-        send_uci_command(ctx->mt, ctx->pbf, ctx->gid, ctx->oid, ctx->payload, (int)ctx->payload_len);
-        return 0;
     }
+
+    send_uci_command(ctx->mt, ctx->pbf, ctx->gid, ctx->oid, ctx->payload, (int)ctx->payload_len);
+    return 0;
 }
 
 // Validate parameters based on command definition
@@ -475,8 +474,8 @@ int uci_cmd_dispatch(const uci_command_def_t* cmd_def, int argc, char** argv) {
     }
 
     // Check if command requires hardware mode
-    if ((cmd_def->flags & CLI_CMD_FLAG_REQUIRES_HW_MODE) && !uci_is_hardware_mode_enabled()) {
-        ui_print_error("Command requires hardware mode. Run hw_init or mode_hw first.");
+    if ((cmd_def->flags & CLI_CMD_FLAG_REQUIRES_HW_MODE) && !uci_is_external_transport_enabled()) {
+        ui_print_error("Command requires external transport mode. Run hw_init, mode_hw, or mode_tcp first.");
         return -1;
     }
 

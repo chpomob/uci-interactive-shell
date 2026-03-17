@@ -40,6 +40,7 @@ get_config low_power_mode
 set_config device_pan_id 0x1234
 get_config device_pan_id
 session_init 305419896 fira_ranging
+session_query_data_size_in_ranging 305419896
 set_app_config 305419896 device_type responder
 get_app_config 305419896 device_type
 session_start 305419896
@@ -74,6 +75,8 @@ require_line "Config[0]: ID=0xA2 (device_pan_id), Status=0x00 (OK)"
 require_line "4660 (0x34 12)"
 require_line "SESSION_INIT Response:"
 require_line "Session Handle: 0x12345678"
+require_line "SESSION_QUERY_DATA_SIZE_IN_RANGING Response:"
+require_line "Max Data Size: 512 bytes"
 require_line "SESSION_SET_APP_CONFIG Response:"
 require_line "Config[0]: ID=0x00 (device_type), Status=0x00 (OK)"
 require_line "SESSION_GET_APP_CONFIG Response:"

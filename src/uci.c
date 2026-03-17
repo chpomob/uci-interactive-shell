@@ -664,7 +664,7 @@ void send_uci_command(uci_uint8 mt, uci_uint8 pbf, uci_uint8 gid, uci_uint8 oid,
         printf("[TCP MODE] ");
         log_control_packet_bytes(endpoint, packet, packet_len, 1);
 
-        if (uci_tcp_transport_send_packet(packet, packet_len) != 0) {
+        if (uci_tcp_transport_send_packet(packet, packet_len) < 0) {
             ui_print_error("Failed to send command to TCP endpoint");
             UCI_LOG_ERROR("TCP send failed", UCI_ERROR_INVALID_PARAM);
             free(packet);
@@ -939,7 +939,7 @@ int uci_receive_tcp_packets(int timeout_ms) {
         printf("\n");
         parse_uci_packet(response_buffer, (size_t)response_len);
         received_packets++;
-        timeout_ms = 20;
+        timeout_ms = 100;
     }
 }
 

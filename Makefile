@@ -29,7 +29,7 @@ TRANSPORT_PARITY_TEST_TARGET=test_transport_parity
 ANALYZER_DISPATCH_TEST_TARGET=test_analyzer_dispatch
 CHERRY_ALIGNMENT_TEST_TARGET=test_cherry_alignment
 
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hw-fragmentation-test hardware-acceptance-smoke protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test coverage
+.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hw-fragmentation-test hardware-acceptance-smoke tcp-simulator-integration-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test coverage
 
 all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
 
@@ -128,6 +128,9 @@ $(HW_FRAGMENTATION_TEST_TARGET): tests/test_hw_fragmentation.c $(filter-out src/
 
 hardware-acceptance-smoke: $(TARGET)
 	./hardware_acceptance_smoke.sh
+
+tcp-simulator-integration-test: $(TARGET)
+	./tcp_simulator_integration_test.sh
 
 protocol-definitions-test: $(PROTOCOL_DEFINITIONS_TEST_TARGET)
 	./$(PROTOCOL_DEFINITIONS_TEST_TARGET)

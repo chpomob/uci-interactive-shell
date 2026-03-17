@@ -137,6 +137,10 @@ execution path, and changes are currently limited to:
   for `mode_hw`, `get_device_info`, `get_caps_info`, `session_init`,
   `get_session_state`, and `session_deinit`, with `session_start` kept opt-in
   until a target app-config baseline is pinned.
+- An opt-in TCP simulator integration target now launches the sibling
+  `uci_device_simulator` binary and validates a real `mode_tcp` shell session
+  end-to-end, without turning cross-repo network tests into part of default
+  `make test`.
 - `make test` now runs the canonical non-hardware regression suites, including
   the protocol definition suite.
 

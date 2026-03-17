@@ -16,6 +16,12 @@ To build the project, simply run:
 make
 ```
 
+Optional integration target:
+
+```bash
+make tcp-simulator-integration-test
+```
+
 ## Running
 
 To run the interactive shell:
@@ -102,6 +108,7 @@ Once the shell is running, you can use the following commands:
 - Inspect active transport: `mode_info`
 - Send raw command: `hw_send 01 00 00 02` (MT=1, PBF=0, GID=0, OID=2 for CORE_DEVICE_INFO)
 - Once connected, issue any standard command (`get_device_info`, `session_start 1`, etc.) to act on the active external endpoint.
+- Build the sibling simulator and run an end-to-end shell check: `cd ../uci_device_simulator && make uci-device-sim && cd ../uci_interactive_shell && make tcp-simulator-integration-test`
 
 ### Simulation Commands
 - Simulate ranging notification: `simulate_ranging`

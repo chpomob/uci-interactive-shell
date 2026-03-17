@@ -147,7 +147,8 @@ execution path, and changes are currently limited to:
   `SESSION_QUERY_DATA_SIZE_IN_RANGING` over the TCP simulator path.
   The same script can now be run with `UCI_TCP_SIM_SCENARIO=ranging_stream` to
   assert that the shell decodes a Cherry-aligned
-  `RANGE_DATA_NTF (SESSION_INFO_NTF)` series emitted by the simulator.
+  `RANGE_DATA_NTF (SESSION_INFO_NTF)` stream emitted by the simulator and that
+  `SESSION_STOP` suppresses any later range-data packets.
 - `make test` now runs the canonical non-hardware regression suites, including
   the protocol definition suite.
 

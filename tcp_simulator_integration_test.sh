@@ -66,6 +66,16 @@ require_line() {
     fi
 }
 
+forbid_line() {
+    local pattern="$1"
+    if grep -Fq "${pattern}" "${SANITIZED_OUTPUT}"; then
+        echo "FAIL: forbidden output pattern present: ${pattern}"
+        echo "--- sanitized output ---"
+        cat "${SANITIZED_OUTPUT}"
+        exit 1
+    fi
+}
+
 require_line "Current mode: TCP"
 require_line "TCP endpoint: ${HOST}:${PORT}"
 require_line "CORE_DEVICE_INFO Response:"
@@ -97,8 +107,8 @@ if [[ "${SCENARIO}" == "ranging_stream" ]]; then
     require_line "Sequence Number"
     require_line "Sequence Number: 1"
     require_line "Sequence Number: 2"
-    require_line "Sequence Number: 3"
     require_line "Measurement Count"
+    forbid_line "Sequence Number: 3"
 fi
 
 echo "PASS: shell TCP simulator integration"

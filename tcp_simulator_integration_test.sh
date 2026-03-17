@@ -7,6 +7,7 @@ SIM_ROOT="${ROOT_DIR%/uci_interactive_shell}/uci_device_simulator"
 SIM_BIN="${SIM_ROOT}/build/uci-device-sim"
 PORT="${UCI_TCP_SIM_TEST_PORT:-$((25000 + ($$ % 1000)))}"
 HOST="${UCI_TCP_SIM_TEST_HOST:-127.0.0.1}"
+SCENARIO="${UCI_TCP_SIM_SCENARIO:-default}"
 RAW_OUTPUT="$(mktemp)"
 SANITIZED_OUTPUT="$(mktemp)"
 
@@ -24,7 +25,11 @@ if [[ ! -x "${SIM_BIN}" ]]; then
     exit 0
 fi
 
-"${SIM_BIN}" "${HOST}" "${PORT}" >/dev/null 2>&1 &
+if [[ "${SCENARIO}" == "default" ]]; then
+    "${SIM_BIN}" "${HOST}" "${PORT}" >/dev/null 2>&1 &
+else
+    "${SIM_BIN}" "${HOST}" "${PORT}" "${SCENARIO}" >/dev/null 2>&1 &
+fi
 SIM_PID=$!
 sleep 0.2
 
@@ -86,5 +91,10 @@ require_line "SESSION_STATUS_NTF:"
 require_line "SESSION_START Response:"
 require_line "SESSION_GET_STATE Response:"
 require_line "SESSION_STOP Response:"
+
+if [[ "${SCENARIO}" == "ranging_stream" ]]; then
+    require_line "RANGE_DATA_NTF (SESSION_INFO_NTF):"
+    require_line "Measurement Count"
+fi
 
 echo "PASS: shell TCP simulator integration"

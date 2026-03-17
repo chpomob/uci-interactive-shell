@@ -145,6 +145,9 @@ execution path, and changes are currently limited to:
   The current scripted coverage now exercises `device_state`,
   `low_power_mode`, `device_pan_id`, and
   `SESSION_QUERY_DATA_SIZE_IN_RANGING` over the TCP simulator path.
+  The same script can now be run with `UCI_TCP_SIM_SCENARIO=ranging_stream` to
+  assert that the shell decodes a Cherry-aligned
+  `RANGE_DATA_NTF (SESSION_INFO_NTF)` emitted by the simulator.
 - `make test` now runs the canonical non-hardware regression suites, including
   the protocol definition suite.
 

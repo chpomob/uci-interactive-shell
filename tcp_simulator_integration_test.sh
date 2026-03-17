@@ -34,6 +34,8 @@ mode_info
 get_device_info
 get_caps_info
 session_init 305419896 fira_ranging
+set_app_config 305419896 device_type responder
+get_app_config 305419896 device_type
 session_start 305419896
 get_session_state 305419896
 session_stop 305419896
@@ -58,6 +60,11 @@ require_line "CORE_DEVICE_INFO Response:"
 require_line "CORE_GET_CAPS_INFO Response:"
 require_line "SESSION_INIT Response:"
 require_line "Session Handle: 0x12345678"
+require_line "SESSION_SET_APP_CONFIG Response:"
+require_line "Config[0]: ID=0x00 (device_type), Status=0x00 (OK)"
+require_line "SESSION_GET_APP_CONFIG Response:"
+require_line "TLV[0]: Config ID=0x00 (device_type), Length=1 bytes"
+require_line "Value: 0x01"
 require_line "SESSION_STATUS_NTF:"
 require_line "SESSION_START Response:"
 require_line "SESSION_GET_STATE Response:"

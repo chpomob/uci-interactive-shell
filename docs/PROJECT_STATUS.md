@@ -139,9 +139,9 @@ execution path, and changes are currently limited to:
   until a target app-config baseline is pinned.
 - An opt-in TCP simulator integration target now launches the sibling
   `uci_device_simulator` binary and validates a real `mode_tcp` shell session
-  end-to-end, including `SESSION_SET_APP_CONFIG` and
-  `SESSION_GET_APP_CONFIG`, without turning cross-repo network tests into part
-  of default `make test`.
+  end-to-end, including `CORE_SET_CONFIG`, `CORE_GET_CONFIG`,
+  `SESSION_SET_APP_CONFIG`, and `SESSION_GET_APP_CONFIG`, without turning
+  cross-repo network tests into part of default `make test`.
 - `make test` now runs the canonical non-hardware regression suites, including
   the protocol definition suite.
 

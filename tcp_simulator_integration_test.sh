@@ -10,13 +10,14 @@ HOST="${UCI_TCP_SIM_TEST_HOST:-127.0.0.1}"
 SCENARIO="${UCI_TCP_SIM_SCENARIO:-default}"
 RAW_OUTPUT="$(mktemp)"
 SANITIZED_OUTPUT="$(mktemp)"
+SIM_LOG="$(mktemp)"
 
 cleanup() {
     if [[ -n "${SIM_PID:-}" ]]; then
         kill "${SIM_PID}" >/dev/null 2>&1 || true
         wait "${SIM_PID}" 2>/dev/null || true
     fi
-    rm -f "${RAW_OUTPUT}" "${SANITIZED_OUTPUT}"
+    rm -f "${RAW_OUTPUT}" "${SANITIZED_OUTPUT}" "${SIM_LOG}"
 }
 trap cleanup EXIT
 
@@ -26,12 +27,23 @@ if [[ ! -x "${SIM_BIN}" ]]; then
 fi
 
 if [[ "${SCENARIO}" == "default" ]]; then
-    "${SIM_BIN}" "${HOST}" "${PORT}" >/dev/null 2>&1 &
+    "${SIM_BIN}" "${HOST}" "${PORT}" >"${SIM_LOG}" 2>&1 &
 else
-    "${SIM_BIN}" "${HOST}" "${PORT}" "${SCENARIO}" >/dev/null 2>&1 &
+    "${SIM_BIN}" "${HOST}" "${PORT}" "${SCENARIO}" >"${SIM_LOG}" 2>&1 &
 fi
 SIM_PID=$!
 sleep 0.2
+
+if ! kill -0 "${SIM_PID}" >/dev/null 2>&1; then
+    if grep -Eq "Operation not permitted|Permission denied" "${SIM_LOG}"; then
+        echo "SKIPPED: simulator could not open local TCP sockets in this environment"
+        exit 0
+    fi
+    echo "FAIL: simulator failed to start"
+    echo "--- simulator log ---"
+    cat "${SIM_LOG}"
+    exit 1
+fi
 
 cat <<EOF_CMDS | "${ROOT_DIR}/uci-shell" >"${RAW_OUTPUT}"
 mode_tcp ${HOST} ${PORT}

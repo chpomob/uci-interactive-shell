@@ -124,6 +124,11 @@ set_app_config 305419896 inter_frame_interval 5
 set_app_config 305419896 dl_tdoa_ranging_method ds_twr
 set_app_config 305419896 dl_tdoa_tx_timestamp_conf 3
 set_app_config 305419896 dl_tdoa_hop_count 1
+set_app_config 305419896 dl_tdoa_anchor_cfo 1
+set_app_config 305419896 dl_tdoa_anchor_location 0
+set_app_config 305419896 dl_tdoa_tx_active_ranging_rounds 1
+set_app_config 305419896 dl_tdoa_block_striding 1
+set_app_config 305419896 dl_tdoa_time_reference_anchor 1
 get_app_config 305419896 device_type
 get_app_config 305419896 device_type multi_node_mode
 get_app_config 305419896 ranging_round_usage
@@ -187,6 +192,11 @@ get_app_config 305419896 inter_frame_interval
 get_app_config 305419896 dl_tdoa_ranging_method
 get_app_config 305419896 dl_tdoa_tx_timestamp_conf
 get_app_config 305419896 dl_tdoa_hop_count
+get_app_config 305419896 dl_tdoa_anchor_cfo
+get_app_config 305419896 dl_tdoa_anchor_location
+get_app_config 305419896 dl_tdoa_tx_active_ranging_rounds
+get_app_config 305419896 dl_tdoa_block_striding
+get_app_config 305419896 dl_tdoa_time_reference_anchor
 get_app_config 305419896
 session_update_multicast_list 305419896 add 0x1234 0xAABBCCDD
 session_update_multicast_list 305419896 remove 0x1234 0xAABBCCDD
@@ -371,7 +381,17 @@ require_line "TLV[0]: Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes
 require_line "Interpreted: 3 (0x03) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes"
 require_line "Interpreted: 1 (0x01) [Range: 0-255]"
-require_line "Number of TLVs: 64"
+require_line "TLV[0]: Config ID=0x40 (dl_tdoa_anchor_cfo), Length=1 bytes"
+require_line "Interpreted: 1 (0x01) [Range: 0-255]"
+require_line "TLV[0]: Config ID=0x41 (dl_tdoa_anchor_location), Length=1 bytes"
+require_line "Interpreted: 0 (0x00) [Range: 0-255]"
+require_line "TLV[0]: Config ID=0x42 (dl_tdoa_tx_active_ranging_rounds), Length=1 bytes"
+require_line "Interpreted: 1 (0x01) [Range: 0-255]"
+require_line "TLV[0]: Config ID=0x43 (dl_tdoa_block_striding), Length=1 bytes"
+require_line "Interpreted: 1 (0x01) [Range: 0-255]"
+require_line "TLV[0]: Config ID=0x44 (dl_tdoa_time_reference_anchor), Length=1 bytes"
+require_line "Interpreted: 1 (0x01) [Range: 0-255]"
+require_line "Number of TLVs: 69"
 require_line "TLV[10]: Config ID=0x0A (sts_index), Length=4 bytes"
 require_line "TLV[15]: Config ID=0x0F (rng_data_ntf_proximity_near), Length=2 bytes"
 require_line "TLV[16]: Config ID=0x10 (rng_data_ntf_proximity_far), Length=2 bytes"
@@ -423,6 +443,11 @@ require_line "TLV[60]: Config ID=0x3C (inter_frame_interval), Length=1 bytes"
 require_line "TLV[61]: Config ID=0x3D (dl_tdoa_ranging_method), Length=1 bytes"
 require_line "TLV[62]: Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes"
 require_line "TLV[63]: Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes"
+require_line "TLV[64]: Config ID=0x40 (dl_tdoa_anchor_cfo), Length=1 bytes"
+require_line "TLV[65]: Config ID=0x41 (dl_tdoa_anchor_location), Length=1 bytes"
+require_line "TLV[66]: Config ID=0x42 (dl_tdoa_tx_active_ranging_rounds), Length=1 bytes"
+require_line "TLV[67]: Config ID=0x43 (dl_tdoa_block_striding), Length=1 bytes"
+require_line "TLV[68]: Config ID=0x44 (dl_tdoa_time_reference_anchor), Length=1 bytes"
 require_line "SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:"
 require_line "Entries Processed: 1"
 require_line "Entry[0]: Short=0x1234, Subsession=0xAABBCCDD, Status=0x00 (OK)"

@@ -173,7 +173,7 @@ static void emit_ui_session_info_ntf(void) {
 static void emit_ui_session_get_app_config_rsp(void) {
     unsigned char payload[] = {
         UCI_STATUS_OK,
-        0x40,
+        0x45,
         DEVICE_TYPE, 0x01, 0x01,
         RANGING_ROUND_USAGE, 0x01, 0x01,
         STS_CONFIG, 0x01, 0x01,
@@ -237,7 +237,12 @@ static void emit_ui_session_get_app_config_rsp(void) {
         INTER_FRAME_INTERVAL, 0x01, 0x05,
         DL_TDOA_RANGING_METHOD, 0x01, 0x01,
         DL_TDOA_TX_TIMESTAMP_CONF, 0x01, 0x03,
-        DL_TDOA_HOP_COUNT, 0x01, 0x01
+        DL_TDOA_HOP_COUNT, 0x01, 0x01,
+        DL_TDOA_ANCHOR_CFO, 0x01, 0x01,
+        DL_TDOA_ANCHOR_LOCATION, 0x01, 0x00,
+        DL_TDOA_TX_ACTIVE_RANGING_ROUNDS, 0x01, 0x01,
+        DL_TDOA_BLOCK_STRIDING, 0x01, 0x01,
+        DL_TDOA_TIME_REFERENCE_ANCHOR, 0x01, 0x01
     };
     int saved = ui_color_enabled;
     ui_color_enabled = 0;
@@ -1202,6 +1207,16 @@ int main() {
             "Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes",
             "Interpreted: 3 (0x03) [Range: 0-255]",
             "Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes",
+            "Interpreted: 1 (0x01) [Range: 0-255]",
+            "Config ID=0x40 (dl_tdoa_anchor_cfo), Length=1 bytes",
+            "Interpreted: 1 (0x01) [Range: 0-255]",
+            "Config ID=0x41 (dl_tdoa_anchor_location), Length=1 bytes",
+            "Interpreted: 0 (0x00) [Range: 0-255]",
+            "Config ID=0x42 (dl_tdoa_tx_active_ranging_rounds), Length=1 bytes",
+            "Interpreted: 1 (0x01) [Range: 0-255]",
+            "Config ID=0x43 (dl_tdoa_block_striding), Length=1 bytes",
+            "Interpreted: 1 (0x01) [Range: 0-255]",
+            "Config ID=0x44 (dl_tdoa_time_reference_anchor), Length=1 bytes",
             "Interpreted: 1 (0x01) [Range: 0-255]"
         };
 

@@ -75,6 +75,11 @@ static const config_param_info_t app_config_params[] = {
     {DL_TDOA_RANGING_METHOD, "dl_tdoa_ranging_method", "DL-TDoA ranging method", 0, 1, 0, 1, ""},
     {DL_TDOA_TX_TIMESTAMP_CONF, "dl_tdoa_tx_timestamp_conf", "DL-TDoA transmit timestamp configuration", 0, 0xFF, 0, 1, ""},
     {DL_TDOA_HOP_COUNT, "dl_tdoa_hop_count", "DL-TDoA hop count", 0, 0xFF, 0, 1, ""},
+    {DL_TDOA_ANCHOR_CFO, "dl_tdoa_anchor_cfo", "DL-TDoA anchor CFO", 0, 0xFF, 0, 1, ""},
+    {DL_TDOA_ANCHOR_LOCATION, "dl_tdoa_anchor_location", "DL-TDoA anchor location", 0, 0xFF, 0, 1, ""},
+    {DL_TDOA_TX_ACTIVE_RANGING_ROUNDS, "dl_tdoa_tx_active_ranging_rounds", "DL-TDoA transmit active ranging rounds", 0, 0xFF, 0, 1, ""},
+    {DL_TDOA_BLOCK_STRIDING, "dl_tdoa_block_striding", "DL-TDoA block striding", 0, 0xFF, 0, 1, ""},
+    {DL_TDOA_TIME_REFERENCE_ANCHOR, "dl_tdoa_time_reference_anchor", "DL-TDoA time reference anchor", 0, 0xFF, 0, 1, ""},
     {SUB_SESSION_ID, "sub_session_id", "Sub-session ID", 0, 0xFFFFFFFF, 0, 4, ""},
 };
 

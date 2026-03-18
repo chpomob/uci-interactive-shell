@@ -145,8 +145,10 @@ execution path, and changes are currently limited to:
   of default `make test`.
   The current scripted coverage now exercises `device_state`,
   `low_power_mode`, `device_pan_id`, `CORE_QUERY_UWBS_TIMESTAMP`,
-  `SESSION_QUERY_DATA_SIZE_IN_RANGING`, `channel_number`,
-  `no_of_controlee`, `dst_mac_address`, `ranging_duration`, and
+  `SESSION_QUERY_DATA_SIZE_IN_RANGING`, `ranging_round_usage`,
+  `sts_config`, `channel_number`, `no_of_controlee`,
+  `device_mac_address`, `dst_mac_address`, `slot_duration`,
+  `ranging_duration`, and
   `SESSION_UPDATE_CONTROLLER_MULTICAST_LIST`, and
   `SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG`, and
   `SESSION_DATA_TRANSFER_PHASE_CONFIG` over the TCP simulator path.

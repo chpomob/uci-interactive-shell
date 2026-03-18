@@ -2551,6 +2551,14 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                 } else {
                     printf("%u controlees (0x%02X)\n", value, value);
                 }
+            } else if (strcasecmp(param_name, "device_mac_address") == 0 && cfg_len == 2) {
+                unsigned int value = (unsigned int)payload[offset + 2] |
+                                     ((unsigned int)payload[offset + 3] << 8);
+                if (ui_color_enabled) {
+                    printf("%s0x%04X%s\n", ANSI_COLOR_BRIGHT_GREEN, value, ANSI_RESET);
+                } else {
+                    printf("0x%04X\n", value);
+                }
             } else if (strcasecmp(param_name, "dst_mac_address") == 0 && cfg_len == 2) {
                 unsigned int value = (unsigned int)payload[offset + 2] |
                                      ((unsigned int)payload[offset + 3] << 8);
@@ -2558,6 +2566,14 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                     printf("%s0x%04X%s\n", ANSI_COLOR_BRIGHT_GREEN, value, ANSI_RESET);
                 } else {
                     printf("0x%04X\n", value);
+                }
+            } else if (strcasecmp(param_name, "slot_duration") == 0 && cfg_len == 2) {
+                unsigned int value = (unsigned int)payload[offset + 2] |
+                                     ((unsigned int)payload[offset + 3] << 8);
+                if (ui_color_enabled) {
+                    printf("%s%u RSTU%s (0x%04X)\n", ANSI_COLOR_BRIGHT_GREEN, value, ANSI_RESET, value);
+                } else {
+                    printf("%u RSTU (0x%04X)\n", value, value);
                 }
             } else if (strcasecmp(param_name, "ranging_duration") == 0 && cfg_len == 4) {
                 unsigned int value = ui_read_u32_le(&payload[offset + 2]);

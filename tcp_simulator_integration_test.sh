@@ -61,17 +61,25 @@ get_config device_pan_id
 session_init 305419896 fira_ranging
 session_query_data_size_in_ranging 305419896
 set_app_config 305419896 device_type responder
+set_app_config 305419896 ranging_round_usage data
+set_app_config 305419896 sts_config dynamic
 set_app_config 305419896 multi_node_mode multicast
 set_app_config 305419896 device_role controlee
 set_app_config 305419896 channel_number 5
 set_app_config 305419896 no_of_controlee 3
+set_app_config 305419896 device_mac_address 0xABCD
 set_app_config 305419896 dst_mac_address 0x5678
+set_app_config 305419896 slot_duration 2400
 set_app_config 305419896 ranging_duration 2000
 get_app_config 305419896 device_type
 get_app_config 305419896 device_type multi_node_mode
+get_app_config 305419896 ranging_round_usage
+get_app_config 305419896 sts_config
 get_app_config 305419896 channel_number
 get_app_config 305419896 no_of_controlee
+get_app_config 305419896 device_mac_address
 get_app_config 305419896 dst_mac_address
+get_app_config 305419896 slot_duration
 get_app_config 305419896 ranging_duration
 get_app_config 305419896
 session_update_multicast_list 305419896 add 0x1234 0xAABBCCDD
@@ -137,16 +145,24 @@ require_line "TLV[0]: Config ID=0x00 (device_type), Length=1 bytes"
 require_line "Value: 0x01"
 require_line "TLV[1]: Config ID=0x03 (multi_node_mode), Length=1 bytes"
 require_line "Interpreted: MULTICAST (0x02)"
+require_line "TLV[0]: Config ID=0x01 (ranging_round_usage), Length=1 bytes"
+require_line "Interpreted: DATA (0x01)"
+require_line "TLV[0]: Config ID=0x02 (sts_config), Length=1 bytes"
+require_line "Interpreted: DYNAMIC_STS (0x01)"
 require_line "TLV[0]: Config ID=0x04 (channel_number), Length=1 bytes"
 require_line "Interpreted: Channel 5 (0x05)"
 require_line "TLV[0]: Config ID=0x05 (no_of_controlee), Length=1 bytes"
 require_line "Interpreted: 3 controlees (0x03)"
+require_line "TLV[0]: Config ID=0x06 (device_mac_address), Length=2 bytes"
+require_line "Interpreted: 0xABCD"
 require_line "TLV[0]: Config ID=0x07 (dst_mac_address), Length=2 bytes"
 require_line "Interpreted: 0x5678"
+require_line "TLV[0]: Config ID=0x08 (slot_duration), Length=2 bytes"
+require_line "Interpreted: 2400 RSTU (0x0960)"
 require_line "TLV[0]: Config ID=0x09 (ranging_duration), Length=4 bytes"
 require_line "Interpreted: 2000 ms (0x000007D0)"
-require_line "Number of TLVs: 7"
-require_line "TLV[6]: Config ID=0x11 (device_role), Length=1 bytes"
+require_line "Number of TLVs: 11"
+require_line "TLV[10]: Config ID=0x11 (device_role), Length=1 bytes"
 require_line "Interpreted: CONTROLEE (0x01)"
 require_line "SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:"
 require_line "Entries Processed: 1"

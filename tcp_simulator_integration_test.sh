@@ -71,11 +71,21 @@ set_app_config 305419896 device_mac_address 0xABCD
 set_app_config 305419896 dst_mac_address 0x5678
 set_app_config 305419896 slot_duration 2400
 set_app_config 305419896 ranging_duration 2000
+set_app_config 305419896 sts_index 5
 set_app_config 305419896 mac_fcs_type 1
 set_app_config 305419896 ranging_round_control 5
 set_app_config 305419896 aoa_result_req 3
 set_app_config 305419896 rng_data_ntf 2
+set_app_config 305419896 rng_data_ntf_proximity_near 100
+set_app_config 305419896 rng_data_ntf_proximity_far 500
 set_app_config 305419896 rframe_config 2
+set_app_config 305419896 rssi_reporting 1
+set_app_config 305419896 preamble_code_index 12
+set_app_config 305419896 sfd_id 1
+set_app_config 305419896 psdu_data_rate 2
+set_app_config 305419896 preamble_duration 2
+set_app_config 305419896 link_layer_mode 1
+set_app_config 305419896 data_repetition_count 4
 set_app_config 305419896 ranging_time_struct 3
 set_app_config 305419896 slots_per_rr 6
 set_app_config 305419896 mac_address_mode 1
@@ -101,11 +111,21 @@ get_app_config 305419896 device_mac_address
 get_app_config 305419896 dst_mac_address
 get_app_config 305419896 slot_duration
 get_app_config 305419896 ranging_duration
+get_app_config 305419896 sts_index
 get_app_config 305419896 mac_fcs_type
 get_app_config 305419896 ranging_round_control
 get_app_config 305419896 aoa_result_req
 get_app_config 305419896 rng_data_ntf
+get_app_config 305419896 rng_data_ntf_proximity_near
+get_app_config 305419896 rng_data_ntf_proximity_far
 get_app_config 305419896 rframe_config
+get_app_config 305419896 rssi_reporting
+get_app_config 305419896 preamble_code_index
+get_app_config 305419896 sfd_id
+get_app_config 305419896 psdu_data_rate
+get_app_config 305419896 preamble_duration
+get_app_config 305419896 link_layer_mode
+get_app_config 305419896 data_repetition_count
 get_app_config 305419896 ranging_time_struct
 get_app_config 305419896 slots_per_rr
 get_app_config 305419896 mac_address_mode
@@ -201,6 +221,8 @@ require_line "TLV[0]: Config ID=0x08 (slot_duration), Length=2 bytes"
 require_line "Interpreted: 2400 RSTU (0x0960)"
 require_line "TLV[0]: Config ID=0x09 (ranging_duration), Length=4 bytes"
 require_line "Interpreted: 2000 ms (0x000007D0)"
+require_line "TLV[0]: Config ID=0x0A (sts_index), Length=4 bytes"
+require_line "Interpreted: 5 (0x05 00 00 00) [Range: 0-4294967295]"
 require_line "TLV[0]: Config ID=0x0B (mac_fcs_type), Length=1 bytes"
 require_line "Interpreted: CRC32 (0x01)"
 require_line "TLV[0]: Config ID=0x0C (ranging_round_control), Length=1 bytes"
@@ -209,8 +231,26 @@ require_line "TLV[0]: Config ID=0x0D (aoa_result_req), Length=1 bytes"
 require_line "Interpreted: AOA_ELEVATION_AND_AZIMUTH (0x03)"
 require_line "TLV[0]: Config ID=0x0E (rng_data_ntf), Length=1 bytes"
 require_line "Interpreted: 2 (0x02) [Range: 0-3]"
+require_line "TLV[0]: Config ID=0x0F (rng_data_ntf_proximity_near), Length=2 bytes"
+require_line "Interpreted: 100 (0x64 00) [Range: 0-65535]"
+require_line "TLV[0]: Config ID=0x10 (rng_data_ntf_proximity_far), Length=2 bytes"
+require_line "Interpreted: 500 (0xF4 01) [Range: 0-65535]"
 require_line "TLV[0]: Config ID=0x12 (rframe_config), Length=1 bytes"
 require_line "Interpreted: SP2 (0x02)"
+require_line "TLV[0]: Config ID=0x13 (rssi_reporting), Length=1 bytes"
+require_line "Interpreted: 1 (0x01) [Range: 0-1]"
+require_line "TLV[0]: Config ID=0x14 (preamble_code_index), Length=1 bytes"
+require_line "Interpreted: 12 (0x0C) [Range: 0-31]"
+require_line "TLV[0]: Config ID=0x15 (sfd_id), Length=1 bytes"
+require_line "Interpreted: 1 (0x01) [Range: 0-3]"
+require_line "TLV[0]: Config ID=0x16 (psdu_data_rate), Length=1 bytes"
+require_line "Interpreted: 2 (0x02) [Range: 0-3]"
+require_line "TLV[0]: Config ID=0x17 (preamble_duration), Length=1 bytes"
+require_line "Interpreted: 2 (0x02) [Range: 0-3]"
+require_line "TLV[0]: Config ID=0x18 (link_layer_mode), Length=1 bytes"
+require_line "Interpreted: EXTENDED (0x01)"
+require_line "TLV[0]: Config ID=0x19 (data_repetition_count), Length=1 bytes"
+require_line "Interpreted: 4 (0x04) [Range: 0-63]"
 require_line "TLV[0]: Config ID=0x1A (ranging_time_struct), Length=1 bytes"
 require_line "Interpreted: 3 (0x03) [Range: 0-3]"
 require_line "TLV[0]: Config ID=0x1B (slots_per_rr), Length=1 bytes"
@@ -241,25 +281,35 @@ require_line "TLV[0]: Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes
 require_line "Interpreted: 3 (0x03) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes"
 require_line "Interpreted: 1 (0x01) [Range: 0-255]"
-require_line "Number of TLVs: 31"
-require_line "TLV[14]: Config ID=0x11 (device_role), Length=1 bytes"
+require_line "Number of TLVs: 41"
+require_line "TLV[10]: Config ID=0x0A (sts_index), Length=4 bytes"
+require_line "TLV[15]: Config ID=0x0F (rng_data_ntf_proximity_near), Length=2 bytes"
+require_line "TLV[16]: Config ID=0x10 (rng_data_ntf_proximity_far), Length=2 bytes"
+require_line "TLV[17]: Config ID=0x11 (device_role), Length=1 bytes"
 require_line "Interpreted: CONTROLEE (0x01)"
-require_line "TLV[15]: Config ID=0x12 (rframe_config), Length=1 bytes"
-require_line "TLV[16]: Config ID=0x1A (ranging_time_struct), Length=1 bytes"
-require_line "TLV[17]: Config ID=0x1B (slots_per_rr), Length=1 bytes"
-require_line "TLV[18]: Config ID=0x26 (mac_address_mode), Length=1 bytes"
-require_line "TLV[19]: Config ID=0x2C (hopping_mode), Length=1 bytes"
-require_line "TLV[20]: Config ID=0x2E (result_report_config), Length=1 bytes"
-require_line "TLV[21]: Config ID=0x2F (in_band_termination_attempt_count), Length=1 bytes"
-require_line "TLV[22]: Config ID=0x31 (bprf_phr_data_rate), Length=1 bytes"
-require_line "TLV[23]: Config ID=0x32 (max_number_of_measurements), Length=2 bytes"
-require_line "TLV[24]: Config ID=0x33 (ul_tdoa_tx_interval), Length=4 bytes"
-require_line "TLV[25]: Config ID=0x3A (min_frames_per_rr), Length=1 bytes"
-require_line "TLV[26]: Config ID=0x3B (mtu_size), Length=2 bytes"
-require_line "TLV[27]: Config ID=0x3C (inter_frame_interval), Length=1 bytes"
-require_line "TLV[28]: Config ID=0x3D (dl_tdoa_ranging_method), Length=1 bytes"
-require_line "TLV[29]: Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes"
-require_line "TLV[30]: Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes"
+require_line "TLV[18]: Config ID=0x12 (rframe_config), Length=1 bytes"
+require_line "TLV[19]: Config ID=0x13 (rssi_reporting), Length=1 bytes"
+require_line "TLV[20]: Config ID=0x14 (preamble_code_index), Length=1 bytes"
+require_line "TLV[21]: Config ID=0x15 (sfd_id), Length=1 bytes"
+require_line "TLV[22]: Config ID=0x16 (psdu_data_rate), Length=1 bytes"
+require_line "TLV[23]: Config ID=0x17 (preamble_duration), Length=1 bytes"
+require_line "TLV[24]: Config ID=0x18 (link_layer_mode), Length=1 bytes"
+require_line "TLV[25]: Config ID=0x19 (data_repetition_count), Length=1 bytes"
+require_line "TLV[26]: Config ID=0x1A (ranging_time_struct), Length=1 bytes"
+require_line "TLV[27]: Config ID=0x1B (slots_per_rr), Length=1 bytes"
+require_line "TLV[28]: Config ID=0x26 (mac_address_mode), Length=1 bytes"
+require_line "TLV[29]: Config ID=0x2C (hopping_mode), Length=1 bytes"
+require_line "TLV[30]: Config ID=0x2E (result_report_config), Length=1 bytes"
+require_line "TLV[31]: Config ID=0x2F (in_band_termination_attempt_count), Length=1 bytes"
+require_line "TLV[32]: Config ID=0x31 (bprf_phr_data_rate), Length=1 bytes"
+require_line "TLV[33]: Config ID=0x32 (max_number_of_measurements), Length=2 bytes"
+require_line "TLV[34]: Config ID=0x33 (ul_tdoa_tx_interval), Length=4 bytes"
+require_line "TLV[35]: Config ID=0x3A (min_frames_per_rr), Length=1 bytes"
+require_line "TLV[36]: Config ID=0x3B (mtu_size), Length=2 bytes"
+require_line "TLV[37]: Config ID=0x3C (inter_frame_interval), Length=1 bytes"
+require_line "TLV[38]: Config ID=0x3D (dl_tdoa_ranging_method), Length=1 bytes"
+require_line "TLV[39]: Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes"
+require_line "TLV[40]: Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes"
 require_line "SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:"
 require_line "Entries Processed: 1"
 require_line "Entry[0]: Short=0x1234, Subsession=0xAABBCCDD, Status=0x00 (OK)"

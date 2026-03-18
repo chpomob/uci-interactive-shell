@@ -167,3 +167,4 @@ execution path, and changes are currently limited to:
    into shared named constants.
 2. Expand hardware-integration assertions around vendor notifications and
    session lifecycle once the target device profile is locked.
+- TCP simulator interoperability now expects Cherry-compatible `SESSION_SET_APP_CONFIG` success responses (`status + zero config-status entries`) instead of the older per-config success list.

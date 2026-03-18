@@ -60,6 +60,9 @@ static const config_param_info_t app_config_params[] = {
     {BLOCK_STRIDE_LENGTH, "block_stride_length", "Block stride length", 0, 0xFFFF, 0, 1, ""},
     {RESULT_REPORT_CONFIG, "result_report_config", "Result report configuration", 0, 0xFF, 0, 1, ""},
     {IN_BAND_TERMINATION_ATTEMPT_COUNT, "in_band_termination_attempt_count", "In-band termination attempt count", 0, 0xFF, 3, 1, ""},
+    {BPRF_PHR_DATA_RATE, "bprf_phr_data_rate", "BPRF PHR data rate", 0, 1, 0, 1, ""},
+    {MAX_NUMBER_OF_MEASUREMENTS, "max_number_of_measurements", "Maximum number of measurements", 0, 0xFFFF, 0, 2, ""},
+    {UL_TDOA_TX_INTERVAL, "ul_tdoa_tx_interval", "UL-TDoA transmit interval", 0, 0xFFFFFFFF, 0, 4, ""},
     {SUB_SESSION_ID, "sub_session_id", "Sub-session ID", 0, 0xFFFFFFFF, 0, 4, ""},
 };
 

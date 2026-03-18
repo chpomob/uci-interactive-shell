@@ -173,7 +173,7 @@ static void emit_ui_session_info_ntf(void) {
 static void emit_ui_session_get_app_config_rsp(void) {
     unsigned char payload[] = {
         UCI_STATUS_OK,
-        0x13,
+        0x17,
         DEVICE_TYPE, 0x01, 0x01,
         RANGING_ROUND_USAGE, 0x01, 0x01,
         STS_CONFIG, 0x01, 0x01,
@@ -192,7 +192,11 @@ static void emit_ui_session_get_app_config_rsp(void) {
         RFRAME_CONFIG, 0x01, 0x02,
         RANGING_TIME_STRUCT, 0x01, 0x03,
         SLOTS_PER_RR, 0x01, 0x06,
-        RESULT_REPORT_CONFIG, 0x01, 0x07
+        RESULT_REPORT_CONFIG, 0x01, 0x07,
+        IN_BAND_TERMINATION_ATTEMPT_COUNT, 0x01, 0x04,
+        BPRF_PHR_DATA_RATE, 0x01, 0x01,
+        MAX_NUMBER_OF_MEASUREMENTS, 0x02, 0x10, 0x00,
+        UL_TDOA_TX_INTERVAL, 0x04, 0x64, 0x00, 0x00, 0x00
     };
     int saved = ui_color_enabled;
     ui_color_enabled = 0;
@@ -1069,7 +1073,15 @@ int main() {
             "TLV[17]: Config ID=0x1B (slots_per_rr), Length=1 bytes",
             "Interpreted: 6 (0x06) [Range: 0-255]",
             "TLV[18]: Config ID=0x2E (result_report_config), Length=1 bytes",
-            "Interpreted: 7 (0x07) [Range: 0-255]"
+            "Interpreted: 7 (0x07) [Range: 0-255]",
+            "TLV[19]: Config ID=0x2F (in_band_termination_attempt_count), Length=1 bytes",
+            "Interpreted: 4 (0x04) [Range: 0-255]",
+            "TLV[20]: Config ID=0x31 (bprf_phr_data_rate), Length=1 bytes",
+            "Interpreted: 1 (0x01) [Range: 0-1]",
+            "TLV[21]: Config ID=0x32 (max_number_of_measurements), Length=2 bytes",
+            "Interpreted: 16 (0x10 00) [Range: 0-65535]",
+            "TLV[22]: Config ID=0x33 (ul_tdoa_tx_interval), Length=4 bytes",
+            "Interpreted: 100 (0x64 00 00 00) [Range: 0-4294967295]"
         };
 
         if (capture_stdout(emit_ui_session_get_app_config_rsp, output, sizeof(output)) == 0) {

@@ -151,6 +151,8 @@ execution path, and changes are currently limited to:
   `ranging_duration`, `mac_fcs_type`, `ranging_round_control`,
   `aoa_result_req`, `rng_data_ntf`, `result_report_config`, and
   `rframe_config`, `ranging_time_struct`, `slots_per_rr`,
+  `in_band_termination_attempt_count`, `bprf_phr_data_rate`,
+  `max_number_of_measurements`, `ul_tdoa_tx_interval`,
   `SESSION_UPDATE_CONTROLLER_MULTICAST_LIST`, and
   `SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG`, and
   `SESSION_DATA_TRANSFER_PHASE_CONFIG` over the TCP simulator path.

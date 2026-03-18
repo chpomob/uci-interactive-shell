@@ -139,9 +139,10 @@ execution path, and changes are currently limited to:
   until a target app-config baseline is pinned.
 - An opt-in TCP simulator integration target now launches the sibling
   `uci_device_simulator` binary and validates a real `mode_tcp` shell session
-  end-to-end, including `CORE_QUERY_UWBS_TIMESTAMP`, `CORE_SET_CONFIG`,
-  `CORE_GET_CONFIG`, `SESSION_SET_APP_CONFIG`, and `SESSION_GET_APP_CONFIG`,
-  without turning cross-repo network tests into part of default `make test`.
+  end-to-end, including `CORE_DEVICE_RESET`, `CORE_QUERY_UWBS_TIMESTAMP`,
+  `CORE_SET_CONFIG`, `CORE_GET_CONFIG`, `SESSION_SET_APP_CONFIG`, and
+  `SESSION_GET_APP_CONFIG`, without turning cross-repo network tests into part
+  of default `make test`.
   The current scripted coverage now exercises `device_state`,
   `low_power_mode`, `device_pan_id`, `CORE_QUERY_UWBS_TIMESTAMP`, and
   `SESSION_QUERY_DATA_SIZE_IN_RANGING` over the TCP simulator path.

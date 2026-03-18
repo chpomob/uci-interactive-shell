@@ -49,6 +49,7 @@ cat <<EOF_CMDS | "${ROOT_DIR}/uci-shell" >"${RAW_OUTPUT}"
 mode_tcp ${HOST} ${PORT}
 mode_info
 get_device_info
+device_reset
 get_caps_info
 query_timestamp
 set_config device_state active
@@ -92,6 +93,8 @@ forbid_line() {
 require_line "Current mode: TCP"
 require_line "TCP endpoint: ${HOST}:${PORT}"
 require_line "CORE_DEVICE_INFO Response:"
+require_line "CORE_DEVICE_RESET Response:"
+require_line "CORE_DEVICE_STATUS_NTF:"
 require_line "CORE_GET_CAPS_INFO Response:"
 require_line "CORE_QUERY_UWBS_TIMESTAMP Response:"
 require_line "Timestamp:"

@@ -26,7 +26,7 @@ static const config_param_info_t app_config_params[] = {
     {MAC_FCS_TYPE, "mac_fcs_type", "MAC frame check sequence type", 0, 1, 0, 1, ""},
     {RANGING_ROUND_CONTROL, "ranging_round_control", "Ranging round control", 0, 0xFF, 0, 1, ""},
     {AOA_RESULT_REQ, "aoa_result_req", "Angle-of-arrival result request", 0, 3, 0, 1, ""},
-    {RNG_DATA_NTF, "rng_data_ntf", "Ranging data notification", 0, 3, 0, 1, ""},
+    {RNG_DATA_NTF, "rng_data_ntf", "Ranging data notification", 0, 7, 0, 1, ""},
     {RNG_DATA_NTF_PROXIMITY_NEAR, "rng_data_ntf_proximity_near", "Ranging data notification proximity near", 0, 0xFFFF, 0, 2, "cm"},
     {RNG_DATA_NTF_PROXIMITY_FAR, "rng_data_ntf_proximity_far", "Ranging data notification proximity far", 0, 0xFFFF, 0, 2, "cm"},
     {DEVICE_ROLE, "device_role", "Device role", 0, 1, 0, 1, ""},

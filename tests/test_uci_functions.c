@@ -1122,7 +1122,7 @@ int main() {
             "TLV[13]: Config ID=0x0D (aoa_result_req), Length=1 bytes",
             "Interpreted: AOA_ELEVATION_AND_AZIMUTH (0x03)",
             "TLV[14]: Config ID=0x0E (rng_data_ntf), Length=1 bytes",
-            "Interpreted: 2 (0x02) [Range: 0-3]",
+            "Interpreted: 2 (0x02) [Range: 0-7]",
             "TLV[15]: Config ID=0x0F (rng_data_ntf_proximity_near), Length=2 bytes",
             "Interpreted: 100 (0x64 00) [Range: 0-65535]",
             "TLV[16]: Config ID=0x10 (rng_data_ntf_proximity_far), Length=2 bytes",

@@ -75,7 +75,7 @@ set_app_config 305419896 sts_index 5
 set_app_config 305419896 mac_fcs_type 1
 set_app_config 305419896 ranging_round_control 5
 set_app_config 305419896 aoa_result_req 3
-set_app_config 305419896 rng_data_ntf 2
+set_app_config 305419896 rng_data_ntf 1
 set_app_config 305419896 rng_data_ntf_proximity_near 100
 set_app_config 305419896 rng_data_ntf_proximity_far 500
 set_app_config 305419896 rframe_config 2
@@ -304,7 +304,7 @@ require_line "Interpreted: 5 (0x05) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x0D (aoa_result_req), Length=1 bytes"
 require_line "Interpreted: AOA_ELEVATION_AND_AZIMUTH (0x03)"
 require_line "TLV[0]: Config ID=0x0E (rng_data_ntf), Length=1 bytes"
-require_line "Interpreted: 2 (0x02) [Range: 0-3]"
+require_line "Interpreted: 1 (0x01) [Range: 0-7]"
 require_line "TLV[0]: Config ID=0x0F (rng_data_ntf_proximity_near), Length=2 bytes"
 require_line "Interpreted: 100 (0x64 00) [Range: 0-65535]"
 require_line "TLV[0]: Config ID=0x10 (rng_data_ntf_proximity_far), Length=2 bytes"

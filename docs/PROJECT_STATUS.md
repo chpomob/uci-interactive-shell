@@ -194,6 +194,10 @@ execution path, and changes are currently limited to:
   assert that the shell decodes a Cherry-aligned
   `RANGE_DATA_NTF (SESSION_INFO_NTF)` stream emitted by the simulator and that
   `SESSION_STOP` suppresses any later range-data packets.
+  The same path now also aligns the validated `rng_data_ntf` behavior:
+  `0x00` suppresses range-data notifications and `0x01` enables them. The
+  higher proximity/AoA-gated modes remain stored and decodable, but are not yet
+  enforced by the simulator runtime.
 - `make test` now runs the canonical non-hardware regression suites, including
   the protocol definition suite.
 

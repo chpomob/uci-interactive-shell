@@ -112,6 +112,12 @@ set_app_config 305419896 sub_session_id 305419896
 set_app_config 305419896 bprf_phr_data_rate 1
 set_app_config 305419896 max_number_of_measurements 16
 set_app_config 305419896 ul_tdoa_tx_interval 100
+set_app_config 305419896 ul_tdoa_random_window 250
+set_app_config 305419896 sts_length 2
+set_app_config 305419896 suspend_ranging_rounds 3
+set_app_config 305419896 ul_tdoa_ntf_report_config 0x030201
+set_app_config 305419896 ul_tdoa_device_id 7
+set_app_config 305419896 ul_tdoa_tx_timestamp 1
 set_app_config 305419896 min_frames_per_rr 2
 set_app_config 305419896 mtu_size 1024
 set_app_config 305419896 inter_frame_interval 5
@@ -169,6 +175,12 @@ get_app_config 305419896 sub_session_id
 get_app_config 305419896 bprf_phr_data_rate
 get_app_config 305419896 max_number_of_measurements
 get_app_config 305419896 ul_tdoa_tx_interval
+get_app_config 305419896 ul_tdoa_random_window
+get_app_config 305419896 sts_length
+get_app_config 305419896 suspend_ranging_rounds
+get_app_config 305419896 ul_tdoa_ntf_report_config
+get_app_config 305419896 ul_tdoa_device_id
+get_app_config 305419896 ul_tdoa_tx_timestamp
 get_app_config 305419896 min_frames_per_rr
 get_app_config 305419896 mtu_size
 get_app_config 305419896 inter_frame_interval
@@ -336,6 +348,17 @@ require_line "TLV[0]: Config ID=0x32 (max_number_of_measurements), Length=2 byte
 require_line "Interpreted: 16 (0x10 00) [Range: 0-65535]"
 require_line "TLV[0]: Config ID=0x33 (ul_tdoa_tx_interval), Length=4 bytes"
 require_line "Interpreted: 100 (0x64 00 00 00) [Range: 0-4294967295]"
+require_line "TLV[0]: Config ID=0x34 (ul_tdoa_random_window), Length=4 bytes"
+require_line "Interpreted: 250 (0xFA 00 00 00) [Range: 0-4294967295]"
+require_line "TLV[0]: Config ID=0x35 (sts_length), Length=1 bytes"
+require_line "Interpreted: 2 (0x02) [Range: 0-255]"
+require_line "TLV[0]: Config ID=0x36 (suspend_ranging_rounds), Length=1 bytes"
+require_line "Interpreted: 3 (0x03) [Range: 0-255]"
+require_line "TLV[0]: Config ID=0x37 (ul_tdoa_ntf_report_config), Length=3 bytes"
+require_line "TLV[0]: Config ID=0x38 (ul_tdoa_device_id), Length=1 bytes"
+require_line "Interpreted: 7 (0x07) [Range: 0-255]"
+require_line "TLV[0]: Config ID=0x39 (ul_tdoa_tx_timestamp), Length=1 bytes"
+require_line "Interpreted: 1 (0x01) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x3A (min_frames_per_rr), Length=1 bytes"
 require_line "Interpreted: 2 (0x02) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x3B (mtu_size), Length=2 bytes"
@@ -348,7 +371,7 @@ require_line "TLV[0]: Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes
 require_line "Interpreted: 3 (0x03) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes"
 require_line "Interpreted: 1 (0x01) [Range: 0-255]"
-require_line "Number of TLVs: 58"
+require_line "Number of TLVs: 64"
 require_line "TLV[10]: Config ID=0x0A (sts_index), Length=4 bytes"
 require_line "TLV[15]: Config ID=0x0F (rng_data_ntf_proximity_near), Length=2 bytes"
 require_line "TLV[16]: Config ID=0x10 (rng_data_ntf_proximity_far), Length=2 bytes"
@@ -388,12 +411,18 @@ require_line "TLV[48]: Config ID=0x30 (sub_session_id), Length=4 bytes"
 require_line "TLV[49]: Config ID=0x31 (bprf_phr_data_rate), Length=1 bytes"
 require_line "TLV[50]: Config ID=0x32 (max_number_of_measurements), Length=2 bytes"
 require_line "TLV[51]: Config ID=0x33 (ul_tdoa_tx_interval), Length=4 bytes"
-require_line "TLV[52]: Config ID=0x3A (min_frames_per_rr), Length=1 bytes"
-require_line "TLV[53]: Config ID=0x3B (mtu_size), Length=2 bytes"
-require_line "TLV[54]: Config ID=0x3C (inter_frame_interval), Length=1 bytes"
-require_line "TLV[55]: Config ID=0x3D (dl_tdoa_ranging_method), Length=1 bytes"
-require_line "TLV[56]: Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes"
-require_line "TLV[57]: Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes"
+require_line "TLV[52]: Config ID=0x34 (ul_tdoa_random_window), Length=4 bytes"
+require_line "TLV[53]: Config ID=0x35 (sts_length), Length=1 bytes"
+require_line "TLV[54]: Config ID=0x36 (suspend_ranging_rounds), Length=1 bytes"
+require_line "TLV[55]: Config ID=0x37 (ul_tdoa_ntf_report_config), Length=3 bytes"
+require_line "TLV[56]: Config ID=0x38 (ul_tdoa_device_id), Length=1 bytes"
+require_line "TLV[57]: Config ID=0x39 (ul_tdoa_tx_timestamp), Length=1 bytes"
+require_line "TLV[58]: Config ID=0x3A (min_frames_per_rr), Length=1 bytes"
+require_line "TLV[59]: Config ID=0x3B (mtu_size), Length=2 bytes"
+require_line "TLV[60]: Config ID=0x3C (inter_frame_interval), Length=1 bytes"
+require_line "TLV[61]: Config ID=0x3D (dl_tdoa_ranging_method), Length=1 bytes"
+require_line "TLV[62]: Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes"
+require_line "TLV[63]: Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes"
 require_line "SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:"
 require_line "Entries Processed: 1"
 require_line "Entry[0]: Short=0x1234, Subsession=0xAABBCCDD, Status=0x00 (OK)"

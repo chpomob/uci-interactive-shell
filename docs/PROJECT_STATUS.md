@@ -162,6 +162,8 @@ execution path, and changes are currently limited to:
   `max_rr_retry`, `uwb_initiation_time`,
   `in_band_termination_attempt_count`, `sub_session_id`, `bprf_phr_data_rate`,
   `max_number_of_measurements`, `ul_tdoa_tx_interval`,
+  `ul_tdoa_random_window`, `sts_length`, `suspend_ranging_rounds`,
+  `ul_tdoa_ntf_report_config`, `ul_tdoa_device_id`, `ul_tdoa_tx_timestamp`,
   `min_frames_per_rr`, `mtu_size`, `inter_frame_interval`,
   `dl_tdoa_ranging_method`, `mac_address_mode`,
   `hopping_mode`, `block_stride_length`, `dl_tdoa_tx_timestamp_conf`,

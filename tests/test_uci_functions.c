@@ -173,9 +173,13 @@ static void emit_ui_session_info_ntf(void) {
 static void emit_ui_session_get_app_config_rsp(void) {
     unsigned char payload[] = {
         UCI_STATUS_OK,
-        0x03,
+        0x07,
         DEVICE_TYPE, 0x01, 0x01,
         MULTI_NODE_MODE, 0x01, 0x02,
+        CHANNEL_NUMBER, 0x01, 0x05,
+        NO_OF_CONTROLEE, 0x01, 0x03,
+        DST_MAC_ADDRESS, 0x02, 0x78, 0x56,
+        RANGING_DURATION, 0x04, 0xD0, 0x07, 0x00, 0x00,
         DEVICE_ROLE, 0x01, 0x01
     };
     int saved = ui_color_enabled;
@@ -1020,7 +1024,15 @@ int main() {
             "Interpreted: RESPONDER (0x01)",
             "TLV[1]: Config ID=0x03 (multi_node_mode), Length=1 bytes",
             "Interpreted: MULTICAST (0x02)",
-            "TLV[2]: Config ID=0x11 (device_role), Length=1 bytes",
+            "TLV[2]: Config ID=0x04 (channel_number), Length=1 bytes",
+            "Interpreted: Channel 5 (0x05)",
+            "TLV[3]: Config ID=0x05 (no_of_controlee), Length=1 bytes",
+            "Interpreted: 3 controlees (0x03)",
+            "TLV[4]: Config ID=0x07 (dst_mac_address), Length=2 bytes",
+            "Interpreted: 0x5678",
+            "TLV[5]: Config ID=0x09 (ranging_duration), Length=4 bytes",
+            "Interpreted: 2000 ms (0x000007D0)",
+            "TLV[6]: Config ID=0x11 (device_role), Length=1 bytes",
             "Interpreted: CONTROLEE (0x01)"
         };
 

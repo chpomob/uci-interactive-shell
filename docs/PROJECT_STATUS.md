@@ -146,7 +146,8 @@ execution path, and changes are currently limited to:
   The current scripted coverage now exercises `device_state`,
   `low_power_mode`, `device_pan_id`, `CORE_QUERY_UWBS_TIMESTAMP`,
   `SESSION_QUERY_DATA_SIZE_IN_RANGING`, and
-  `SESSION_UPDATE_CONTROLLER_MULTICAST_LIST` over the TCP simulator path.
+  `SESSION_UPDATE_CONTROLLER_MULTICAST_LIST`, and
+  `SESSION_DATA_TRANSFER_PHASE_CONFIG` over the TCP simulator path.
   The same script can now be run with `UCI_TCP_SIM_SCENARIO=ranging_stream` to
   assert that the shell decodes a Cherry-aligned
   `RANGE_DATA_NTF (SESSION_INFO_NTF)` stream emitted by the simulator and that

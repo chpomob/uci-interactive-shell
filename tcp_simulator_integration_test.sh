@@ -64,6 +64,7 @@ set_app_config 305419896 device_type responder
 get_app_config 305419896 device_type
 session_update_multicast_list 305419896 add 0x1234 0xAABBCCDD
 session_update_multicast_list 305419896 remove 0x1234 0xAABBCCDD
+session_data_transfer_phase_config 305419896 7 165 3 112233
 session_start 305419896
 get_session_state 305419896
 session_stop 305419896
@@ -120,6 +121,8 @@ require_line "Value: 0x01"
 require_line "SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:"
 require_line "Entries Processed: 1"
 require_line "Entry[0]: Short=0x1234, Subsession=0xAABBCCDD, Status=0x00 (OK)"
+require_line "SESSION_DATA_TRANSFER_PHASE_CONFIG Response:"
+require_line "Status: 0x00 (OK)"
 require_line "SESSION_STATUS_NTF:"
 require_line "SESSION_START Response:"
 require_line "SESSION_GET_STATE Response:"

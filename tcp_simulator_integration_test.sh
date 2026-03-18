@@ -50,6 +50,7 @@ mode_tcp ${HOST} ${PORT}
 mode_info
 get_device_info
 get_caps_info
+query_timestamp
 set_config device_state active
 get_config device_state
 set_config low_power_mode on
@@ -92,6 +93,8 @@ require_line "Current mode: TCP"
 require_line "TCP endpoint: ${HOST}:${PORT}"
 require_line "CORE_DEVICE_INFO Response:"
 require_line "CORE_GET_CAPS_INFO Response:"
+require_line "CORE_QUERY_UWBS_TIMESTAMP Response:"
+require_line "Timestamp:"
 require_line "CORE_SET_CONFIG Response:"
 require_line "Config[0]: ID=0x00 (device_state), Status=0x00 (OK)"
 require_line "CORE_GET_CONFIG Response:"

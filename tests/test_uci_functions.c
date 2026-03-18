@@ -173,7 +173,7 @@ static void emit_ui_session_info_ntf(void) {
 static void emit_ui_session_get_app_config_rsp(void) {
     unsigned char payload[] = {
         UCI_STATUS_OK,
-        0x0F,
+        0x13,
         DEVICE_TYPE, 0x01, 0x01,
         RANGING_ROUND_USAGE, 0x01, 0x01,
         STS_CONFIG, 0x01, 0x01,
@@ -184,10 +184,14 @@ static void emit_ui_session_get_app_config_rsp(void) {
         DST_MAC_ADDRESS, 0x02, 0x78, 0x56,
         SLOT_DURATION, 0x02, 0x60, 0x09,
         RANGING_DURATION, 0x04, 0xD0, 0x07, 0x00, 0x00,
+        MAC_FCS_TYPE, 0x01, 0x01,
         RANGING_ROUND_CONTROL, 0x01, 0x05,
         AOA_RESULT_REQ, 0x01, 0x03,
         RNG_DATA_NTF, 0x01, 0x02,
         DEVICE_ROLE, 0x01, 0x01,
+        RFRAME_CONFIG, 0x01, 0x02,
+        RANGING_TIME_STRUCT, 0x01, 0x03,
+        SLOTS_PER_RR, 0x01, 0x06,
         RESULT_REPORT_CONFIG, 0x01, 0x07
     };
     int saved = ui_color_enabled;
@@ -1026,7 +1030,7 @@ int main() {
 
     TEST_CASE(session_get_app_config_ui_value_interpretation);
     {
-        char output[2048];
+        char output[4096];
         static const char* k_expected_lines[] = {
             "TLV[0]: Config ID=0x00 (device_type), Length=1 bytes",
             "Interpreted: RESPONDER (0x01)",
@@ -1048,15 +1052,23 @@ int main() {
             "Interpreted: 2400 RSTU (0x0960)",
             "TLV[9]: Config ID=0x09 (ranging_duration), Length=4 bytes",
             "Interpreted: 2000 ms (0x000007D0)",
-            "TLV[10]: Config ID=0x0C (ranging_round_control), Length=1 bytes",
+            "TLV[10]: Config ID=0x0B (mac_fcs_type), Length=1 bytes",
+            "Interpreted: CRC32 (0x01)",
+            "TLV[11]: Config ID=0x0C (ranging_round_control), Length=1 bytes",
             "Interpreted: 5 (0x05) [Range: 0-255]",
-            "TLV[11]: Config ID=0x0D (aoa_result_req), Length=1 bytes",
+            "TLV[12]: Config ID=0x0D (aoa_result_req), Length=1 bytes",
             "Interpreted: AOA_ELEVATION_AND_AZIMUTH (0x03)",
-            "TLV[12]: Config ID=0x0E (rng_data_ntf), Length=1 bytes",
+            "TLV[13]: Config ID=0x0E (rng_data_ntf), Length=1 bytes",
             "Interpreted: 2 (0x02) [Range: 0-3]",
-            "TLV[13]: Config ID=0x11 (device_role), Length=1 bytes",
+            "TLV[14]: Config ID=0x11 (device_role), Length=1 bytes",
             "Interpreted: CONTROLEE (0x01)",
-            "TLV[14]: Config ID=0x2E (result_report_config), Length=1 bytes",
+            "TLV[15]: Config ID=0x12 (rframe_config), Length=1 bytes",
+            "Interpreted: SP2 (0x02)",
+            "TLV[16]: Config ID=0x1A (ranging_time_struct), Length=1 bytes",
+            "Interpreted: 3 (0x03) [Range: 0-3]",
+            "TLV[17]: Config ID=0x1B (slots_per_rr), Length=1 bytes",
+            "Interpreted: 6 (0x06) [Range: 0-255]",
+            "TLV[18]: Config ID=0x2E (result_report_config), Length=1 bytes",
             "Interpreted: 7 (0x07) [Range: 0-255]"
         };
 

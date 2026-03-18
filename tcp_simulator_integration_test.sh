@@ -71,9 +71,13 @@ set_app_config 305419896 device_mac_address 0xABCD
 set_app_config 305419896 dst_mac_address 0x5678
 set_app_config 305419896 slot_duration 2400
 set_app_config 305419896 ranging_duration 2000
+set_app_config 305419896 mac_fcs_type 1
 set_app_config 305419896 ranging_round_control 5
 set_app_config 305419896 aoa_result_req 3
 set_app_config 305419896 rng_data_ntf 2
+set_app_config 305419896 rframe_config 2
+set_app_config 305419896 ranging_time_struct 3
+set_app_config 305419896 slots_per_rr 6
 set_app_config 305419896 result_report_config 7
 get_app_config 305419896 device_type
 get_app_config 305419896 device_type multi_node_mode
@@ -85,9 +89,13 @@ get_app_config 305419896 device_mac_address
 get_app_config 305419896 dst_mac_address
 get_app_config 305419896 slot_duration
 get_app_config 305419896 ranging_duration
+get_app_config 305419896 mac_fcs_type
 get_app_config 305419896 ranging_round_control
 get_app_config 305419896 aoa_result_req
 get_app_config 305419896 rng_data_ntf
+get_app_config 305419896 rframe_config
+get_app_config 305419896 ranging_time_struct
+get_app_config 305419896 slots_per_rr
 get_app_config 305419896 result_report_config
 get_app_config 305419896
 session_update_multicast_list 305419896 add 0x1234 0xAABBCCDD
@@ -169,18 +177,29 @@ require_line "TLV[0]: Config ID=0x08 (slot_duration), Length=2 bytes"
 require_line "Interpreted: 2400 RSTU (0x0960)"
 require_line "TLV[0]: Config ID=0x09 (ranging_duration), Length=4 bytes"
 require_line "Interpreted: 2000 ms (0x000007D0)"
+require_line "TLV[0]: Config ID=0x0B (mac_fcs_type), Length=1 bytes"
+require_line "Interpreted: CRC32 (0x01)"
 require_line "TLV[0]: Config ID=0x0C (ranging_round_control), Length=1 bytes"
 require_line "Interpreted: 5 (0x05) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x0D (aoa_result_req), Length=1 bytes"
 require_line "Interpreted: AOA_ELEVATION_AND_AZIMUTH (0x03)"
 require_line "TLV[0]: Config ID=0x0E (rng_data_ntf), Length=1 bytes"
 require_line "Interpreted: 2 (0x02) [Range: 0-3]"
+require_line "TLV[0]: Config ID=0x12 (rframe_config), Length=1 bytes"
+require_line "Interpreted: SP2 (0x02)"
+require_line "TLV[0]: Config ID=0x1A (ranging_time_struct), Length=1 bytes"
+require_line "Interpreted: 3 (0x03) [Range: 0-3]"
+require_line "TLV[0]: Config ID=0x1B (slots_per_rr), Length=1 bytes"
+require_line "Interpreted: 6 (0x06) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x2E (result_report_config), Length=1 bytes"
 require_line "Interpreted: 7 (0x07) [Range: 0-255]"
-require_line "Number of TLVs: 15"
-require_line "TLV[13]: Config ID=0x11 (device_role), Length=1 bytes"
+require_line "Number of TLVs: 19"
+require_line "TLV[14]: Config ID=0x11 (device_role), Length=1 bytes"
 require_line "Interpreted: CONTROLEE (0x01)"
-require_line "TLV[14]: Config ID=0x2E (result_report_config), Length=1 bytes"
+require_line "TLV[15]: Config ID=0x12 (rframe_config), Length=1 bytes"
+require_line "TLV[16]: Config ID=0x1A (ranging_time_struct), Length=1 bytes"
+require_line "TLV[17]: Config ID=0x1B (slots_per_rr), Length=1 bytes"
+require_line "TLV[18]: Config ID=0x2E (result_report_config), Length=1 bytes"
 require_line "SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:"
 require_line "Entries Processed: 1"
 require_line "Entry[0]: Short=0x1234, Subsession=0xAABBCCDD, Status=0x00 (OK)"

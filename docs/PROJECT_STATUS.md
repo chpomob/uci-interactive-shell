@@ -148,7 +148,8 @@ execution path, and changes are currently limited to:
   `SESSION_QUERY_DATA_SIZE_IN_RANGING`, `ranging_round_usage`,
   `sts_config`, `channel_number`, `no_of_controlee`,
   `device_mac_address`, `dst_mac_address`, `slot_duration`,
-  `ranging_duration`, and
+  `ranging_duration`, `ranging_round_control`,
+  `aoa_result_req`, `rng_data_ntf`, `result_report_config`, and
   `SESSION_UPDATE_CONTROLLER_MULTICAST_LIST`, and
   `SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG`, and
   `SESSION_DATA_TRANSFER_PHASE_CONFIG` over the TCP simulator path.

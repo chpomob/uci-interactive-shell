@@ -151,6 +151,9 @@ execution path, and changes are currently limited to:
   The same TCP path now also validates `DATA_MESSAGE_SND` delivery to the
   simulator and the resulting `SESSION_DATA_CREDIT_NTF` plus
   `SESSION_DATA_TRANSFER_STATUS_NTF` decode path.
+  It now also covers the logical-link lifecycle end to end:
+  `SESSION_LOGICAL_LINK_CREATE`, `SESSION_LOGICAL_LINK_GET_PARAM`,
+  `SESSION_LOGICAL_LINK_CLOSE`, and the corresponding UWBS notifications.
   The same script can now be run with `UCI_TCP_SIM_SCENARIO=ranging_stream` to
   assert that the shell decodes a Cherry-aligned
   `RANGE_DATA_NTF (SESSION_INFO_NTF)` stream emitted by the simulator and that

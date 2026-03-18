@@ -67,6 +67,9 @@ session_update_multicast_list 305419896 remove 0x1234 0xAABBCCDD
 session_data_transfer_phase_config 305419896 7 165 3 112233
 session_start 305419896
 session_send_data 305419896 0x11223344 15 AABB
+session_logical_link_create 305419896 0x12 0x77 5
+session_logical_link_get_param 305419896 0x12
+session_logical_link_close 305419896 0x12
 get_session_state 305419896
 session_stop 305419896
 quit
@@ -131,6 +134,17 @@ require_line "Credit Availability: 0x01 (Credits Available)"
 require_line "SESSION_DATA_TRANSFER_STATUS_NTF:"
 require_line "UCI Sequence Number: 15"
 require_line "TX Attempt Count: 1"
+require_line "SESSION_LOGICAL_LINK_CREATE Response:"
+require_line "Logical Link ID: 0x12"
+require_line "Initial Credit: 5"
+require_line "SESSION_LOGICAL_LINK_UWBS_CREATE_NTF:"
+require_line "Credits: 5"
+require_line "SESSION_LOGICAL_LINK_GET_PARAM Response:"
+require_line "Mode: 0x77"
+require_line "Credits: 5"
+require_line "SESSION_LOGICAL_LINK_CLOSE Response:"
+require_line "SESSION_LOGICAL_LINK_UWBS_CLOSE_NTF:"
+require_line "Reason: 0x00"
 require_line "SESSION_GET_STATE Response:"
 require_line "SESSION_STOP Response:"
 

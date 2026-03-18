@@ -61,7 +61,11 @@ get_config device_pan_id
 session_init 305419896 fira_ranging
 session_query_data_size_in_ranging 305419896
 set_app_config 305419896 device_type responder
+set_app_config 305419896 multi_node_mode multicast
+set_app_config 305419896 device_role controlee
 get_app_config 305419896 device_type
+get_app_config 305419896 device_type multi_node_mode
+get_app_config 305419896
 session_update_multicast_list 305419896 add 0x1234 0xAABBCCDD
 session_update_multicast_list 305419896 remove 0x1234 0xAABBCCDD
 session_data_transfer_phase_config 305419896 7 165 3 112233
@@ -122,6 +126,10 @@ require_line "Number of Config Status: 0"
 require_line "SESSION_GET_APP_CONFIG Response:"
 require_line "TLV[0]: Config ID=0x00 (device_type), Length=1 bytes"
 require_line "Value: 0x01"
+require_line "TLV[1]: Config ID=0x03 (multi_node_mode), Length=1 bytes"
+require_line "Interpreted: MULTICAST (0x02)"
+require_line "TLV[2]: Config ID=0x11 (device_role), Length=1 bytes"
+require_line "Interpreted: CONTROLEE (0x01)"
 require_line "SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:"
 require_line "Entries Processed: 1"
 require_line "Entry[0]: Short=0x1234, Subsession=0xAABBCCDD, Status=0x00 (OK)"

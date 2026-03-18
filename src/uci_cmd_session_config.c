@@ -58,27 +58,37 @@ int handle_set_app_config_command_value(uint32_t session_id,
     return 0;
 }
 
-int handle_get_app_config_command_value(uint32_t session_id, const char* config_name) {
-    if (!config_name) {
-        printf("Usage: get_app_config <session_id> <config_name>\n");
+int handle_get_app_config_command_values(uint32_t session_id, int config_count, const char* const* config_names) {
+    if (config_count < 0 || config_count > 255) {
+        printf("Error: invalid number of config names: %d\n", config_count);
         return -1;
     }
 
-    AppConfigTlvType cfg_id = 0;
-    if (uci_config_lookup_app_param(config_name, &cfg_id, NULL) != 0) {
-        printf("Unknown config_name: %s. Use 'show_app_configs' to list supported parameters.\n", config_name);
-        return -1;
-    }
-
-    unsigned char payload[6];
+    unsigned char payload[5 + 255];
+    size_t payload_len = 5;
     payload[0] = session_id & 0xFF;
     payload[1] = (session_id >> 8) & 0xFF;
     payload[2] = (session_id >> 16) & 0xFF;
     payload[3] = (session_id >> 24) & 0xFF;
-    payload[4] = 1; // Number of configs
-    payload[5] = (unsigned char)cfg_id;
+    payload[4] = (unsigned char)config_count;
 
-    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_APP_CONFIG, payload, sizeof(payload));
+    for (int i = 0; i < config_count; i++) {
+        AppConfigTlvType cfg_id = 0;
+        const char* config_name = config_names ? config_names[i] : NULL;
+
+        if (!config_name || config_name[0] == '\0') {
+            printf("Error: config name %d is missing.\n", i + 1);
+            return -1;
+        }
+        if (uci_config_lookup_app_param(config_name, &cfg_id, NULL) != 0) {
+            printf("Unknown config_name: %s. Use 'show_app_configs' to list supported parameters.\n", config_name);
+            return -1;
+        }
+
+        payload[payload_len++] = (unsigned char)cfg_id;
+    }
+
+    send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_GET_APP_CONFIG, payload, (int)payload_len);
     return 0;
 }
 

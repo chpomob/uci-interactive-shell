@@ -236,13 +236,14 @@ int handle_get_app_config_command_typed(const char* cmd_name,
     (void)params;
     (void)param_count;
     const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* config_param = uci_cmd_get_parsed_param(1);
-    if (session_param && session_param->present &&
-        config_param && config_param->present && config_param->raw_value) {
-        return handle_get_app_config_command_value(session_param->value.session_id,
-                                                   config_param->raw_value);
+    if (session_param && session_param->present) {
+        int config_count = (argc > 2) ? (argc - 2) : 0;
+        const char* const* config_names = (argc > 2) ? (const char* const*)&argv[2] : NULL;
+        return handle_get_app_config_command_values(session_param->value.session_id,
+                                                    config_count,
+                                                    config_names);
     }
-    return report_missing_param("get_app_config", "session_id and config name");
+    return report_missing_param("get_app_config", "session_id");
 }
 
 int handle_session_update_multicast_list_command_typed(const char* cmd_name,

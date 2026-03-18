@@ -14,7 +14,7 @@
 
 int handle_set_app_config_command_value(uint32_t session_id, const char* config_name, const char* value_str);
 
-int handle_get_app_config_command_value(uint32_t session_id, const char* config_name);
+int handle_get_app_config_command_values(uint32_t session_id, int config_count, const char* const* config_names);
 
 int handle_update_multicast_list_command_values(uint32_t session_id,
                                                 const char* action_str,

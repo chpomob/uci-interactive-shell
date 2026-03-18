@@ -170,6 +170,20 @@ static void emit_ui_session_info_ntf(void) {
     ui_color_enabled = saved;
 }
 
+static void emit_ui_session_get_app_config_rsp(void) {
+    unsigned char payload[] = {
+        UCI_STATUS_OK,
+        0x03,
+        DEVICE_TYPE, 0x01, 0x01,
+        MULTI_NODE_MODE, 0x01, 0x02,
+        DEVICE_ROLE, 0x01, 0x01
+    };
+    int saved = ui_color_enabled;
+    ui_color_enabled = 0;
+    ui_decode_session_get_app_config_rsp(payload, sizeof(payload));
+    ui_color_enabled = saved;
+}
+
 static unsigned char *g_captured_packet = NULL;
 static size_t g_captured_packet_len = 0;
 static int g_saved_color_enabled = 1;
@@ -997,6 +1011,34 @@ int main() {
         TEST_PASS();
     }
     test_case_end_session_info_parity:;
+
+    TEST_CASE(session_get_app_config_ui_value_interpretation);
+    {
+        char output[2048];
+        static const char* k_expected_lines[] = {
+            "TLV[0]: Config ID=0x00 (device_type), Length=1 bytes",
+            "Interpreted: RESPONDER (0x01)",
+            "TLV[1]: Config ID=0x03 (multi_node_mode), Length=1 bytes",
+            "Interpreted: MULTICAST (0x02)",
+            "TLV[2]: Config ID=0x11 (device_role), Length=1 bytes",
+            "Interpreted: CONTROLEE (0x01)"
+        };
+
+        if (capture_stdout(emit_ui_session_get_app_config_rsp, output, sizeof(output)) == 0) {
+            TEST_FAIL("Failed to capture UI session get app config output");
+            goto test_case_end_session_get_app_config_ui_value_interpretation;
+        }
+
+        for (size_t i = 0; i < sizeof(k_expected_lines) / sizeof(k_expected_lines[0]); i++) {
+            if (strstr(output, k_expected_lines[i]) == NULL) {
+                TEST_FAIL(k_expected_lines[i]);
+                goto test_case_end_session_get_app_config_ui_value_interpretation;
+            }
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_session_get_app_config_ui_value_interpretation:;
 
     // Test header field extraction via struct helper
     TEST_CASE(header_struct_extraction);

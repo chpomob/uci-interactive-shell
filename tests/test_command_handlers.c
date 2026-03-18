@@ -287,6 +287,52 @@ int main(void) {
     }
 #undef test_case_end
 
+#define test_case_end test_case_end_get_app_config_values
+    TEST_CASE(session_get_app_config_values);
+    {
+        reset_command_capture();
+        const char* single_name[] = {"device_type"};
+        int rc = handle_get_app_config_command_values(8, 1, single_name);
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+        ASSERT_EQUAL(SESSION_GET_APP_CONFIG, g_captured_command.oid);
+        ASSERT_EQUAL(6, g_captured_command.payload_len);
+
+        const unsigned char expected_single[] = {0x08, 0x00, 0x00, 0x00, 0x01, 0x00};
+        ASSERT_TRUE(payload_matches(expected_single, sizeof(expected_single)));
+
+        reset_command_capture();
+        const char* multi_names[] = {"device_type", "multi_node_mode", "device_role"};
+        rc = handle_get_app_config_command_values(8, 3, multi_names);
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+        ASSERT_EQUAL(SESSION_GET_APP_CONFIG, g_captured_command.oid);
+        ASSERT_EQUAL(8, g_captured_command.payload_len);
+
+        const unsigned char expected_multi[] = {0x08, 0x00, 0x00, 0x00, 0x03, 0x00, 0x03, 0x11};
+        ASSERT_TRUE(payload_matches(expected_multi, sizeof(expected_multi)));
+
+        reset_command_capture();
+        rc = handle_get_app_config_command_values(8, 0, NULL);
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+        ASSERT_EQUAL(SESSION_GET_APP_CONFIG, g_captured_command.oid);
+        ASSERT_EQUAL(5, g_captured_command.payload_len);
+
+        const unsigned char expected_all[] = {0x08, 0x00, 0x00, 0x00, 0x00};
+        ASSERT_TRUE(payload_matches(expected_all, sizeof(expected_all)));
+
+        rc = handle_get_app_config_command_values(8, 1, NULL);
+        ASSERT_EQUAL(-1, rc);
+
+        TEST_PASS();
+        test_case_end:;
+    }
+#undef test_case_end
+
 #define test_case_end test_case_end_core_device_reset
     TEST_CASE(core_device_reset);
     {

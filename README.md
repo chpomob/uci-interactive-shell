@@ -48,7 +48,7 @@ Once the shell is running, you can use the following commands:
 ### Session Configuration & Control
 - `session_init <id> <type>`, `session_deinit <id>`
 - `session_start <id>`, `session_stop <id>`, `get_session_state <id>`
-- `set_app_config <id> <param> <value>`, `get_app_config <id> <param>`
+- `set_app_config <id> <param> <value>`, `get_app_config <id> [param ...]`
 - `session_update_multicast_list <id> <action> <short> <subsession>`
 - `session_update_dt_tag_rounds <id> [round_index ... | hex_bytes]`
 - `session_data_transfer_phase_config <id> <repetition> <control> <size> [payload...]`
@@ -100,7 +100,9 @@ Once the shell is running, you can use the following commands:
 - Set device configuration: `set_config device_state active`
 - Get device configuration: `get_config device_state`
 - Set application configuration: `set_app_config 1 device_type responder`
-- Get application configuration: `get_app_config 1 device_type`
+- Get one application configuration: `get_app_config 1 device_type`
+- Get multiple application configurations: `get_app_config 1 device_type multi_node_mode`
+- Get all returned application configurations: `get_app_config 1`
 
 ### Hardware Commands
 - Connect to hardware: `mode_hw /dev/ttyUSB0` (alias `hw_init`)

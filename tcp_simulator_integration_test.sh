@@ -88,6 +88,10 @@ set_app_config 305419896 link_layer_mode 1
 set_app_config 305419896 data_repetition_count 4
 set_app_config 305419896 ranging_time_struct 3
 set_app_config 305419896 slots_per_rr 6
+set_app_config 305419896 tx_adaptive_payload_power 1
+set_app_config 305419896 rng_data_ntf_aoa_bound 45
+set_app_config 305419896 responder_slot_index 7
+set_app_config 305419896 prf_mode 1
 set_app_config 305419896 mac_address_mode 1
 set_app_config 305419896 hopping_mode 1
 set_app_config 305419896 result_report_config 7
@@ -128,6 +132,10 @@ get_app_config 305419896 link_layer_mode
 get_app_config 305419896 data_repetition_count
 get_app_config 305419896 ranging_time_struct
 get_app_config 305419896 slots_per_rr
+get_app_config 305419896 tx_adaptive_payload_power
+get_app_config 305419896 rng_data_ntf_aoa_bound
+get_app_config 305419896 responder_slot_index
+get_app_config 305419896 prf_mode
 get_app_config 305419896 mac_address_mode
 get_app_config 305419896 hopping_mode
 get_app_config 305419896 result_report_config
@@ -255,6 +263,14 @@ require_line "TLV[0]: Config ID=0x1A (ranging_time_struct), Length=1 bytes"
 require_line "Interpreted: 3 (0x03) [Range: 0-3]"
 require_line "TLV[0]: Config ID=0x1B (slots_per_rr), Length=1 bytes"
 require_line "Interpreted: 6 (0x06) [Range: 0-255]"
+require_line "TLV[0]: Config ID=0x1C (tx_adaptive_payload_power), Length=1 bytes"
+require_line "Interpreted: ENABLED (0x01)"
+require_line "TLV[0]: Config ID=0x1D (rng_data_ntf_aoa_bound), Length=2 bytes"
+require_line "Interpreted: 45 (0x2D 00) [Range: 0-65535]"
+require_line "TLV[0]: Config ID=0x1E (responder_slot_index), Length=1 bytes"
+require_line "Interpreted: 7 (0x07) [Range: 0-255]"
+require_line "TLV[0]: Config ID=0x1F (prf_mode), Length=1 bytes"
+require_line "Interpreted: HPRF (0x01)"
 require_line "TLV[0]: Config ID=0x26 (mac_address_mode), Length=1 bytes"
 require_line "Interpreted: 1 (0x01) [Range: 0-1]"
 require_line "TLV[0]: Config ID=0x2C (hopping_mode), Length=1 bytes"
@@ -281,7 +297,7 @@ require_line "TLV[0]: Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes
 require_line "Interpreted: 3 (0x03) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes"
 require_line "Interpreted: 1 (0x01) [Range: 0-255]"
-require_line "Number of TLVs: 41"
+require_line "Number of TLVs: 45"
 require_line "TLV[10]: Config ID=0x0A (sts_index), Length=4 bytes"
 require_line "TLV[15]: Config ID=0x0F (rng_data_ntf_proximity_near), Length=2 bytes"
 require_line "TLV[16]: Config ID=0x10 (rng_data_ntf_proximity_far), Length=2 bytes"
@@ -297,19 +313,23 @@ require_line "TLV[24]: Config ID=0x18 (link_layer_mode), Length=1 bytes"
 require_line "TLV[25]: Config ID=0x19 (data_repetition_count), Length=1 bytes"
 require_line "TLV[26]: Config ID=0x1A (ranging_time_struct), Length=1 bytes"
 require_line "TLV[27]: Config ID=0x1B (slots_per_rr), Length=1 bytes"
-require_line "TLV[28]: Config ID=0x26 (mac_address_mode), Length=1 bytes"
-require_line "TLV[29]: Config ID=0x2C (hopping_mode), Length=1 bytes"
-require_line "TLV[30]: Config ID=0x2E (result_report_config), Length=1 bytes"
-require_line "TLV[31]: Config ID=0x2F (in_band_termination_attempt_count), Length=1 bytes"
-require_line "TLV[32]: Config ID=0x31 (bprf_phr_data_rate), Length=1 bytes"
-require_line "TLV[33]: Config ID=0x32 (max_number_of_measurements), Length=2 bytes"
-require_line "TLV[34]: Config ID=0x33 (ul_tdoa_tx_interval), Length=4 bytes"
-require_line "TLV[35]: Config ID=0x3A (min_frames_per_rr), Length=1 bytes"
-require_line "TLV[36]: Config ID=0x3B (mtu_size), Length=2 bytes"
-require_line "TLV[37]: Config ID=0x3C (inter_frame_interval), Length=1 bytes"
-require_line "TLV[38]: Config ID=0x3D (dl_tdoa_ranging_method), Length=1 bytes"
-require_line "TLV[39]: Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes"
-require_line "TLV[40]: Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes"
+require_line "TLV[28]: Config ID=0x1C (tx_adaptive_payload_power), Length=1 bytes"
+require_line "TLV[29]: Config ID=0x1D (rng_data_ntf_aoa_bound), Length=2 bytes"
+require_line "TLV[30]: Config ID=0x1E (responder_slot_index), Length=1 bytes"
+require_line "TLV[31]: Config ID=0x1F (prf_mode), Length=1 bytes"
+require_line "TLV[32]: Config ID=0x26 (mac_address_mode), Length=1 bytes"
+require_line "TLV[33]: Config ID=0x2C (hopping_mode), Length=1 bytes"
+require_line "TLV[34]: Config ID=0x2E (result_report_config), Length=1 bytes"
+require_line "TLV[35]: Config ID=0x2F (in_band_termination_attempt_count), Length=1 bytes"
+require_line "TLV[36]: Config ID=0x31 (bprf_phr_data_rate), Length=1 bytes"
+require_line "TLV[37]: Config ID=0x32 (max_number_of_measurements), Length=2 bytes"
+require_line "TLV[38]: Config ID=0x33 (ul_tdoa_tx_interval), Length=4 bytes"
+require_line "TLV[39]: Config ID=0x3A (min_frames_per_rr), Length=1 bytes"
+require_line "TLV[40]: Config ID=0x3B (mtu_size), Length=2 bytes"
+require_line "TLV[41]: Config ID=0x3C (inter_frame_interval), Length=1 bytes"
+require_line "TLV[42]: Config ID=0x3D (dl_tdoa_ranging_method), Length=1 bytes"
+require_line "TLV[43]: Config ID=0x3E (dl_tdoa_tx_timestamp_conf), Length=1 bytes"
+require_line "TLV[44]: Config ID=0x3F (dl_tdoa_hop_count), Length=1 bytes"
 require_line "SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:"
 require_line "Entries Processed: 1"
 require_line "Entry[0]: Short=0x1234, Subsession=0xAABBCCDD, Status=0x00 (OK)"

@@ -156,6 +156,8 @@ execution path, and changes are currently limited to:
   `preamble_duration`, `link_layer_mode`, `data_repetition_count`,
   `ranging_time_struct`, `slots_per_rr`, `tx_adaptive_payload_power`,
   `rng_data_ntf_aoa_bound`, `responder_slot_index`, `prf_mode`,
+  `cap_size_range`, `tx_jitter_window_size`, `scheduled_mode`,
+  `key_rotation`, `key_rotation_rate`, `session_priority`,
   `in_band_termination_attempt_count`, `bprf_phr_data_rate`,
   `max_number_of_measurements`, `ul_tdoa_tx_interval`,
   `min_frames_per_rr`, `mtu_size`, `inter_frame_interval`,

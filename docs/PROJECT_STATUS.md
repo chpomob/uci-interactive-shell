@@ -147,6 +147,7 @@ execution path, and changes are currently limited to:
   `low_power_mode`, `device_pan_id`, `CORE_QUERY_UWBS_TIMESTAMP`,
   `SESSION_QUERY_DATA_SIZE_IN_RANGING`, and
   `SESSION_UPDATE_CONTROLLER_MULTICAST_LIST`, and
+  `SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG`, and
   `SESSION_DATA_TRANSFER_PHASE_CONFIG` over the TCP simulator path.
   The same TCP coverage now treats `get_app_config` as a broader retrieval
   command: one requested param, multiple requested params, or no requested

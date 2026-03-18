@@ -68,6 +68,7 @@ get_app_config 305419896 device_type multi_node_mode
 get_app_config 305419896
 session_update_multicast_list 305419896 add 0x1234 0xAABBCCDD
 session_update_multicast_list 305419896 remove 0x1234 0xAABBCCDD
+session_update_dt_tag_rounds 305419896 010509
 session_data_transfer_phase_config 305419896 7 165 3 112233
 session_start 305419896
 session_send_data 305419896 0x11223344 15 AABB
@@ -133,6 +134,9 @@ require_line "Interpreted: CONTROLEE (0x01)"
 require_line "SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:"
 require_line "Entries Processed: 1"
 require_line "Entry[0]: Short=0x1234, Subsession=0xAABBCCDD, Status=0x00 (OK)"
+require_line "SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG Response:"
+require_line "Stored Round Indices: 3"
+require_line "Round Indices: 0x01 0x05 0x09"
 require_line "SESSION_DATA_TRANSFER_PHASE_CONFIG Response:"
 require_line "Status: 0x00 (OK)"
 require_line "SESSION_STATUS_NTF:"

@@ -148,6 +148,9 @@ execution path, and changes are currently limited to:
   `SESSION_QUERY_DATA_SIZE_IN_RANGING`, and
   `SESSION_UPDATE_CONTROLLER_MULTICAST_LIST`, and
   `SESSION_DATA_TRANSFER_PHASE_CONFIG` over the TCP simulator path.
+  The same TCP path now also validates `DATA_MESSAGE_SND` delivery to the
+  simulator and the resulting `SESSION_DATA_CREDIT_NTF` plus
+  `SESSION_DATA_TRANSFER_STATUS_NTF` decode path.
   The same script can now be run with `UCI_TCP_SIM_SCENARIO=ranging_stream` to
   assert that the shell decodes a Cherry-aligned
   `RANGE_DATA_NTF (SESSION_INFO_NTF)` stream emitted by the simulator and that

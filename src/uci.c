@@ -876,12 +876,41 @@ void uci_send_data_message(uint32_t identifier,
         log_outbound_fragment(target, DATA, fragment_pbf, DATA_PACKET_FORMAT_SEND, 0x00,
                               payload + offset, chunk);
 
+        if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_TCP) {
+            size_t packet_len = 0;
+            unsigned char *packet =
+                create_uci_packet(DATA, fragment_pbf, DATA_PACKET_FORMAT_SEND, 0x00,
+                                  payload + offset, chunk, &packet_len);
+            if (!packet) {
+                UCI_LOG_ERROR("Failed to create DATA packet for TCP transport");
+                uci_log_error(__func__, "Failed to build TCP data packet", UCI_ERROR_INVALID_PARAM);
+                free(payload);
+                return;
+            }
+            if (uci_tcp_transport_send_packet(packet, packet_len) < 0) {
+                ui_print_error("Failed to send data message to TCP endpoint");
+                UCI_LOG_ERROR("TCP data send failed", UCI_ERROR_INVALID_PARAM);
+                free(packet);
+                free(payload);
+                return;
+            }
+            free(packet);
+        }
+
         offset += chunk;
         remaining -= chunk;
     }
 
     if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_HARDWARE) {
         printf("  -> Would send to hardware device %s\n", g_hardware_device_path);
+    } else if (uci_get_transport_mode() == UCI_TRANSPORT_MODE_TCP) {
+        printf("  -> Sent data message to TCP endpoint %s\n", target);
+        printf("  <- Waiting for notifications from TCP endpoint...\n");
+        if (uci_receive_tcp_packets(1000) == 0) {
+            ui_print_warning("No notifications received from TCP endpoint (timeout)");
+        }
+        free(payload);
+        return;
     }
 
     sim_handle_data_message_send(payload, payload_len);

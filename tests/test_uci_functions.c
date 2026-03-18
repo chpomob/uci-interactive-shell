@@ -173,7 +173,7 @@ static void emit_ui_session_info_ntf(void) {
 static void emit_ui_session_get_app_config_rsp(void) {
     unsigned char payload[] = {
         UCI_STATUS_OK,
-        0x45,
+        0x4E,
         DEVICE_TYPE, 0x01, 0x01,
         RANGING_ROUND_USAGE, 0x01, 0x01,
         STS_CONFIG, 0x01, 0x01,
@@ -242,7 +242,18 @@ static void emit_ui_session_get_app_config_rsp(void) {
         DL_TDOA_ANCHOR_LOCATION, 0x01, 0x00,
         DL_TDOA_TX_ACTIVE_RANGING_ROUNDS, 0x01, 0x01,
         DL_TDOA_BLOCK_STRIDING, 0x01, 0x01,
-        DL_TDOA_TIME_REFERENCE_ANCHOR, 0x01, 0x01
+        DL_TDOA_TIME_REFERENCE_ANCHOR, 0x01, 0x01,
+        SESSION_KEY, 0x10, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+            0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
+        SUBSESSION_KEY, 0x10, 0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88,
+            0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00,
+        SESSION_DATA_TRANSFER_STATUS_NTF_CONFIG, 0x01, 0x01,
+        SESSION_TIME_BASE, 0x09, 0x01, 0x78, 0x56, 0x34, 0x12, 0x08, 0x07, 0x06, 0x05,
+        DL_TDOA_RESPONDER_TOF, 0x01, 0x01,
+        SECURE_RANGING_NEFA_LEVEL, 0x01, 0x02,
+        SECURE_RANGING_CSW_LENGTH, 0x01, 0x03,
+        APPLICATION_DATA_ENDPOINT, 0x01, 0x01,
+        OWR_AOA_MEASUREMENT_NTF_PERIOD, 0x01, 0x0A
     };
     int saved = ui_color_enabled;
     ui_color_enabled = 0;
@@ -1217,7 +1228,22 @@ int main() {
             "Config ID=0x43 (dl_tdoa_block_striding), Length=1 bytes",
             "Interpreted: 1 (0x01) [Range: 0-255]",
             "Config ID=0x44 (dl_tdoa_time_reference_anchor), Length=1 bytes",
-            "Interpreted: 1 (0x01) [Range: 0-255]"
+            "Interpreted: 1 (0x01) [Range: 0-255]",
+            "Config ID=0x45 (session_key), Length=16 bytes",
+            "Config ID=0x46 (subsession_key), Length=16 bytes",
+            "Config ID=0x47 (session_data_transfer_status_ntf_config), Length=1 bytes",
+            "Interpreted: 1 (0x01) [Range: 0-255]",
+            "Config ID=0x48 (session_time_base), Length=9 bytes",
+            "Config ID=0x49 (dl_tdoa_responder_tof), Length=1 bytes",
+            "Interpreted: 1 (0x01) [Range: 0-255]",
+            "Config ID=0x4A (secure_ranging_nefa_level), Length=1 bytes",
+            "Interpreted: 2 (0x02) [Range: 0-255]",
+            "Config ID=0x4B (secure_ranging_csw_length), Length=1 bytes",
+            "Interpreted: 3 (0x03) [Range: 0-255]",
+            "Config ID=0x4C (application_data_endpoint), Length=1 bytes",
+            "Interpreted: 1 (0x01) [Range: 0-255]",
+            "Config ID=0x4D (owr_aoa_measurement_ntf_period), Length=1 bytes",
+            "Interpreted: 10 (0x0A) [Range: 0-255]"
         };
 
         if (capture_stdout(emit_ui_session_get_app_config_rsp, output, sizeof(output)) == 0) {

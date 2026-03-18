@@ -169,14 +169,21 @@ execution path, and changes are currently limited to:
   `dl_tdoa_time_reference_anchor`, `min_frames_per_rr`, `mtu_size`, `inter_frame_interval`,
   `dl_tdoa_ranging_method`, `mac_address_mode`,
   `hopping_mode`, `block_stride_length`, `dl_tdoa_tx_timestamp_conf`,
-  `dl_tdoa_hop_count`,
+  `dl_tdoa_hop_count`, `session_key`, `subsession_key`,
+  `session_data_transfer_status_ntf_config`, `session_time_base`,
+  `dl_tdoa_responder_tof`, `secure_ranging_nefa_level`,
+  `secure_ranging_csw_length`, `application_data_endpoint`,
+  `owr_aoa_measurement_ntf_period`,
   `SESSION_UPDATE_CONTROLLER_MULTICAST_LIST`, and
   `SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG`, and
   `SESSION_DATA_TRANSFER_PHASE_CONFIG` over the TCP simulator path.
   The same TCP coverage now treats `get_app_config` as a broader retrieval
   command: one requested param, multiple requested params, or no requested
   params meaning "return all stored supported app-config TLVs", with explicit
-  assertions for the expanded default-profile TLV set.
+  assertions for the expanded default-profile TLV set. That zero-count/all path
+  now also validates segmented control-response reassembly, because the full
+  standard app-config surface no longer fits in a single 8-bit-length UCI
+  control packet.
   The same TCP path now also validates `DATA_MESSAGE_SND` delivery to the
   simulator and the resulting `SESSION_DATA_CREDIT_NTF` plus
   `SESSION_DATA_TRANSFER_STATUS_NTF` decode path.

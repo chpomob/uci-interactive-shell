@@ -129,6 +129,15 @@ set_app_config 305419896 dl_tdoa_anchor_location 0
 set_app_config 305419896 dl_tdoa_tx_active_ranging_rounds 1
 set_app_config 305419896 dl_tdoa_block_striding 1
 set_app_config 305419896 dl_tdoa_time_reference_anchor 1
+set_app_config 305419896 session_key 00112233445566778899AABBCCDDEEFF
+set_app_config 305419896 subsession_key FFEEDDCCBBAA99887766554433221100
+set_app_config 305419896 session_data_transfer_status_ntf_config 1
+set_app_config 305419896 session_time_base 017856341208070605
+set_app_config 305419896 dl_tdoa_responder_tof 1
+set_app_config 305419896 secure_ranging_nefa_level 2
+set_app_config 305419896 secure_ranging_csw_length 3
+set_app_config 305419896 application_data_endpoint 1
+set_app_config 305419896 owr_aoa_measurement_ntf_period 10
 get_app_config 305419896 device_type
 get_app_config 305419896 device_type multi_node_mode
 get_app_config 305419896 ranging_round_usage
@@ -197,6 +206,15 @@ get_app_config 305419896 dl_tdoa_anchor_location
 get_app_config 305419896 dl_tdoa_tx_active_ranging_rounds
 get_app_config 305419896 dl_tdoa_block_striding
 get_app_config 305419896 dl_tdoa_time_reference_anchor
+get_app_config 305419896 session_key
+get_app_config 305419896 subsession_key
+get_app_config 305419896 session_data_transfer_status_ntf_config
+get_app_config 305419896 session_time_base
+get_app_config 305419896 dl_tdoa_responder_tof
+get_app_config 305419896 secure_ranging_nefa_level
+get_app_config 305419896 secure_ranging_csw_length
+get_app_config 305419896 application_data_endpoint
+get_app_config 305419896 owr_aoa_measurement_ntf_period
 get_app_config 305419896
 session_update_multicast_list 305419896 add 0x1234 0xAABBCCDD
 session_update_multicast_list 305419896 remove 0x1234 0xAABBCCDD
@@ -391,7 +409,16 @@ require_line "TLV[0]: Config ID=0x43 (dl_tdoa_block_striding), Length=1 bytes"
 require_line "Interpreted: 1 (0x01) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x44 (dl_tdoa_time_reference_anchor), Length=1 bytes"
 require_line "Interpreted: 1 (0x01) [Range: 0-255]"
-require_line "Number of TLVs: 69"
+require_line "TLV[0]: Config ID=0x45 (session_key), Length=16 bytes"
+require_line "TLV[0]: Config ID=0x46 (subsession_key), Length=16 bytes"
+require_line "TLV[0]: Config ID=0x47 (session_data_transfer_status_ntf_config), Length=1 bytes"
+require_line "TLV[0]: Config ID=0x48 (session_time_base), Length=9 bytes"
+require_line "TLV[0]: Config ID=0x49 (dl_tdoa_responder_tof), Length=1 bytes"
+require_line "TLV[0]: Config ID=0x4A (secure_ranging_nefa_level), Length=1 bytes"
+require_line "TLV[0]: Config ID=0x4B (secure_ranging_csw_length), Length=1 bytes"
+require_line "TLV[0]: Config ID=0x4C (application_data_endpoint), Length=1 bytes"
+require_line "TLV[0]: Config ID=0x4D (owr_aoa_measurement_ntf_period), Length=1 bytes"
+require_line "Number of TLVs: 78"
 require_line "TLV[10]: Config ID=0x0A (sts_index), Length=4 bytes"
 require_line "TLV[15]: Config ID=0x0F (rng_data_ntf_proximity_near), Length=2 bytes"
 require_line "TLV[16]: Config ID=0x10 (rng_data_ntf_proximity_far), Length=2 bytes"
@@ -448,6 +475,15 @@ require_line "TLV[65]: Config ID=0x41 (dl_tdoa_anchor_location), Length=1 bytes"
 require_line "TLV[66]: Config ID=0x42 (dl_tdoa_tx_active_ranging_rounds), Length=1 bytes"
 require_line "TLV[67]: Config ID=0x43 (dl_tdoa_block_striding), Length=1 bytes"
 require_line "TLV[68]: Config ID=0x44 (dl_tdoa_time_reference_anchor), Length=1 bytes"
+require_line "TLV[69]: Config ID=0x45 (session_key), Length=16 bytes"
+require_line "TLV[70]: Config ID=0x46 (subsession_key), Length=16 bytes"
+require_line "TLV[71]: Config ID=0x47 (session_data_transfer_status_ntf_config), Length=1 bytes"
+require_line "TLV[72]: Config ID=0x48 (session_time_base), Length=9 bytes"
+require_line "TLV[73]: Config ID=0x49 (dl_tdoa_responder_tof), Length=1 bytes"
+require_line "TLV[74]: Config ID=0x4A (secure_ranging_nefa_level), Length=1 bytes"
+require_line "TLV[75]: Config ID=0x4B (secure_ranging_csw_length), Length=1 bytes"
+require_line "TLV[76]: Config ID=0x4C (application_data_endpoint), Length=1 bytes"
+require_line "TLV[77]: Config ID=0x4D (owr_aoa_measurement_ntf_period), Length=1 bytes"
 require_line "SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:"
 require_line "Entries Processed: 1"
 require_line "Entry[0]: Short=0x1234, Subsession=0xAABBCCDD, Status=0x00 (OK)"

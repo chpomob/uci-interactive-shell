@@ -80,6 +80,15 @@ static const config_param_info_t app_config_params[] = {
     {DL_TDOA_TX_ACTIVE_RANGING_ROUNDS, "dl_tdoa_tx_active_ranging_rounds", "DL-TDoA transmit active ranging rounds", 0, 0xFF, 0, 1, ""},
     {DL_TDOA_BLOCK_STRIDING, "dl_tdoa_block_striding", "DL-TDoA block striding", 0, 0xFF, 0, 1, ""},
     {DL_TDOA_TIME_REFERENCE_ANCHOR, "dl_tdoa_time_reference_anchor", "DL-TDoA time reference anchor", 0, 0xFF, 0, 1, ""},
+    {SESSION_KEY, "session_key", "Session key for provisioned STS", 0, 0, 0, 16, ""},
+    {SUBSESSION_KEY, "subsession_key", "Sub-session key for provisioned STS", 0, 0, 0, 16, ""},
+    {SESSION_DATA_TRANSFER_STATUS_NTF_CONFIG, "session_data_transfer_status_ntf_config", "Session data transfer status notification configuration", 0, 0xFF, 0, 1, ""},
+    {SESSION_TIME_BASE, "session_time_base", "Session time base structure", 0, 0, 0, 9, ""},
+    {DL_TDOA_RESPONDER_TOF, "dl_tdoa_responder_tof", "DL-TDoA responder ToF", 0, 0xFF, 0, 1, ""},
+    {SECURE_RANGING_NEFA_LEVEL, "secure_ranging_nefa_level", "Secure ranging NEFA level", 0, 0xFF, 0, 1, ""},
+    {SECURE_RANGING_CSW_LENGTH, "secure_ranging_csw_length", "Secure ranging CSW length", 0, 0xFF, 0, 1, ""},
+    {APPLICATION_DATA_ENDPOINT, "application_data_endpoint", "Application data endpoint", 0, 0xFF, 0, 1, ""},
+    {OWR_AOA_MEASUREMENT_NTF_PERIOD, "owr_aoa_measurement_ntf_period", "OWR AoA measurement notification period", 0, 0xFF, 0, 1, ""},
     {SUB_SESSION_ID, "sub_session_id", "Sub-session ID", 0, 0xFFFFFFFF, 0, 4, ""},
 };
 
@@ -256,32 +265,15 @@ int uci_config_init() {
         if (!param) {
             continue;
         }
-        app_config_values[param->cfg_id][0] = (unsigned char)(param->default_value & 0xFF);
-        app_config_lengths[param->cfg_id] = 1;
-        
-        // Special handling for multi-byte values
-        if (param->default_value > 0xFF) {
-            if (param->default_value <= 0xFFFF) {
-                app_config_values[param->cfg_id][0] = (unsigned char)(param->default_value & 0xFF);
-                app_config_values[param->cfg_id][1] = (unsigned char)((param->default_value >> 8) & 0xFF);
-                app_config_lengths[param->cfg_id] = 2;
-            } else if (param->default_value <= 0xFFFFFFFF) {
-                app_config_values[param->cfg_id][0] = (unsigned char)(param->default_value & 0xFF);
-                app_config_values[param->cfg_id][1] = (unsigned char)((param->default_value >> 8) & 0xFF);
-                app_config_values[param->cfg_id][2] = (unsigned char)((param->default_value >> 16) & 0xFF);
-                app_config_values[param->cfg_id][3] = (unsigned char)((param->default_value >> 24) & 0xFF);
-                app_config_lengths[param->cfg_id] = 4;
-            } else if (param->default_value <= 0xFFFFFFFFFFFFFFFFULL) {
-                app_config_values[param->cfg_id][0] = (unsigned char)(param->default_value & 0xFF);
-                app_config_values[param->cfg_id][1] = (unsigned char)((param->default_value >> 8) & 0xFF);
-                app_config_values[param->cfg_id][2] = (unsigned char)((param->default_value >> 16) & 0xFF);
-                app_config_values[param->cfg_id][3] = (unsigned char)((param->default_value >> 24) & 0xFF);
-                app_config_values[param->cfg_id][4] = (unsigned char)((param->default_value >> 32) & 0xFF);
-                app_config_values[param->cfg_id][5] = (unsigned char)((param->default_value >> 40) & 0xFF);
-                app_config_values[param->cfg_id][6] = (unsigned char)((param->default_value >> 48) & 0xFF);
-                app_config_values[param->cfg_id][7] = (unsigned char)((param->default_value >> 56) & 0xFF);
-                app_config_lengths[param->cfg_id] = 8;
-            }
+        size_t value_len = param->value_len > 0 ? param->value_len : 1;
+        if (value_len > sizeof(app_config_values[param->cfg_id])) {
+            value_len = sizeof(app_config_values[param->cfg_id]);
+        }
+        memset(app_config_values[param->cfg_id], 0, value_len);
+        app_config_lengths[param->cfg_id] = value_len;
+        for (size_t byte = 0; byte < value_len && byte < sizeof(param->default_value); byte++) {
+            app_config_values[param->cfg_id][byte] =
+                (unsigned char)((param->default_value >> (8 * byte)) & 0xFF);
         }
     }
     
@@ -781,6 +773,38 @@ int uci_config_parse_app_value(AppConfigTlvType cfg_id, const char* value_str,
 
     if (*value_len < expected_len) {
         return -1;
+    }
+
+    if (cfg_id == SESSION_KEY || cfg_id == SUBSESSION_KEY) {
+        const char* hex_str = value_str;
+        size_t parsed_len = *value_len;
+        if (strncmp(hex_str, "0x", 2) == 0 || strncmp(hex_str, "0X", 2) == 0) {
+            hex_str += 2;
+        }
+        if (uci_config_parse_hex_value(hex_str, value, &parsed_len) != 0) {
+            return -1;
+        }
+        if (parsed_len != 16 && parsed_len != 32) {
+            return -1;
+        }
+        *value_len = parsed_len;
+        return 0;
+    }
+
+    if (cfg_id == SESSION_TIME_BASE) {
+        const char* hex_str = value_str;
+        size_t parsed_len = *value_len;
+        if (strncmp(hex_str, "0x", 2) == 0 || strncmp(hex_str, "0X", 2) == 0) {
+            hex_str += 2;
+        }
+        if (uci_config_parse_hex_value(hex_str, value, &parsed_len) != 0) {
+            return -1;
+        }
+        if (parsed_len != 9) {
+            return -1;
+        }
+        *value_len = parsed_len;
+        return 0;
     }
 
     uint64_t numeric_value = 0;

@@ -67,6 +67,8 @@ static const config_param_info_t app_config_params[] = {
     {MTU_SIZE, "mtu_size", "Maximum transfer unit size", 0, 0xFFFF, 512, 2, ""},
     {INTER_FRAME_INTERVAL, "inter_frame_interval", "Inter-frame interval", 0, 0xFF, 1, 1, ""},
     {DL_TDOA_RANGING_METHOD, "dl_tdoa_ranging_method", "DL-TDoA ranging method", 0, 1, 0, 1, ""},
+    {DL_TDOA_TX_TIMESTAMP_CONF, "dl_tdoa_tx_timestamp_conf", "DL-TDoA transmit timestamp configuration", 0, 0xFF, 0, 1, ""},
+    {DL_TDOA_HOP_COUNT, "dl_tdoa_hop_count", "DL-TDoA hop count", 0, 0xFF, 0, 1, ""},
     {SUB_SESSION_ID, "sub_session_id", "Sub-session ID", 0, 0xFFFFFFFF, 0, 4, ""},
 };
 

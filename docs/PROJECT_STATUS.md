@@ -154,7 +154,9 @@ execution path, and changes are currently limited to:
   `in_band_termination_attempt_count`, `bprf_phr_data_rate`,
   `max_number_of_measurements`, `ul_tdoa_tx_interval`,
   `min_frames_per_rr`, `mtu_size`, `inter_frame_interval`,
-  `dl_tdoa_ranging_method`,
+  `dl_tdoa_ranging_method`, `mac_address_mode`,
+  `hopping_mode`, `dl_tdoa_tx_timestamp_conf`,
+  `dl_tdoa_hop_count`,
   `SESSION_UPDATE_CONTROLLER_MULTICAST_LIST`, and
   `SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG`, and
   `SESSION_DATA_TRANSFER_PHASE_CONFIG` over the TCP simulator path.

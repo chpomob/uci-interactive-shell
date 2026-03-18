@@ -63,6 +63,10 @@ static const config_param_info_t app_config_params[] = {
     {BPRF_PHR_DATA_RATE, "bprf_phr_data_rate", "BPRF PHR data rate", 0, 1, 0, 1, ""},
     {MAX_NUMBER_OF_MEASUREMENTS, "max_number_of_measurements", "Maximum number of measurements", 0, 0xFFFF, 0, 2, ""},
     {UL_TDOA_TX_INTERVAL, "ul_tdoa_tx_interval", "UL-TDoA transmit interval", 0, 0xFFFFFFFF, 0, 4, ""},
+    {MIN_FRAMES_PER_RR, "min_frames_per_rr", "Minimum frames per ranging round", 0, 0xFF, 1, 1, ""},
+    {MTU_SIZE, "mtu_size", "Maximum transfer unit size", 0, 0xFFFF, 512, 2, ""},
+    {INTER_FRAME_INTERVAL, "inter_frame_interval", "Inter-frame interval", 0, 0xFF, 1, 1, ""},
+    {DL_TDOA_RANGING_METHOD, "dl_tdoa_ranging_method", "DL-TDoA ranging method", 0, 1, 0, 1, ""},
     {SUB_SESSION_ID, "sub_session_id", "Sub-session ID", 0, 0xFFFFFFFF, 0, 4, ""},
 };
 
@@ -100,6 +104,8 @@ static const app_value_mapping_t app_value_mappings[] = {
     {AOA_RESULT_REQ, "off", 0x00},
     {AOA_RESULT_REQ, "enable", 0x01},
     {AOA_RESULT_REQ, "on", 0x01},
+    {DL_TDOA_RANGING_METHOD, "ss_twr", 0x00},
+    {DL_TDOA_RANGING_METHOD, "ds_twr", 0x01},
     {SCHEDULED_MODE, "cont", 0x00},
     {SCHEDULED_MODE, "continuous", 0x00},
     {SCHEDULED_MODE, "scheduled", 0x01},

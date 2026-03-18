@@ -83,6 +83,10 @@ set_app_config 305419896 in_band_termination_attempt_count 4
 set_app_config 305419896 bprf_phr_data_rate 1
 set_app_config 305419896 max_number_of_measurements 16
 set_app_config 305419896 ul_tdoa_tx_interval 100
+set_app_config 305419896 min_frames_per_rr 2
+set_app_config 305419896 mtu_size 1024
+set_app_config 305419896 inter_frame_interval 5
+set_app_config 305419896 dl_tdoa_ranging_method ds_twr
 get_app_config 305419896 device_type
 get_app_config 305419896 device_type multi_node_mode
 get_app_config 305419896 ranging_round_usage
@@ -105,6 +109,10 @@ get_app_config 305419896 in_band_termination_attempt_count
 get_app_config 305419896 bprf_phr_data_rate
 get_app_config 305419896 max_number_of_measurements
 get_app_config 305419896 ul_tdoa_tx_interval
+get_app_config 305419896 min_frames_per_rr
+get_app_config 305419896 mtu_size
+get_app_config 305419896 inter_frame_interval
+get_app_config 305419896 dl_tdoa_ranging_method
 get_app_config 305419896
 session_update_multicast_list 305419896 add 0x1234 0xAABBCCDD
 session_update_multicast_list 305419896 remove 0x1234 0xAABBCCDD
@@ -209,7 +217,15 @@ require_line "TLV[0]: Config ID=0x32 (max_number_of_measurements), Length=2 byte
 require_line "Interpreted: 16 (0x10 00) [Range: 0-65535]"
 require_line "TLV[0]: Config ID=0x33 (ul_tdoa_tx_interval), Length=4 bytes"
 require_line "Interpreted: 100 (0x64 00 00 00) [Range: 0-4294967295]"
-require_line "Number of TLVs: 23"
+require_line "TLV[0]: Config ID=0x3A (min_frames_per_rr), Length=1 bytes"
+require_line "Interpreted: 2 (0x02) [Range: 0-255]"
+require_line "TLV[0]: Config ID=0x3B (mtu_size), Length=2 bytes"
+require_line "Interpreted: 1024 (0x00 04) [Range: 0-65535]"
+require_line "TLV[0]: Config ID=0x3C (inter_frame_interval), Length=1 bytes"
+require_line "Interpreted: 5 (0x05) [Range: 0-255]"
+require_line "TLV[0]: Config ID=0x3D (dl_tdoa_ranging_method), Length=1 bytes"
+require_line "Interpreted: 1 (0x01) [Range: 0-1]"
+require_line "Number of TLVs: 27"
 require_line "TLV[14]: Config ID=0x11 (device_role), Length=1 bytes"
 require_line "Interpreted: CONTROLEE (0x01)"
 require_line "TLV[15]: Config ID=0x12 (rframe_config), Length=1 bytes"
@@ -220,6 +236,10 @@ require_line "TLV[19]: Config ID=0x2F (in_band_termination_attempt_count), Lengt
 require_line "TLV[20]: Config ID=0x31 (bprf_phr_data_rate), Length=1 bytes"
 require_line "TLV[21]: Config ID=0x32 (max_number_of_measurements), Length=2 bytes"
 require_line "TLV[22]: Config ID=0x33 (ul_tdoa_tx_interval), Length=4 bytes"
+require_line "TLV[23]: Config ID=0x3A (min_frames_per_rr), Length=1 bytes"
+require_line "TLV[24]: Config ID=0x3B (mtu_size), Length=2 bytes"
+require_line "TLV[25]: Config ID=0x3C (inter_frame_interval), Length=1 bytes"
+require_line "TLV[26]: Config ID=0x3D (dl_tdoa_ranging_method), Length=1 bytes"
 require_line "SESSION_UPDATE_CONTROLLER_MULTICAST_LIST Response:"
 require_line "Entries Processed: 1"
 require_line "Entry[0]: Short=0x1234, Subsession=0xAABBCCDD, Status=0x00 (OK)"

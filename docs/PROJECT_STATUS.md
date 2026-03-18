@@ -158,11 +158,13 @@ execution path, and changes are currently limited to:
   `rng_data_ntf_aoa_bound`, `responder_slot_index`, `prf_mode`,
   `cap_size_range`, `tx_jitter_window_size`, `scheduled_mode`,
   `key_rotation`, `key_rotation_rate`, `session_priority`,
-  `in_band_termination_attempt_count`, `bprf_phr_data_rate`,
+  `vendor_id`, `static_sts_iv`, `number_of_sts_segments`,
+  `max_rr_retry`, `uwb_initiation_time`,
+  `in_band_termination_attempt_count`, `sub_session_id`, `bprf_phr_data_rate`,
   `max_number_of_measurements`, `ul_tdoa_tx_interval`,
   `min_frames_per_rr`, `mtu_size`, `inter_frame_interval`,
   `dl_tdoa_ranging_method`, `mac_address_mode`,
-  `hopping_mode`, `dl_tdoa_tx_timestamp_conf`,
+  `hopping_mode`, `block_stride_length`, `dl_tdoa_tx_timestamp_conf`,
   `dl_tdoa_hop_count`,
   `SESSION_UPDATE_CONTROLLER_MULTICAST_LIST`, and
   `SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG`, and

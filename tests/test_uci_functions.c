@@ -170,6 +170,40 @@ static void emit_ui_session_info_ntf(void) {
     ui_color_enabled = saved;
 }
 
+static void emit_ui_session_info_ntf_current_twr_layout(void) {
+    unsigned char payload[] = {
+        0x01, 0x00, 0x00, 0x00,
+        0x02, 0x00, 0x00, 0x00,
+        0x01,
+        0x0A, 0x00, 0x00, 0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x01, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x01,
+        0x11, 0x00,
+        0x00,
+        0x00,
+        0x2C, 0x01,
+        0x00, 0x00,
+        0x00,
+        0x00, 0x00,
+        0x00,
+        0x00, 0x00,
+        0x00,
+        0x00, 0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x01, 0x50
+    };
+    int saved = ui_color_enabled;
+    ui_color_enabled = 0;
+    ui_decode_session_info_ntf(payload, sizeof(payload));
+    ui_color_enabled = saved;
+}
+
 static void emit_ui_session_get_app_config_rsp(void) {
     unsigned char payload[] = {
         UCI_STATUS_OK,
@@ -1088,6 +1122,30 @@ int main() {
         TEST_PASS();
     }
     test_case_end_session_info_parity:;
+
+    TEST_CASE(session_info_ui_decodes_current_twr_layout);
+    {
+        char output[4096];
+
+        if (capture_stdout(emit_ui_session_info_ntf_current_twr_layout, output, sizeof(output)) == 0) {
+            TEST_FAIL("Failed to capture current TWR session info output");
+            goto test_case_end_session_info_current_twr;
+        }
+
+        if (strstr(output, "Measurement truncated") != NULL) {
+            TEST_FAIL("UI decoder should accept the current TWR measurement layout");
+            goto test_case_end_session_info_current_twr;
+        }
+
+        if (strstr(output, "Distance: 300 cm") == NULL ||
+            strstr(output, "FoM 0%") == NULL) {
+            TEST_FAIL("UI decoder should expose the current TWR measurement values");
+            goto test_case_end_session_info_current_twr;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_session_info_current_twr:;
 
     TEST_CASE(session_get_app_config_ui_value_interpretation);
     {

@@ -519,6 +519,7 @@ if [[ "${SCENARIO}" == "ranging_stream" ]]; then
     require_line "Sequence Number: 1"
     require_line "Sequence Number: 2"
     require_line "Measurement Count"
+    require_line "FoM 0%"
     forbid_line "Sequence Number: 3"
 fi
 

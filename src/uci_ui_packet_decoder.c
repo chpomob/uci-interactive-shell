@@ -388,8 +388,7 @@ static bool decode_range_measurement_twr(const unsigned char* payload,
                                          int measurement_index) {
     (void)measurement_index;
     int cursor = *offset;
-    int rfu_len = (mac_len == 2) ? 11 : 5;
-    int required = mac_len + 18 + rfu_len;
+    int required = (mac_len == 2) ? 20 : 26;
 
     if (cursor + required > payload_len) {
         print_error_line(6, "Measurement truncated (need %d bytes, have %d)",
@@ -417,9 +416,7 @@ static bool decode_range_measurement_twr(const unsigned char* payload,
     cursor += 2;
     unsigned char dst_aoa_elevation_fom = payload[cursor++];
     unsigned char slot_index = payload[cursor++];
-    double rssi_dbm = -decode_q_unsigned(payload[cursor++], 1);
-
-    cursor += rfu_len; // Skip RFU bytes
+    double rssi_dbm = (double)(int8_t)payload[cursor++];
 
     print_mac_address_line(6, mac_ptr, mac_len);
     ui_print_status_lookup_line_internal("Status", status, 6);

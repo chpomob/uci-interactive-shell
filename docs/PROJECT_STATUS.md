@@ -199,7 +199,11 @@ execution path, and changes are currently limited to:
   emits while the simulated distance stays within the configured proximity
   window, and `0x05` emits only on proximity enter/leave transitions. The
   AoA-dependent modes remain stored and decodable, but are not yet enforced by
-  the simulator runtime.
+  the simulator runtime. `RESULT_REPORT_CONFIG` is now also behavioral on that
+  simulator path while keeping the packet layout stable: with the currently
+  scripted `result_report_config=7`, AoA values remain visible but AoA FoM
+  fields are suppressed, which the shell integration now pins through the
+  decoded `FoM 0%` output.
 - `make test` now runs the canonical non-hardware regression suites, including
   the protocol definition suite.
 

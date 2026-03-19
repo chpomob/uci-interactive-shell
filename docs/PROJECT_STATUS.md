@@ -203,7 +203,10 @@ execution path, and changes are currently limited to:
   simulator path while keeping the packet layout stable: with the currently
   scripted `result_report_config=7`, AoA values remain visible but AoA FoM
   fields are suppressed, which the shell integration now pins through the
-  decoded `FoM 0%` output.
+  decoded `FoM 0%` output. `RANGING_INTERVAL` is now also behavioral on that
+  path: the simulator uses the session `ranging_duration` app-config both for
+  the emitted `Current Ranging Interval` field and for future ranging-stream
+  timing.
 - `make test` now runs the canonical non-hardware regression suites, including
   the protocol definition suite.
 

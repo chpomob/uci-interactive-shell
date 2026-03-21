@@ -60,6 +60,7 @@ set_config device_pan_id 0x1234
 get_config device_pan_id
 session_init 305419896 fira_ranging
 session_query_data_size_in_ranging 305419896
+set_app_config 305419896 ranging_duration 49
 set_app_config 305419896 device_type responder
 set_app_config 305419896 ranging_round_usage data
 set_app_config 305419896 sts_config dynamic
@@ -273,6 +274,7 @@ require_line "Session Handle: 0x12345678"
 require_line "SESSION_QUERY_DATA_SIZE_IN_RANGING Response:"
 require_line "Max Data Size: 512 bytes"
 require_line "SESSION_SET_APP_CONFIG Response:"
+require_line "Status: 0x05 (INVALID_RANGE)"
 require_line "Number of Config Status: 0"
 require_line "SESSION_GET_APP_CONFIG Response:"
 require_line "TLV[0]: Config ID=0x00 (device_type), Length=1 bytes"

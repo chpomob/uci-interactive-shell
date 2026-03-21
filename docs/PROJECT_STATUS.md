@@ -206,7 +206,7 @@ execution path, and changes are currently limited to:
   decoded `FoM 0%` output. `RANGING_INTERVAL` is now also behavioral on that
   path: the simulator uses the session `ranging_duration` app-config both for
   the emitted `Current Ranging Interval` field and for future ranging-stream
-  timing.
+  timing, including the first post-start range-data notification.
 - `make test` now runs the canonical non-hardware regression suites, including
   the protocol definition suite.
 

@@ -70,7 +70,7 @@ set_app_config 305419896 no_of_controlee 3
 set_app_config 305419896 device_mac_address 0xABCD
 set_app_config 305419896 dst_mac_address 0x5678
 set_app_config 305419896 slot_duration 2400
-set_app_config 305419896 ranging_duration 3000
+set_app_config 305419896 ranging_duration 50
 set_app_config 305419896 sts_index 5
 set_app_config 305419896 mac_fcs_type 1
 set_app_config 305419896 ranging_round_control 5
@@ -294,7 +294,7 @@ require_line "Interpreted: 0x5678"
 require_line "TLV[0]: Config ID=0x08 (slot_duration), Length=2 bytes"
 require_line "Interpreted: 2400 RSTU (0x0960)"
 require_line "TLV[0]: Config ID=0x09 (ranging_duration), Length=4 bytes"
-require_line "Interpreted: 3000 ms (0x00000BB8)"
+require_line "Interpreted: 50 ms (0x00000032)"
 require_line "TLV[0]: Config ID=0x0A (sts_index), Length=4 bytes"
 require_line "Interpreted: 5 (0x05 00 00 00) [Range: 0-4294967295]"
 require_line "TLV[0]: Config ID=0x0B (mac_fcs_type), Length=1 bytes"
@@ -518,7 +518,7 @@ if [[ "${SCENARIO}" == "ranging_stream" ]]; then
     require_line "Sequence Number"
     require_line "Sequence Number: 1"
     require_line "Sequence Number: 2"
-    require_line "Current Ranging Interval: 3000 ms"
+    require_line "Current Ranging Interval: 50 ms"
     require_line "Measurement Count"
     require_line "FoM 0%"
     forbid_line "Sequence Number: 3"

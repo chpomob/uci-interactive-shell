@@ -203,7 +203,10 @@ execution path, and changes are currently limited to:
   simulator path while keeping the packet layout stable: with the currently
   scripted `result_report_config=7`, AoA values remain visible but AoA FoM
   fields are suppressed, which the shell integration now pins through the
-  decoded `FoM 0%` output. `RANGING_INTERVAL` is now also behavioral on that
+  decoded `FoM 0%` output. The same path now also pins the current
+  Qorvo-like validation rule for that parameter: values using bits outside the
+  documented low four report flags are rejected with `INVALID_PARAM`.
+  `RANGING_INTERVAL` is now also behavioral on that
   path: the simulator uses the session `ranging_duration` app-config both for
   the emitted `Current Ranging Interval` field and for future ranging-stream
   timing, including the first post-start range-data notification. The same TCP

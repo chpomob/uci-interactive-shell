@@ -107,6 +107,7 @@ set_app_config 305419896 uwb_initiation_time 1000
 set_app_config 305419896 mac_address_mode 1
 set_app_config 305419896 hopping_mode 1
 set_app_config 305419896 block_stride_length 5
+set_app_config 305419896 result_report_config 16
 set_app_config 305419896 result_report_config 7
 set_app_config 305419896 in_band_termination_attempt_count 4
 set_app_config 305419896 sub_session_id 305419896
@@ -275,6 +276,7 @@ require_line "SESSION_QUERY_DATA_SIZE_IN_RANGING Response:"
 require_line "Max Data Size: 512 bytes"
 require_line "SESSION_SET_APP_CONFIG Response:"
 require_line "Status: 0x05 (INVALID_RANGE)"
+require_line "Status: 0x04 (INVALID_PARAM)"
 require_line "Number of Config Status: 0"
 require_line "SESSION_GET_APP_CONFIG Response:"
 require_line "TLV[0]: Config ID=0x00 (device_type), Length=1 bytes"

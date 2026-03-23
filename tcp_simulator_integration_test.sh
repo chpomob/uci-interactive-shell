@@ -93,6 +93,7 @@ set_app_config 305419896 tx_adaptive_payload_power 1
 set_app_config 305419896 rng_data_ntf_aoa_bound 45
 set_app_config 305419896 responder_slot_index 7
 set_app_config 305419896 prf_mode 1
+set_app_config 305419896 prf_mode 3
 set_app_config 305419896 cap_size_range 512
 set_app_config 305419896 tx_jitter_window_size 16
 set_app_config 305419896 scheduled_mode scheduled
@@ -351,7 +352,7 @@ require_line "Interpreted: 45 (0x2D 00) [Range: 0-65535]"
 require_line "TLV[0]: Config ID=0x1E (responder_slot_index), Length=1 bytes"
 require_line "Interpreted: 7 (0x07) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x1F (prf_mode), Length=1 bytes"
-require_line "Interpreted: HPRF (0x01)"
+require_line "Interpreted: HPRF_124_8M (0x01)"
 require_line "TLV[0]: Config ID=0x20 (cap_size_range), Length=2 bytes"
 require_line "Interpreted: 512 (0x00 02) [Range: 0-65535]"
 require_line "TLV[0]: Config ID=0x21 (tx_jitter_window_size), Length=2 bytes"

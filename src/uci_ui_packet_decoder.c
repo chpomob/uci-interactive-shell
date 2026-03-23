@@ -2808,13 +2808,15 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                 if (ui_color_enabled) {
                     switch(value) {
                         case 0: printf("%sBPRF%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 1: printf("%sHPRF%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 1: printf("%sHPRF_124_8M%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 2: printf("%sHPRF_249_6M%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
                     }
                 } else {
                     switch(value) {
                         case 0: printf("BPRF (0x%02X)\n", value); break;
-                        case 1: printf("HPRF (0x%02X)\n", value); break;
+                        case 1: printf("HPRF_124_8M (0x%02X)\n", value); break;
+                        case 2: printf("HPRF_249_6M (0x%02X)\n", value); break;
                         default: printf("UNKNOWN (0x%02X)\n", value); break;
                     }
                 }

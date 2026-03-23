@@ -1214,7 +1214,7 @@ int main() {
             "TLV[30]: Config ID=0x1E (responder_slot_index), Length=1 bytes",
             "Interpreted: 7 (0x07) [Range: 0-255]",
             "TLV[31]: Config ID=0x1F (prf_mode), Length=1 bytes",
-            "Interpreted: HPRF (0x01)",
+            "Interpreted: HPRF_124_8M (0x01)",
             "Config ID=0x20 (cap_size_range), Length=2 bytes",
             "Interpreted: 512 (0x00 02) [Range: 0-65535]",
             "Config ID=0x21 (tx_jitter_window_size), Length=2 bytes",

@@ -5,6 +5,7 @@
 #include <strings.h>  // For strcasecmp
 #include <stdint.h>
 #include <errno.h>
+#include <ctype.h>
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
@@ -19,7 +20,7 @@ static const config_param_info_t app_config_params[] = {
     {CHANNEL_NUMBER, "channel_number", "UWB channel number", 0, 15, 9, 1, ""},
     {NO_OF_CONTROLEE, "no_of_controlee", "Number of controlees", 0, 8, 0, 1, ""},
     {DEVICE_MAC_ADDRESS, "device_mac_address", "Device MAC address", 0, 0xFFFF, 0, 2, ""},
-    {DST_MAC_ADDRESS, "dst_mac_address", "Destination MAC address", 0, 0xFFFF, 0, 2, ""},
+    {DST_MAC_ADDRESS, "dst_mac_address", "Destination MAC address list", 0, 0xFFFF, 0, 2, ""},
     {SLOT_DURATION, "slot_duration", "Slot duration in RSTU", 0, 0xFFFF, 2400, 2, "RSTU"},
     {RANGING_DURATION, "ranging_duration", "Ranging duration in milliseconds", 0, 0xFFFFFFFF, 1000, 4, "ms"},
     {STS_INDEX, "sts_index", "STS index", 0, 0xFFFFFFFF, 0, 4, ""},
@@ -280,6 +281,62 @@ static int parse_boolean_value(const char* value_str, unsigned char* out_value) 
 
     return -1;
 }
+
+static void trim_ascii_whitespace(char** start, char** end) {
+    while (*start < *end && isspace((unsigned char)**start)) {
+        (*start)++;
+    }
+    while (*end > *start && isspace((unsigned char)*((*end) - 1))) {
+        (*end)--;
+    }
+}
+
+static int parse_dst_mac_address_list(const char* value_str, unsigned char* value, size_t* value_len) {
+    char buffer[256];
+    char* cursor = NULL;
+    char* token = NULL;
+    size_t count = 0;
+
+    if (!value_str || !value || !value_len) {
+        return -1;
+    }
+    if (strlen(value_str) >= sizeof(buffer)) {
+        return -1;
+    }
+
+    strcpy(buffer, value_str);
+    cursor = buffer;
+    while ((token = strsep(&cursor, ",")) != NULL) {
+        char* start = token;
+        char* end = token + strlen(token);
+        uint64_t numeric = 0;
+
+        trim_ascii_whitespace(&start, &end);
+        if (start == end) {
+            return -1;
+        }
+
+        *end = '\0';
+        if (parse_unsigned_value(start, &numeric) != 0 || numeric > 0xFFFFU) {
+            return -1;
+        }
+        if ((count + 1U) * 2U > *value_len) {
+            return -1;
+        }
+
+        value[count * 2U] = (unsigned char)(numeric & 0xFFU);
+        value[count * 2U + 1U] = (unsigned char)((numeric >> 8) & 0xFFU);
+        count++;
+    }
+
+    if (count == 0U) {
+        return -1;
+    }
+
+    *value_len = count * 2U;
+    return 0;
+}
+
 
 // Configuration storage arrays
 static unsigned char app_config_values[256][256];  // Up to 256 config params with up to 256 bytes each
@@ -835,6 +892,18 @@ int uci_config_parse_app_value(AppConfigTlvType cfg_id, const char* value_str,
             return -1;
         }
         if (parsed_len != 9) {
+            return -1;
+        }
+        *value_len = parsed_len;
+        return 0;
+    }
+
+    if (cfg_id == DST_MAC_ADDRESS) {
+        size_t parsed_len = *value_len;
+        if (parse_dst_mac_address_list(value_str, value, &parsed_len) != 0) {
+            return -1;
+        }
+        if (parsed_len == 0 || (parsed_len % 2) != 0 || parsed_len > 16) {
             return -1;
         }
         *value_len = parsed_len;

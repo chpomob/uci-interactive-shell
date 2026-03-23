@@ -42,17 +42,31 @@ int handle_set_app_config_command_value(uint32_t session_id,
         return -1;
     }
 
-    unsigned char payload[4 + 1 + 1 + 1 + 255];
+    unsigned char payload[4 + 1 + (2 * (1 + 1 + 255))];
     size_t offset = 0;
     payload[offset++] = session_id & 0xFF;
     payload[offset++] = (session_id >> 8) & 0xFF;
     payload[offset++] = (session_id >> 16) & 0xFF;
     payload[offset++] = (session_id >> 24) & 0xFF;
-    payload[offset++] = 1; // Number of TLVs
-    payload[offset++] = (unsigned char)cfg_id;
-    payload[offset++] = (unsigned char)value_len;
-    memcpy(&payload[offset], value, value_len);
-    offset += value_len;
+
+    if (cfg_id == DST_MAC_ADDRESS) {
+        unsigned char address_count = (unsigned char)(value_len / 2U);
+
+        payload[offset++] = 2; // NUMBER_OF_CONTROLEES + DST_MAC_ADDRESS
+        payload[offset++] = (unsigned char)NO_OF_CONTROLEE;
+        payload[offset++] = 1;
+        payload[offset++] = address_count;
+        payload[offset++] = (unsigned char)cfg_id;
+        payload[offset++] = (unsigned char)value_len;
+        memcpy(&payload[offset], value, value_len);
+        offset += value_len;
+    } else {
+        payload[offset++] = 1; // Number of TLVs
+        payload[offset++] = (unsigned char)cfg_id;
+        payload[offset++] = (unsigned char)value_len;
+        memcpy(&payload[offset], value, value_len);
+        offset += value_len;
+    }
 
     send_uci_command(COMMAND, 0, SESSION_CONFIG, SESSION_SET_APP_CONFIG, payload, (int)offset);
     return 0;

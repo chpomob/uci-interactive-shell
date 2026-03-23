@@ -67,9 +67,8 @@ set_app_config 305419896 sts_config provisioned
 set_app_config 305419896 multi_node_mode one_to_many
 set_app_config 305419896 device_role initiator
 set_app_config 305419896 channel_number 5
-set_app_config 305419896 no_of_controlee 3
 set_app_config 305419896 device_mac_address 0xABCD
-set_app_config 305419896 dst_mac_address 0x5678
+set_app_config 305419896 dst_mac_address 0x5678,0x6789,0x789A
 set_app_config 305419896 slot_duration 2400
 set_app_config 305419896 ranging_duration 50
 set_app_config 305419896 sts_index 5
@@ -304,8 +303,8 @@ require_line "TLV[0]: Config ID=0x05 (no_of_controlee), Length=1 bytes"
 require_line "Interpreted: 3 controlees (0x03)"
 require_line "TLV[0]: Config ID=0x06 (device_mac_address), Length=2 bytes"
 require_line "Interpreted: 0xABCD"
-require_line "TLV[0]: Config ID=0x07 (dst_mac_address), Length=2 bytes"
-require_line "Interpreted: 0x5678"
+require_line "TLV[0]: Config ID=0x07 (dst_mac_address), Length=6 bytes"
+require_line "Interpreted: 3 addresses: 0x5678, 0x6789, 0x789A"
 require_line "TLV[0]: Config ID=0x08 (slot_duration), Length=2 bytes"
 require_line "Interpreted: 2400 RSTU (0x0960)"
 require_line "TLV[0]: Config ID=0x09 (ranging_duration), Length=4 bytes"

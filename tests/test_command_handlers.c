@@ -328,6 +328,22 @@ int main(void) {
         rc = handle_get_app_config_command_values(8, 1, NULL);
         ASSERT_EQUAL(-1, rc);
 
+        reset_command_capture();
+        rc = handle_set_app_config_command_value(8, "dst_mac_address", "0x5678,0x6789,0x789A");
+
+        ASSERT_EQUAL(0, rc);
+        ASSERT_EQUAL(1, g_captured_command.called);
+        ASSERT_EQUAL(SESSION_SET_APP_CONFIG, g_captured_command.oid);
+        ASSERT_EQUAL(16, g_captured_command.payload_len);
+
+        const unsigned char expected_dst_list[] = {
+            0x08, 0x00, 0x00, 0x00,
+            0x02,
+            0x05, 0x01, 0x03,
+            0x07, 0x06, 0x78, 0x56, 0x89, 0x67, 0x9A, 0x78
+        };
+        ASSERT_TRUE(payload_matches(expected_dst_list, sizeof(expected_dst_list)));
+
         TEST_PASS();
         test_case_end:;
     }

@@ -2564,14 +2564,22 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                 } else {
                     printf("0x%04X\n", value);
                 }
-            } else if (strcasecmp(param_name, "dst_mac_address") == 0 && cfg_len == 2) {
-                unsigned int value = (unsigned int)payload[offset + 2] |
-                                     ((unsigned int)payload[offset + 3] << 8);
+            } else if (strcasecmp(param_name, "dst_mac_address") == 0 && cfg_len >= 2 && (cfg_len % 2) == 0) {
+                int address_count = cfg_len / 2;
                 if (ui_color_enabled) {
-                    printf("%s0x%04X%s\n", ANSI_COLOR_BRIGHT_GREEN, value, ANSI_RESET);
+                    printf("%s%d addresses%s: ", ANSI_COLOR_BRIGHT_GREEN, address_count, ANSI_RESET);
                 } else {
-                    printf("0x%04X\n", value);
+                    printf("%d addresses: ", address_count);
                 }
+                for (int addr_idx = 0; addr_idx < address_count; addr_idx++) {
+                    unsigned int value = (unsigned int)payload[offset + 2 + (addr_idx * 2)] |
+                                         ((unsigned int)payload[offset + 3 + (addr_idx * 2)] << 8);
+                    if (addr_idx > 0) {
+                        printf(", ");
+                    }
+                    printf("0x%04X", value);
+                }
+                printf("\n");
             } else if (strcasecmp(param_name, "slot_duration") == 0 && cfg_len == 2) {
                 unsigned int value = (unsigned int)payload[offset + 2] |
                                      ((unsigned int)payload[offset + 3] << 8);

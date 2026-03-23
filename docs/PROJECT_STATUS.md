@@ -159,7 +159,9 @@ execution path, and changes are currently limited to:
   `cap_size_range`, `tx_jitter_window_size`, `scheduled_mode`,
   `key_rotation`, `key_rotation_rate`, `session_priority`,
   with `ranging_round_usage` now aligned to the FiRa/Cherry round-usage enum
-  instead of the older local `ranging/data` shorthand.
+  instead of the older local `ranging/data` shorthand, and `sts_config` now
+  aligned to the five-value Cherry/FIra STS enum instead of the older local
+  shortened mapping.
   `vendor_id`, `static_sts_iv`, `number_of_sts_segments`,
   `max_rr_retry`, `uwb_initiation_time`,
   `in_band_termination_attempt_count`, `sub_session_id`, `bprf_phr_data_rate`,

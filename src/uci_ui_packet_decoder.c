@@ -2602,20 +2602,18 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                     switch(value) {
                         case 0: printf("%sSTATIC_STS%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         case 1: printf("%sDYNAMIC_STS%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 2: printf("%sDYNAMIC_STS_WITH_AOA%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 3: printf("%sDYNAMIC_STS_RESPONDER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 4: printf("%sPROVISIONED_STS%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 5: printf("%sPROVISIONED_STS_WITH_AOA%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 2: printf("%sDYNAMIC_STS_RESPONDER_SUBSESSION%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 3: printf("%sPROVISIONED_STS%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 4: printf("%sPROVISIONED_STS_RESPONDER_SUBSESSION%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
                     }
                 } else {
                     switch(value) {
                         case 0: printf("STATIC_STS (0x%02X)\n", value); break;
                         case 1: printf("DYNAMIC_STS (0x%02X)\n", value); break;
-                        case 2: printf("DYNAMIC_STS_WITH_AOA (0x%02X)\n", value); break;
-                        case 3: printf("DYNAMIC_STS_RESPONDER (0x%02X)\n", value); break;
-                        case 4: printf("PROVISIONED_STS (0x%02X)\n", value); break;
-                        case 5: printf("PROVISIONED_STS_WITH_AOA (0x%02X)\n", value); break;
+                        case 2: printf("DYNAMIC_STS_RESPONDER_SUBSESSION (0x%02X)\n", value); break;
+                        case 3: printf("PROVISIONED_STS (0x%02X)\n", value); break;
+                        case 4: printf("PROVISIONED_STS_RESPONDER_SUBSESSION (0x%02X)\n", value); break;
                         default: printf("UNKNOWN (0x%02X)\n", value); break;
                     }
                 }
@@ -4562,20 +4560,18 @@ void ui_decode_android_radar_get_app_config_rsp(const unsigned char* payload, in
                     switch(value) {
                         case 0: printf("%sSTATIC_STS%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         case 1: printf("%sDYNAMIC_STS%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 2: printf("%sDYNAMIC_STS_WITH_AOA%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 3: printf("%sDYNAMIC_STS_RESPONDER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 4: printf("%sPROVISIONED_STS%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 5: printf("%sPROVISIONED_STS_WITH_AOA%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 2: printf("%sDYNAMIC_STS_RESPONDER_SUBSESSION%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 3: printf("%sPROVISIONED_STS%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 4: printf("%sPROVISIONED_STS_RESPONDER_SUBSESSION%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
                     }
                 } else {
                     switch(value) {
                         case 0: printf("STATIC_STS (0x%02X)\n", value); break;
                         case 1: printf("DYNAMIC_STS (0x%02X)\n", value); break;
-                        case 2: printf("DYNAMIC_STS_WITH_AOA (0x%02X)\n", value); break;
-                        case 3: printf("DYNAMIC_STS_RESPONDER (0x%02X)\n", value); break;
-                        case 4: printf("PROVISIONED_STS (0x%02X)\n", value); break;
-                        case 5: printf("PROVISIONED_STS_WITH_AOA (0x%02X)\n", value); break;
+                        case 2: printf("DYNAMIC_STS_RESPONDER_SUBSESSION (0x%02X)\n", value); break;
+                        case 3: printf("PROVISIONED_STS (0x%02X)\n", value); break;
+                        case 4: printf("PROVISIONED_STS_RESPONDER_SUBSESSION (0x%02X)\n", value); break;
                         default: printf("UNKNOWN (0x%02X)\n", value); break;
                     }
                 }

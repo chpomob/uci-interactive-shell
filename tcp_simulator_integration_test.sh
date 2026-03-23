@@ -63,7 +63,7 @@ session_query_data_size_in_ranging 305419896
 set_app_config 305419896 ranging_duration 49
 set_app_config 305419896 device_type responder
 set_app_config 305419896 ranging_round_usage ds_non_deferred
-set_app_config 305419896 sts_config dynamic
+set_app_config 305419896 sts_config provisioned
 set_app_config 305419896 multi_node_mode multicast
 set_app_config 305419896 device_role controlee
 set_app_config 305419896 channel_number 5
@@ -286,7 +286,7 @@ require_line "Interpreted: MULTICAST (0x02)"
 require_line "TLV[0]: Config ID=0x01 (ranging_round_usage), Length=1 bytes"
 require_line "Interpreted: DS_TWR_NON_DEFERRED (0x04)"
 require_line "TLV[0]: Config ID=0x02 (sts_config), Length=1 bytes"
-require_line "Interpreted: DYNAMIC_STS (0x01)"
+require_line "Interpreted: PROVISIONED_STS (0x03)"
 require_line "TLV[0]: Config ID=0x04 (channel_number), Length=1 bytes"
 require_line "Interpreted: Channel 5 (0x05)"
 require_line "TLV[0]: Config ID=0x05 (no_of_controlee), Length=1 bytes"

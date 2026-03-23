@@ -2642,14 +2642,26 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                 unsigned char value = payload[offset + 2];
                 if (ui_color_enabled) {
                     switch(value) {
-                        case 0: printf("%sRANGING%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 1: printf("%sDATA%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x01: printf("%sSS_TWR_DEFERRED%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x02: printf("%sDS_TWR_DEFERRED%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x03: printf("%sSS_TWR_NON_DEFERRED%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x04: printf("%sDS_TWR_NON_DEFERRED%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x05: printf("%sOWR_DL_TDOA%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x06: printf("%sOWR_AOA%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x07: printf("%sESS_TWR_CONTENTION_BASED%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x08: printf("%sADS_TWR_CONTENTION_BASED%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
                     }
                 } else {
                     switch(value) {
-                        case 0: printf("RANGING (0x%02X)\n", value); break;
-                        case 1: printf("DATA (0x%02X)\n", value); break;
+                        case 0x01: printf("SS_TWR_DEFERRED (0x%02X)\n", value); break;
+                        case 0x02: printf("DS_TWR_DEFERRED (0x%02X)\n", value); break;
+                        case 0x03: printf("SS_TWR_NON_DEFERRED (0x%02X)\n", value); break;
+                        case 0x04: printf("DS_TWR_NON_DEFERRED (0x%02X)\n", value); break;
+                        case 0x05: printf("OWR_DL_TDOA (0x%02X)\n", value); break;
+                        case 0x06: printf("OWR_AOA (0x%02X)\n", value); break;
+                        case 0x07: printf("ESS_TWR_CONTENTION_BASED (0x%02X)\n", value); break;
+                        case 0x08: printf("ADS_TWR_CONTENTION_BASED (0x%02X)\n", value); break;
                         default: printf("UNKNOWN (0x%02X)\n", value); break;
                     }
                 }

@@ -1154,7 +1154,7 @@ int main() {
             "TLV[0]: Config ID=0x00 (device_type), Length=1 bytes",
             "Interpreted: RESPONDER (0x01)",
             "TLV[1]: Config ID=0x01 (ranging_round_usage), Length=1 bytes",
-            "Interpreted: DATA (0x01)",
+            "Interpreted: SS_TWR_DEFERRED (0x01)",
             "TLV[2]: Config ID=0x02 (sts_config), Length=1 bytes",
             "Interpreted: DYNAMIC_STS (0x01)",
             "TLV[3]: Config ID=0x03 (multi_node_mode), Length=1 bytes",

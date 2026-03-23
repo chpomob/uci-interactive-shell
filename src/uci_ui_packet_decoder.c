@@ -2592,15 +2592,15 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                 if (ui_color_enabled) {
                     switch(value) {
                         case 0x00: printf("%sUNICAST%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 0x01: printf("%sANYCAST%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 0x02: printf("%sMULTICAST%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x01: printf("%sONE_TO_MANY%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x02: printf("%sMANY_TO_MANY%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
                     }
                 } else {
                     switch(value) {
                         case 0x00: printf("UNICAST (0x%02X)\n", value); break;
-                        case 0x01: printf("ANYCAST (0x%02X)\n", value); break;
-                        case 0x02: printf("MULTICAST (0x%02X)\n", value); break;
+                        case 0x01: printf("ONE_TO_MANY (0x%02X)\n", value); break;
+                        case 0x02: printf("MANY_TO_MANY (0x%02X)\n", value); break;
                         default: printf("UNKNOWN (0x%02X)\n", value); break;
                     }
                 }
@@ -4558,15 +4558,15 @@ void ui_decode_android_radar_get_app_config_rsp(const unsigned char* payload, in
                 if (ui_color_enabled) {
                     switch(value) {
                         case 0x00: printf("%sUNICAST%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 0x01: printf("%sANYCAST%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 0x02: printf("%sMULTICAST%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x01: printf("%sONE_TO_MANY%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x02: printf("%sMANY_TO_MANY%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
                     }
                 } else {
                     switch(value) {
                         case 0x00: printf("UNICAST (0x%02X)\n", value); break;
-                        case 0x01: printf("ANYCAST (0x%02X)\n", value); break;
-                        case 0x02: printf("MULTICAST (0x%02X)\n", value); break;
+                        case 0x01: printf("ONE_TO_MANY (0x%02X)\n", value); break;
+                        case 0x02: printf("MANY_TO_MANY (0x%02X)\n", value); break;
                         default: printf("UNKNOWN (0x%02X)\n", value); break;
                     }
                 }

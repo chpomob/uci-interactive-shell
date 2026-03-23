@@ -163,7 +163,10 @@ execution path, and changes are currently limited to:
   aligned to the five-value Cherry/FIra STS enum instead of the older local
   shortened mapping. `device_type` and `device_role` are also now aligned to
   the FiRa/Cherry controller/controlee and responder/initiator semantics
-  instead of the older swapped local labels.
+  instead of the older swapped local labels. `multi_node_mode` is now also
+  aligned to the FiRa/Cherry `UNICAST`, `ONE_TO_MANY`, and `MANY_TO_MANY`
+  topology semantics instead of the older local `anycast` / `multicast`
+  labels, while keeping those older tokens as CLI compatibility aliases.
   `vendor_id`, `static_sts_iv`, `number_of_sts_segments`,
   `max_rr_retry`, `uwb_initiation_time`,
   `in_band_termination_attempt_count`, `sub_session_id`, `bprf_phr_data_rate`,

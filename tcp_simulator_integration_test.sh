@@ -64,7 +64,7 @@ set_app_config 305419896 ranging_duration 49
 set_app_config 305419896 device_type controller
 set_app_config 305419896 ranging_round_usage ds_non_deferred
 set_app_config 305419896 sts_config provisioned
-set_app_config 305419896 multi_node_mode multicast
+set_app_config 305419896 multi_node_mode one_to_many
 set_app_config 305419896 device_role initiator
 set_app_config 305419896 channel_number 5
 set_app_config 305419896 no_of_controlee 3
@@ -142,6 +142,11 @@ set_app_config 305419896 application_data_endpoint 1
 set_app_config 305419896 owr_aoa_measurement_ntf_period 10
 get_app_config 305419896 device_type
 get_app_config 305419896 device_type multi_node_mode
+set_app_config 305419896 multi_node_mode unicast
+get_app_config 305419896 multi_node_mode
+session_start 305419896
+set_app_config 305419896 multi_node_mode one_to_many
+get_app_config 305419896 multi_node_mode
 get_app_config 305419896 ranging_round_usage
 get_app_config 305419896 sts_config
 get_app_config 305419896 channel_number
@@ -286,7 +291,9 @@ require_line "TLV[0]: Config ID=0x00 (device_type), Length=1 bytes"
 require_line "Value: 0x01"
 require_line "Interpreted: CONTROLLER (0x01)"
 require_line "TLV[1]: Config ID=0x03 (multi_node_mode), Length=1 bytes"
-require_line "Interpreted: MULTICAST (0x02)"
+require_line "Interpreted: ONE_TO_MANY (0x01)"
+require_line "TLV[0]: Config ID=0x03 (multi_node_mode), Length=1 bytes"
+require_line "Interpreted: UNICAST (0x00)"
 require_line "TLV[0]: Config ID=0x01 (ranging_round_usage), Length=1 bytes"
 require_line "Interpreted: DS_TWR_NON_DEFERRED (0x04)"
 require_line "TLV[0]: Config ID=0x02 (sts_config), Length=1 bytes"

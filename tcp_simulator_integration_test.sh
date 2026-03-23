@@ -67,6 +67,7 @@ set_app_config 305419896 sts_config provisioned
 set_app_config 305419896 multi_node_mode one_to_many
 set_app_config 305419896 device_role initiator
 set_app_config 305419896 channel_number 5
+set_app_config 305419896 channel_number 6
 set_app_config 305419896 device_mac_address 0xABCD
 set_app_config 305419896 dst_mac_address 0x5678,0x6789,0x789A
 set_app_config 305419896 slot_duration 2400

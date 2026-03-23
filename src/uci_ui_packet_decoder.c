@@ -2499,14 +2499,14 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                 unsigned char value = payload[offset + 2];
                 if (ui_color_enabled) {
                     switch(value) {
-                        case 0x01: printf("%sRESPONDER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 0x02: printf("%sINITIATOR%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x00: printf("%sCONTROLEE%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x01: printf("%sCONTROLLER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
                     }
                 } else {
                     switch(value) {
-                        case 0x01: printf("RESPONDER (0x%02X)\n", value); break;
-                        case 0x02: printf("INITIATOR (0x%02X)\n", value); break;
+                        case 0x00: printf("CONTROLEE (0x%02X)\n", value); break;
+                        case 0x01: printf("CONTROLLER (0x%02X)\n", value); break;
                         default: printf("UNKNOWN (0x%02X)\n", value); break;
                     }
                 }
@@ -2514,14 +2514,22 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                 unsigned char value = payload[offset + 2];
                 if (ui_color_enabled) {
                     switch(value) {
-                        case 0x00: printf("%sCONTROLLER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 0x01: printf("%sCONTROLEE%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x00: printf("%sRESPONDER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x01: printf("%sINITIATOR%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x05: printf("%sADVERTISER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x06: printf("%sOBSERVER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x07: printf("%sDT_ANCHOR%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x08: printf("%sDT_TAG%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
                     }
                 } else {
                     switch(value) {
-                        case 0x00: printf("CONTROLLER (0x%02X)\n", value); break;
-                        case 0x01: printf("CONTROLEE (0x%02X)\n", value); break;
+                        case 0x00: printf("RESPONDER (0x%02X)\n", value); break;
+                        case 0x01: printf("INITIATOR (0x%02X)\n", value); break;
+                        case 0x05: printf("ADVERTISER (0x%02X)\n", value); break;
+                        case 0x06: printf("OBSERVER (0x%02X)\n", value); break;
+                        case 0x07: printf("DT_ANCHOR (0x%02X)\n", value); break;
+                        case 0x08: printf("DT_TAG (0x%02X)\n", value); break;
                         default: printf("UNKNOWN (0x%02X)\n", value); break;
                     }
                 }
@@ -4496,14 +4504,14 @@ void ui_decode_android_radar_get_app_config_rsp(const unsigned char* payload, in
                 unsigned char value = payload[offset + 2];
                 if (ui_color_enabled) {
                     switch(value) {
-                        case 0x01: printf("%sRESPONDER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 0x02: printf("%sINITIATOR%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x00: printf("%sCONTROLEE%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x01: printf("%sCONTROLLER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
                     }
                 } else {
                     switch(value) {
-                        case 0x01: printf("RESPONDER (0x%02X)\n", value); break;
-                        case 0x02: printf("INITIATOR (0x%02X)\n", value); break;
+                        case 0x00: printf("CONTROLEE (0x%02X)\n", value); break;
+                        case 0x01: printf("CONTROLLER (0x%02X)\n", value); break;
                         default: printf("UNKNOWN (0x%02X)\n", value); break;
                     }
                 }
@@ -4511,14 +4519,22 @@ void ui_decode_android_radar_get_app_config_rsp(const unsigned char* payload, in
                 unsigned char value = payload[offset + 2];
                 if (ui_color_enabled) {
                     switch(value) {
-                        case 0x00: printf("%sCONTROLLER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 0x01: printf("%sCONTROLEE%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x00: printf("%sRESPONDER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x01: printf("%sINITIATOR%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x05: printf("%sADVERTISER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x06: printf("%sOBSERVER%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x07: printf("%sDT_ANCHOR%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0x08: printf("%sDT_TAG%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
                     }
                 } else {
                     switch(value) {
-                        case 0x00: printf("CONTROLLER (0x%02X)\n", value); break;
-                        case 0x01: printf("CONTROLEE (0x%02X)\n", value); break;
+                        case 0x00: printf("RESPONDER (0x%02X)\n", value); break;
+                        case 0x01: printf("INITIATOR (0x%02X)\n", value); break;
+                        case 0x05: printf("ADVERTISER (0x%02X)\n", value); break;
+                        case 0x06: printf("OBSERVER (0x%02X)\n", value); break;
+                        case 0x07: printf("DT_ANCHOR (0x%02X)\n", value); break;
+                        case 0x08: printf("DT_TAG (0x%02X)\n", value); break;
                         default: printf("UNKNOWN (0x%02X)\n", value); break;
                     }
                 }

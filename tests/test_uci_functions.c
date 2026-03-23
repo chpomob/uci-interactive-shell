@@ -1152,7 +1152,7 @@ int main() {
         char output[65536];
         static const char* k_expected_lines[] = {
             "TLV[0]: Config ID=0x00 (device_type), Length=1 bytes",
-            "Interpreted: RESPONDER (0x01)",
+            "Interpreted: CONTROLLER (0x01)",
             "TLV[1]: Config ID=0x01 (ranging_round_usage), Length=1 bytes",
             "Interpreted: SS_TWR_DEFERRED (0x01)",
             "TLV[2]: Config ID=0x02 (sts_config), Length=1 bytes",
@@ -1186,7 +1186,7 @@ int main() {
             "TLV[16]: Config ID=0x10 (rng_data_ntf_proximity_far), Length=2 bytes",
             "Interpreted: 500 (0xF4 01) [Range: 0-65535]",
             "TLV[17]: Config ID=0x11 (device_role), Length=1 bytes",
-            "Interpreted: CONTROLEE (0x01)",
+            "Interpreted: INITIATOR (0x01)",
             "TLV[18]: Config ID=0x12 (rframe_config), Length=1 bytes",
             "Interpreted: SP2 (0x02)",
             "TLV[19]: Config ID=0x13 (rssi_reporting), Length=1 bytes",

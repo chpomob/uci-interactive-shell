@@ -12,7 +12,7 @@
 
 // Application configuration parameter information
 static const config_param_info_t app_config_params[] = {
-    {DEVICE_TYPE, "device_type", "Device type (initiator/responder)", 0, 1, 1, 1, ""},
+    {DEVICE_TYPE, "device_type", "Device type (controller/controlee)", 0, 1, 1, 1, ""},
     {RANGING_ROUND_USAGE, "ranging_round_usage", "Ranging round usage", 1, 8, 1, 1, ""},
     {STS_CONFIG, "sts_config", "Secure timestamp configuration", 0, 4, 0, 1, ""},
     {MULTI_NODE_MODE, "multi_node_mode", "Multi-node mode", 0, 3, 0, 1, ""},
@@ -29,7 +29,7 @@ static const config_param_info_t app_config_params[] = {
     {RNG_DATA_NTF, "rng_data_ntf", "Ranging data notification", 0, 7, 0, 1, ""},
     {RNG_DATA_NTF_PROXIMITY_NEAR, "rng_data_ntf_proximity_near", "Ranging data notification proximity near", 0, 0xFFFF, 0, 2, "cm"},
     {RNG_DATA_NTF_PROXIMITY_FAR, "rng_data_ntf_proximity_far", "Ranging data notification proximity far", 0, 0xFFFF, 0, 2, "cm"},
-    {DEVICE_ROLE, "device_role", "Device role", 0, 1, 0, 1, ""},
+    {DEVICE_ROLE, "device_role", "Device role", 0, 8, 1, 1, ""},
     {RFRAME_CONFIG, "rframe_config", "Ranging frame configuration", 0, 7, 0, 1, ""},
     {RSSI_REPORTING, "rssi_reporting", "RSSI reporting", 0, 1, 0, 1, ""},
     {PREAMBLE_CODE_INDEX, "preamble_code_index", "Preamble code index", 0, 31, 10, 1, ""},
@@ -111,8 +111,8 @@ typedef struct {
 } app_value_mapping_t;
 
 static const app_value_mapping_t app_value_mappings[] = {
-    {DEVICE_TYPE, "responder", 0x01},
-    {DEVICE_TYPE, "initiator", 0x02},
+    {DEVICE_TYPE, "controlee", 0x00},
+    {DEVICE_TYPE, "controller", 0x01},
     {RANGING_ROUND_USAGE, "ss_deferred", 0x01},
     {RANGING_ROUND_USAGE, "ss-deferred", 0x01},
     {RANGING_ROUND_USAGE, "ds_deferred", 0x02},
@@ -144,8 +144,14 @@ static const app_value_mapping_t app_value_mappings[] = {
     {MULTI_NODE_MODE, "unicast", 0x00},
     {MULTI_NODE_MODE, "anycast", 0x01},
     {MULTI_NODE_MODE, "multicast", 0x02},
-    {DEVICE_ROLE, "controller", 0x00},
-    {DEVICE_ROLE, "controlee", 0x01},
+    {DEVICE_ROLE, "responder", 0x00},
+    {DEVICE_ROLE, "initiator", 0x01},
+    {DEVICE_ROLE, "advertiser", 0x05},
+    {DEVICE_ROLE, "observer", 0x06},
+    {DEVICE_ROLE, "dt_anchor", 0x07},
+    {DEVICE_ROLE, "dt-anchor", 0x07},
+    {DEVICE_ROLE, "dt_tag", 0x08},
+    {DEVICE_ROLE, "dt-tag", 0x08},
     {AOA_RESULT_REQ, "disable", 0x00},
     {AOA_RESULT_REQ, "off", 0x00},
     {AOA_RESULT_REQ, "enable", 0x01},

@@ -61,11 +61,11 @@ get_config device_pan_id
 session_init 305419896 fira_ranging
 session_query_data_size_in_ranging 305419896
 set_app_config 305419896 ranging_duration 49
-set_app_config 305419896 device_type responder
+set_app_config 305419896 device_type controller
 set_app_config 305419896 ranging_round_usage ds_non_deferred
 set_app_config 305419896 sts_config provisioned
 set_app_config 305419896 multi_node_mode multicast
-set_app_config 305419896 device_role controlee
+set_app_config 305419896 device_role initiator
 set_app_config 305419896 channel_number 5
 set_app_config 305419896 no_of_controlee 3
 set_app_config 305419896 device_mac_address 0xABCD
@@ -222,6 +222,9 @@ session_update_multicast_list 305419896 add 0x1234 0xAABBCCDD
 session_update_multicast_list 305419896 remove 0x1234 0xAABBCCDD
 session_update_dt_tag_rounds 305419896 010509
 session_data_transfer_phase_config 305419896 7 165 3 112233
+set_app_config 305419896 device_type controlee
+session_start 305419896
+set_app_config 305419896 device_type controller
 session_start 305419896
 session_send_data 305419896 0x11223344 15 AABB
 session_logical_link_create 305419896 0x12 0x77 5
@@ -281,6 +284,7 @@ require_line "Number of Config Status: 0"
 require_line "SESSION_GET_APP_CONFIG Response:"
 require_line "TLV[0]: Config ID=0x00 (device_type), Length=1 bytes"
 require_line "Value: 0x01"
+require_line "Interpreted: CONTROLLER (0x01)"
 require_line "TLV[1]: Config ID=0x03 (multi_node_mode), Length=1 bytes"
 require_line "Interpreted: MULTICAST (0x02)"
 require_line "TLV[0]: Config ID=0x01 (ranging_round_usage), Length=1 bytes"
@@ -427,7 +431,7 @@ require_line "TLV[10]: Config ID=0x0A (sts_index), Length=4 bytes"
 require_line "TLV[15]: Config ID=0x0F (rng_data_ntf_proximity_near), Length=2 bytes"
 require_line "TLV[16]: Config ID=0x10 (rng_data_ntf_proximity_far), Length=2 bytes"
 require_line "TLV[17]: Config ID=0x11 (device_role), Length=1 bytes"
-require_line "Interpreted: CONTROLEE (0x01)"
+require_line "Interpreted: INITIATOR (0x01)"
 require_line "TLV[18]: Config ID=0x12 (rframe_config), Length=1 bytes"
 require_line "TLV[19]: Config ID=0x13 (rssi_reporting), Length=1 bytes"
 require_line "TLV[20]: Config ID=0x14 (preamble_code_index), Length=1 bytes"

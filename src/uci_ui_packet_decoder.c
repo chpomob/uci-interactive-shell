@@ -2560,9 +2560,9 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                 unsigned int value = (unsigned int)payload[offset + 2] |
                                      ((unsigned int)payload[offset + 3] << 8);
                 if (ui_color_enabled) {
-                    printf("%s0x%04X%s\n", ANSI_COLOR_BRIGHT_GREEN, value, ANSI_RESET);
+                    printf("%sSHORT%s 0x%04X\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value);
                 } else {
-                    printf("0x%04X\n", value);
+                    printf("SHORT 0x%04X\n", value);
                 }
             } else if (strcasecmp(param_name, "dst_mac_address") == 0 && cfg_len >= 2 && (cfg_len % 2) == 0) {
                 int address_count = cfg_len / 2;
@@ -2580,6 +2580,21 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                     printf("0x%04X", value);
                 }
                 printf("\n");
+            } else if (strcasecmp(param_name, "mac_address_mode") == 0 && cfg_len == 1) {
+                unsigned char value = payload[offset + 2];
+                if (ui_color_enabled) {
+                    switch(value) {
+                        case 0: printf("%sSHORT%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 1: printf("%sEXTENDED%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
+                    }
+                } else {
+                    switch(value) {
+                        case 0: printf("SHORT (0x%02X)\n", value); break;
+                        case 1: printf("EXTENDED (0x%02X)\n", value); break;
+                        default: printf("UNKNOWN (0x%02X)\n", value); break;
+                    }
+                }
             } else if (strcasecmp(param_name, "slot_duration") == 0 && cfg_len == 2) {
                 unsigned int value = (unsigned int)payload[offset + 2] |
                                      ((unsigned int)payload[offset + 3] << 8);

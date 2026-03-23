@@ -103,7 +103,7 @@ set_app_config 305419896 static_sts_iv 0x0102030405060708
 set_app_config 305419896 number_of_sts_segments 2
 set_app_config 305419896 max_rr_retry 4
 set_app_config 305419896 uwb_initiation_time 1000
-set_app_config 305419896 mac_address_mode 1
+set_app_config 305419896 mac_address_mode 0
 set_app_config 305419896 hopping_mode 1
 set_app_config 305419896 block_stride_length 5
 set_app_config 305419896 result_report_config 16
@@ -302,7 +302,7 @@ require_line "Interpreted: Channel 5 (0x05)"
 require_line "TLV[0]: Config ID=0x05 (no_of_controlee), Length=1 bytes"
 require_line "Interpreted: 3 controlees (0x03)"
 require_line "TLV[0]: Config ID=0x06 (device_mac_address), Length=2 bytes"
-require_line "Interpreted: 0xABCD"
+require_line "Interpreted: SHORT 0xABCD"
 require_line "TLV[0]: Config ID=0x07 (dst_mac_address), Length=6 bytes"
 require_line "Interpreted: 3 addresses: 0x5678, 0x6789, 0x789A"
 require_line "TLV[0]: Config ID=0x08 (slot_duration), Length=2 bytes"
@@ -373,7 +373,7 @@ require_line "Interpreted: 4 (0x04) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x2B (uwb_initiation_time), Length=4 bytes"
 require_line "Interpreted: 1000 (0xE8 03 00 00) [Range: 0-4294967295]"
 require_line "TLV[0]: Config ID=0x26 (mac_address_mode), Length=1 bytes"
-require_line "Interpreted: 1 (0x01) [Range: 0-1]"
+require_line "Interpreted: SHORT (0x00)"
 require_line "TLV[0]: Config ID=0x2C (hopping_mode), Length=1 bytes"
 require_line "Interpreted: ENABLED (0x01)"
 require_line "TLV[0]: Config ID=0x2D (block_stride_length), Length=1 bytes"
@@ -459,6 +459,7 @@ require_line "TLV[35]: Config ID=0x23 (key_rotation), Length=1 bytes"
 require_line "TLV[36]: Config ID=0x24 (key_rotation_rate), Length=2 bytes"
 require_line "TLV[37]: Config ID=0x25 (session_priority), Length=1 bytes"
 require_line "TLV[38]: Config ID=0x26 (mac_address_mode), Length=1 bytes"
+require_line "Interpreted: SHORT (0x00)"
 require_line "TLV[39]: Config ID=0x27 (vendor_id), Length=2 bytes"
 require_line "TLV[40]: Config ID=0x28 (static_sts_iv), Length=8 bytes"
 require_line "TLV[41]: Config ID=0x29 (number_of_sts_segments), Length=1 bytes"

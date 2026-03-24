@@ -129,6 +129,7 @@ set_app_config 305419896 bprf_phr_data_rate 1
 set_app_config 305419896 max_number_of_measurements 16
 set_app_config 305419896 ul_tdoa_tx_interval 100
 set_app_config 305419896 ul_tdoa_random_window 250
+set_app_config 305419896 sts_length 3
 set_app_config 305419896 sts_length 2
 set_app_config 305419896 suspend_ranging_rounds 3
 set_app_config 305419896 ul_tdoa_ntf_report_config 0x030201
@@ -409,7 +410,7 @@ require_line "Interpreted: 100 (0x64 00 00 00) [Range: 0-4294967295]"
 require_line "TLV[0]: Config ID=0x34 (ul_tdoa_random_window), Length=4 bytes"
 require_line "Interpreted: 250 (0xFA 00 00 00) [Range: 0-4294967295]"
 require_line "TLV[0]: Config ID=0x35 (sts_length), Length=1 bytes"
-require_line "Interpreted: 2 (0x02) [Range: 0-255]"
+require_line "Interpreted: 2 (0x02) [Range: 0-2]"
 require_line "TLV[0]: Config ID=0x36 (suspend_ranging_rounds), Length=1 bytes"
 require_line "Interpreted: 3 (0x03) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x37 (ul_tdoa_ntf_report_config), Length=3 bytes"

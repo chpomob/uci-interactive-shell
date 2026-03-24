@@ -65,7 +65,7 @@ static const config_param_info_t app_config_params[] = {
     {MAX_NUMBER_OF_MEASUREMENTS, "max_number_of_measurements", "Maximum number of measurements", 0, 0xFFFF, 0, 2, ""},
     {UL_TDOA_TX_INTERVAL, "ul_tdoa_tx_interval", "UL-TDoA transmit interval", 0, 0xFFFFFFFF, 0, 4, ""},
     {UL_TDOA_RANDOM_WINDOW, "ul_tdoa_random_window", "UL-TDoA random window", 0, 0xFFFFFFFF, 0, 4, ""},
-    {STS_LENGTH, "sts_length", "STS length", 0, 0xFF, 1, 1, ""},
+    {STS_LENGTH, "sts_length", "STS length", 0, 2, 1, 1, ""},
     {SUSPEND_RANGING_ROUNDS, "suspend_ranging_rounds", "Suspend ranging rounds", 0, 0xFF, 0, 1, ""},
     {UL_TDOA_NTF_REPORT_CONFIG, "ul_tdoa_ntf_report_config", "UL-TDoA notification report configuration", 0, 0xFFFFFF, 0, 3, ""},
     {UL_TDOA_DEVICE_ID, "ul_tdoa_device_id", "UL-TDoA device ID", 0, 0xFF, 0, 1, ""},

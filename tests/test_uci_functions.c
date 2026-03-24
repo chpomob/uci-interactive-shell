@@ -1233,7 +1233,7 @@ int main() {
             "Interpreted: 4660 (0x34 12) [Range: 0-65535]",
             "Config ID=0x28 (static_sts_iv), Length=8 bytes",
             "Config ID=0x29 (number_of_sts_segments), Length=1 bytes",
-            "Interpreted: 2 (0x02) [Range: 0-255]",
+            "Interpreted: 2 (0x02) [Range: 0-2]",
             "Config ID=0x2A (max_rr_retry), Length=1 bytes",
             "Interpreted: 4 (0x04) [Range: 0-255]",
             "Config ID=0x2B (uwb_initiation_time), Length=4 bytes",

@@ -176,6 +176,9 @@ execution path, and changes are currently limited to:
   the simulator’s typed min/max validation path too: the TCP integration first
   exercises an invalid non-zero contention-style value, then restores the
   default neutral `0x0000` baseline used by the time-scheduled profile.
+  `sts_length` is now aligned to the Cherry/FIra `0..2` enum on both the CLI
+  and simulator path, and the TCP integration now exercises the invalid RFU
+  `0x03` case before restoring the valid configured value.
   `device_type`
   and `device_role` are also now aligned to
   the FiRa/Cherry controller/controlee and responder/initiator semantics

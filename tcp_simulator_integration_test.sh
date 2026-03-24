@@ -70,6 +70,7 @@ set_app_config 305419896 channel_number 5
 set_app_config 305419896 channel_number 6
 set_app_config 305419896 device_mac_address 0xABCD
 set_app_config 305419896 dst_mac_address 0x5678,0x6789,0x789A
+set_app_config 305419896 slot_duration 15
 set_app_config 305419896 slot_duration 2400
 set_app_config 305419896 ranging_duration 50
 set_app_config 305419896 sts_index 5

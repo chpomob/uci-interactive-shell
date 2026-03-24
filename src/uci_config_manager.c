@@ -49,7 +49,7 @@ static const config_param_info_t app_config_params[] = {
     {TX_JITTER_WINDOW_SIZE, "tx_jitter_window_size", "Transmit jitter window size", 0, 0xFFFF, 0, 2, "RSTU"},
     {SCHEDULED_MODE, "scheduled_mode", "Scheduled mode", 0, 2, 0, 1, ""},
     {KEY_ROTATION, "key_rotation", "Key rotation", 0, 1, 0, 1, ""},
-    {KEY_ROTATION_RATE, "key_rotation_rate", "Key rotation rate", 0, 0xFFFF, 0, 2, ""},
+    {KEY_ROTATION_RATE, "key_rotation_rate", "Key rotation rate", 0, 15, 0, 2, ""},
     {SESSION_PRIORITY, "session_priority", "Session priority", 0, 100, 50, 1, ""},
     {MAC_ADDRESS_MODE, "mac_address_mode", "MAC address mode", 0, 1, 0, 1, ""},
     {VENDOR_ID, "vendor_id", "Vendor ID", 0, 0xFFFF, 0, 2, ""},

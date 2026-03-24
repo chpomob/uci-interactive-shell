@@ -111,7 +111,8 @@ set_app_config 305419896 tx_jitter_window_size 16
 set_app_config 305419896 scheduled_mode hybrid
 set_app_config 305419896 scheduled_mode scheduled
 set_app_config 305419896 key_rotation 1
-set_app_config 305419896 key_rotation_rate 32
+set_app_config 305419896 key_rotation_rate 16
+set_app_config 305419896 key_rotation_rate 15
 set_app_config 305419896 session_priority 75
 set_app_config 305419896 vendor_id 0x1234
 set_app_config 305419896 static_sts_iv 0x0102030405060708
@@ -377,7 +378,7 @@ require_line "Interpreted: TIME_SCHEDULED (0x01)"
 require_line "TLV[0]: Config ID=0x23 (key_rotation), Length=1 bytes"
 require_line "Interpreted: ENABLED (0x01)"
 require_line "TLV[0]: Config ID=0x24 (key_rotation_rate), Length=2 bytes"
-require_line "Interpreted: 32 (0x20 00) [Range: 0-65535]"
+require_line "Interpreted: 15 (0x0F 00) [Range: 0-15]"
 require_line "TLV[0]: Config ID=0x25 (session_priority), Length=1 bytes"
 require_line "Interpreted: 75 (0x4B) [Range: 0-100]"
 require_line "TLV[0]: Config ID=0x27 (vendor_id), Length=2 bytes"

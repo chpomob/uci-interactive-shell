@@ -47,7 +47,7 @@ static const config_param_info_t app_config_params[] = {
     {PRF_MODE, "prf_mode", "Pulse repetition frequency mode", 0, 2, 0, 1, ""},
     {CAP_SIZE_RANGE, "cap_size_range", "Capability size range", 0, 0xFFFF, 0, 2, ""},
     {TX_JITTER_WINDOW_SIZE, "tx_jitter_window_size", "Transmit jitter window size", 0, 0xFFFF, 0, 2, "RSTU"},
-    {SCHEDULED_MODE, "scheduled_mode", "Scheduled mode", 0, 1, 0, 1, ""},
+    {SCHEDULED_MODE, "scheduled_mode", "Scheduled mode", 0, 2, 0, 1, ""},
     {KEY_ROTATION, "key_rotation", "Key rotation", 0, 1, 0, 1, ""},
     {KEY_ROTATION_RATE, "key_rotation_rate", "Key rotation rate", 0, 0xFFFF, 0, 2, ""},
     {SESSION_PRIORITY, "session_priority", "Session priority", 0, 100, 50, 1, ""},
@@ -176,8 +176,14 @@ static const app_value_mapping_t app_value_mappings[] = {
     {DL_TDOA_RANGING_METHOD, "ss_twr", 0x00},
     {DL_TDOA_RANGING_METHOD, "ds_twr", 0x01},
     {SCHEDULED_MODE, "cont", 0x00},
+    {SCHEDULED_MODE, "contention", 0x00},
+    {SCHEDULED_MODE, "contention_based", 0x00},
+    {SCHEDULED_MODE, "contention-based", 0x00},
     {SCHEDULED_MODE, "continuous", 0x00},
     {SCHEDULED_MODE, "scheduled", 0x01},
+    {SCHEDULED_MODE, "time_scheduled", 0x01},
+    {SCHEDULED_MODE, "time-scheduled", 0x01},
+    {SCHEDULED_MODE, "hybrid", 0x02},
 };
 
 static const config_param_info_t* find_app_config_info(AppConfigTlvType cfg_id) {

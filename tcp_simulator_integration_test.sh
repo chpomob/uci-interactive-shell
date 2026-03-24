@@ -104,6 +104,7 @@ set_app_config 305419896 sfd_id 0
 set_app_config 305419896 sfd_id 1
 set_app_config 305419896 cap_size_range 512
 set_app_config 305419896 tx_jitter_window_size 16
+set_app_config 305419896 scheduled_mode hybrid
 set_app_config 305419896 scheduled_mode scheduled
 set_app_config 305419896 key_rotation 1
 set_app_config 305419896 key_rotation_rate 32
@@ -367,7 +368,7 @@ require_line "Interpreted: 512 (0x00 02) [Range: 0-65535]"
 require_line "TLV[0]: Config ID=0x21 (tx_jitter_window_size), Length=2 bytes"
 require_line "Interpreted: 16 (0x10 00) [Range: 0-65535]"
 require_line "TLV[0]: Config ID=0x22 (scheduled_mode), Length=1 bytes"
-require_line "Interpreted: SCHEDULED (0x01)"
+require_line "Interpreted: TIME_SCHEDULED (0x01)"
 require_line "TLV[0]: Config ID=0x23 (key_rotation), Length=1 bytes"
 require_line "Interpreted: ENABLED (0x01)"
 require_line "TLV[0]: Config ID=0x24 (key_rotation_rate), Length=2 bytes"

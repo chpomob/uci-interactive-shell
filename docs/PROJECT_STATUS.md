@@ -169,6 +169,10 @@ execution path, and changes are currently limited to:
   `slots_per_rr` is now constrained to `1..255`, the TCP integration now
   exercises the invalid `0` case, and emitted range-data slot indices now
   follow the configured session responder-slot state instead of staying fixed.
+  `scheduled_mode` now exposes the Cherry/FiRa three-value enum on the CLI
+  (`CONTENTION_BASED`, `TIME_SCHEDULED`, `HYBRID`), while the default simulator
+  profile intentionally accepts only `TIME_SCHEDULED` because that is the only
+  scheduling mode it currently models.
   `device_type`
   and `device_role` are also now aligned to
   the FiRa/Cherry controller/controlee and responder/initiator semantics

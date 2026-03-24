@@ -2777,14 +2777,16 @@ void ui_decode_session_get_app_config_rsp(const unsigned char* payload, int payl
                 unsigned char value = payload[offset + 2];
                 if (ui_color_enabled) {
                     switch(value) {
-                        case 0: printf("%sCONT%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
-                        case 1: printf("%sSCHEDULED%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 0: printf("%sCONTENTION_BASED%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 1: printf("%sTIME_SCHEDULED%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
+                        case 2: printf("%sHYBRID%s (0x%02X)\n", ANSI_COLOR_BRIGHT_GREEN, ANSI_RESET, value); break;
                         default: printf("%sUNKNOWN%s (0x%02X)\n", ANSI_COLOR_YELLOW, ANSI_RESET, value); break;
                     }
                 } else {
                     switch(value) {
-                        case 0: printf("CONT (0x%02X)\n", value); break;
-                        case 1: printf("SCHEDULED (0x%02X)\n", value); break;
+                        case 0: printf("CONTENTION_BASED (0x%02X)\n", value); break;
+                        case 1: printf("TIME_SCHEDULED (0x%02X)\n", value); break;
+                        case 2: printf("HYBRID (0x%02X)\n", value); break;
                         default: printf("UNKNOWN (0x%02X)\n", value); break;
                     }
                 }

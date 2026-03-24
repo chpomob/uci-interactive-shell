@@ -1220,7 +1220,7 @@ int main() {
             "Config ID=0x21 (tx_jitter_window_size), Length=2 bytes",
             "Interpreted: 16 (0x10 00) [Range: 0-65535]",
             "Config ID=0x22 (scheduled_mode), Length=1 bytes",
-            "Interpreted: SCHEDULED (0x01)",
+            "Interpreted: TIME_SCHEDULED (0x01)",
             "Config ID=0x23 (key_rotation), Length=1 bytes",
             "Interpreted: ENABLED (0x01)",
             "Config ID=0x24 (key_rotation_rate), Length=2 bytes",

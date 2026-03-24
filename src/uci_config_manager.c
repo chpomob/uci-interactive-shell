@@ -58,7 +58,7 @@ static const config_param_info_t app_config_params[] = {
     {MAX_RR_RETRY, "max_rr_retry", "Maximum ranging round retry", 0, 0xFF, 3, 1, ""},
     {UWB_INITIATION_TIME, "uwb_initiation_time", "UWB initiation time", 0, 0xFFFFFFFF, 0, 4, "ms"},
     {HOPPING_MODE, "hopping_mode", "Hopping mode", 0, 3, 0, 1, ""},
-    {BLOCK_STRIDE_LENGTH, "block_stride_length", "Block stride length", 0, 0xFFFF, 0, 1, ""},
+    {BLOCK_STRIDE_LENGTH, "block_stride_length", "Block stride length", 0, 0xFF, 0, 1, ""},
     {RESULT_REPORT_CONFIG, "result_report_config", "Result report configuration", 0, 0xFF, 0, 1, ""},
     {IN_BAND_TERMINATION_ATTEMPT_COUNT, "in_band_termination_attempt_count", "In-band termination attempt count", 0, 0xFF, 3, 1, ""},
     {BPRF_PHR_DATA_RATE, "bprf_phr_data_rate", "BPRF PHR data rate", 0, 1, 0, 1, ""},

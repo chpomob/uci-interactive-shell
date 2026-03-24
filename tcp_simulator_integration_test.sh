@@ -89,6 +89,7 @@ set_app_config 305419896 preamble_duration 1
 set_app_config 305419896 link_layer_mode 2
 set_app_config 305419896 link_layer_mode 1
 set_app_config 305419896 data_repetition_count 1
+set_app_config 305419896 block_stride_length 5
 set_app_config 305419896 ranging_time_struct 2
 set_app_config 305419896 ranging_time_struct 1
 set_app_config 305419896 slots_per_rr 0
@@ -389,7 +390,7 @@ require_line "Interpreted: SHORT (0x00)"
 require_line "TLV[0]: Config ID=0x2C (hopping_mode), Length=1 bytes"
 require_line "Interpreted: ENABLED (0x01)"
 require_line "TLV[0]: Config ID=0x2D (block_stride_length), Length=1 bytes"
-require_line "Interpreted: 5 (0x05) [Range: 0-65535]"
+require_line "Interpreted: 5 (0x05) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x2E (result_report_config), Length=1 bytes"
 require_line "Interpreted: 7 (0x07) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x2F (in_band_termination_attempt_count), Length=1 bytes"

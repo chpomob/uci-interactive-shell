@@ -199,6 +199,10 @@ execution path, and changes are currently limited to:
   `SESSION_UPDATE_CONTROLLER_MULTICAST_LIST`, and
   `SESSION_UPDATE_ACTIVE_ROUNDS_DT_TAG`, and
   `SESSION_DATA_TRANSFER_PHASE_CONFIG` over the TCP simulator path.
+  `block_stride_length` is now also exercised with the same scheduler
+  constraint the simulator enforces: non-zero stride is rejected until
+  block-based, time-scheduled operation is configured, then accepted and
+  returned by `get_app_config`.
   The same TCP coverage now treats `get_app_config` as a broader retrieval
   command: one requested param, multiple requested params, or no requested
   params meaning "return all stored supported app-config TLVs", with explicit

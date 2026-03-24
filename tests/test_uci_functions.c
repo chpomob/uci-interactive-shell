@@ -1241,7 +1241,7 @@ int main() {
             "Config ID=0x2C (hopping_mode), Length=1 bytes",
             "Interpreted: ENABLED (0x01)",
             "Config ID=0x2D (block_stride_length), Length=1 bytes",
-            "Interpreted: 5 (0x05) [Range: 0-65535]",
+            "Interpreted: 5 (0x05) [Range: 0-255]",
             "Config ID=0x2E (result_report_config), Length=1 bytes",
             "Interpreted: 7 (0x07) [Range: 0-255]",
             "Config ID=0x2F (in_band_termination_attempt_count), Length=1 bytes",

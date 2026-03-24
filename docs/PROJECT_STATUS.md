@@ -165,7 +165,11 @@ execution path, and changes are currently limited to:
   `0..1` on the CLI/simulator path because the local Qorvo/Cherry sources only
   prove block-based scheduling as the concrete non-RFU time-structure concept.
   `data_repetition_count` now also drives repeated
-  application-data transfer progression in the TCP simulator path. `device_type`
+  application-data transfer progression in the TCP simulator path.
+  `slots_per_rr` is now constrained to `1..255`, the TCP integration now
+  exercises the invalid `0` case, and emitted range-data slot indices now
+  follow the configured session responder-slot state instead of staying fixed.
+  `device_type`
   and `device_role` are also now aligned to
   the FiRa/Cherry controller/controlee and responder/initiator semantics
   instead of the older swapped local labels. `multi_node_mode` is now also

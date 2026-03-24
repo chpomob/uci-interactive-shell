@@ -91,10 +91,11 @@ set_app_config 305419896 link_layer_mode 1
 set_app_config 305419896 data_repetition_count 1
 set_app_config 305419896 ranging_time_struct 2
 set_app_config 305419896 ranging_time_struct 1
+set_app_config 305419896 slots_per_rr 0
 set_app_config 305419896 slots_per_rr 6
 set_app_config 305419896 tx_adaptive_payload_power 1
 set_app_config 305419896 rng_data_ntf_aoa_bound 45
-set_app_config 305419896 responder_slot_index 7
+set_app_config 305419896 responder_slot_index 5
 set_app_config 305419896 prf_mode 1
 set_app_config 305419896 prf_mode 3
 set_app_config 305419896 preamble_code_index 24
@@ -351,12 +352,13 @@ require_line "Interpreted: 1 (0x01) [Range: 0-63]"
 require_line "TLV[0]: Config ID=0x1A (ranging_time_struct), Length=1 bytes"
 require_line "Interpreted: 1 (0x01) [Range: 0-1]"
 require_line "TLV[0]: Config ID=0x1B (slots_per_rr), Length=1 bytes"
-require_line "Interpreted: 6 (0x06) [Range: 0-255]"
+require_line "Interpreted: 6 (0x06) [Range: 1-255]"
 require_line "TLV[0]: Config ID=0x1C (tx_adaptive_payload_power), Length=1 bytes"
 require_line "Interpreted: ENABLED (0x01)"
 require_line "TLV[0]: Config ID=0x1D (rng_data_ntf_aoa_bound), Length=2 bytes"
 require_line "Interpreted: 45 (0x2D 00) [Range: 0-65535]"
 require_line "TLV[0]: Config ID=0x1E (responder_slot_index), Length=1 bytes"
+require_line "Interpreted: 5 (0x05) [Range: 0-255]"
 require_line "Interpreted: 7 (0x07) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x1F (prf_mode), Length=1 bytes"
 require_line "Interpreted: HPRF_124_8M (0x01)"
@@ -545,7 +547,8 @@ if [[ "${SCENARIO}" == "ranging_stream" ]]; then
     require_line "Sequence Number"
     require_line "Sequence Number: 1"
     require_line "Sequence Number: 2"
-    require_line "Current Ranging Interval: 50 ms"
+require_line "Current Ranging Interval: 50 ms"
+require_line "Slot Index: 5"
     require_line "Measurement Count"
     require_line "FoM 0%"
     forbid_line "Sequence Number: 3"

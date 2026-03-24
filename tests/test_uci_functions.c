@@ -1206,7 +1206,7 @@ int main() {
             "TLV[26]: Config ID=0x1A (ranging_time_struct), Length=1 bytes",
             "Interpreted: 0 (0x00) [Range: 0-1]",
             "TLV[27]: Config ID=0x1B (slots_per_rr), Length=1 bytes",
-            "Interpreted: 6 (0x06) [Range: 0-255]",
+            "Interpreted: 6 (0x06) [Range: 1-255]",
             "TLV[28]: Config ID=0x1C (tx_adaptive_payload_power), Length=1 bytes",
             "Interpreted: ENABLED (0x01)",
             "TLV[29]: Config ID=0x1D (rng_data_ntf_aoa_bound), Length=2 bytes",

@@ -110,6 +110,7 @@ set_app_config 305419896 cap_size_range 0
 set_app_config 305419896 tx_jitter_window_size 16
 set_app_config 305419896 scheduled_mode hybrid
 set_app_config 305419896 scheduled_mode scheduled
+set_app_config 305419896 key_rotation 2
 set_app_config 305419896 key_rotation 1
 set_app_config 305419896 key_rotation_rate 16
 set_app_config 305419896 key_rotation_rate 15

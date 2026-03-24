@@ -179,9 +179,12 @@ execution path, and changes are currently limited to:
   `sts_length` is now aligned to the Cherry/FIra `0..2` enum on both the CLI
   and simulator path, and the TCP integration now exercises the invalid RFU
   `0x03` case before restoring the valid configured value.
-  `key_rotation_rate` is now aligned to the Cherry `0..15` range on both the
-  CLI and simulator path, and the TCP integration now exercises the invalid
-  `16` case before restoring the valid configured value.
+  `key_rotation` is now aligned to the Cherry `0..1` range on both the CLI
+  and simulator path, and the TCP integration now exercises the invalid `2`
+  case before restoring the valid configured value. `key_rotation_rate` is
+  now aligned to the Cherry `0..15` range on both the CLI and simulator
+  path, and the TCP integration now exercises the invalid `16` case before
+  restoring the valid configured value.
   `device_type`
   and `device_role` are also now aligned to
   the FiRa/Cherry controller/controlee and responder/initiator semantics

@@ -161,7 +161,10 @@ execution path, and changes are currently limited to:
   with `ranging_round_usage` now aligned to the FiRa/Cherry round-usage enum
   instead of the older local `ranging/data` shorthand, and `sts_config` now
   aligned to the five-value Cherry/FIra STS enum instead of the older local
-  shortened mapping. `data_repetition_count` now also drives repeated
+  shortened mapping. `ranging_time_struct` is now conservatively constrained to
+  `0..1` on the CLI/simulator path because the local Qorvo/Cherry sources only
+  prove block-based scheduling as the concrete non-RFU time-structure concept.
+  `data_repetition_count` now also drives repeated
   application-data transfer progression in the TCP simulator path. `device_type`
   and `device_role` are also now aligned to
   the FiRa/Cherry controller/controlee and responder/initiator semantics

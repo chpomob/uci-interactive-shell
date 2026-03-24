@@ -89,7 +89,8 @@ set_app_config 305419896 preamble_duration 1
 set_app_config 305419896 link_layer_mode 2
 set_app_config 305419896 link_layer_mode 1
 set_app_config 305419896 data_repetition_count 1
-set_app_config 305419896 ranging_time_struct 3
+set_app_config 305419896 ranging_time_struct 2
+set_app_config 305419896 ranging_time_struct 1
 set_app_config 305419896 slots_per_rr 6
 set_app_config 305419896 tx_adaptive_payload_power 1
 set_app_config 305419896 rng_data_ntf_aoa_bound 45
@@ -348,7 +349,7 @@ require_line "Interpreted: EXTENDED (0x01)"
 require_line "TLV[0]: Config ID=0x19 (data_repetition_count), Length=1 bytes"
 require_line "Interpreted: 1 (0x01) [Range: 0-63]"
 require_line "TLV[0]: Config ID=0x1A (ranging_time_struct), Length=1 bytes"
-require_line "Interpreted: 3 (0x03) [Range: 0-3]"
+require_line "Interpreted: 1 (0x01) [Range: 0-1]"
 require_line "TLV[0]: Config ID=0x1B (slots_per_rr), Length=1 bytes"
 require_line "Interpreted: 6 (0x06) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x1C (tx_adaptive_payload_power), Length=1 bytes"

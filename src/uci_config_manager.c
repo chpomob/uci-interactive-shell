@@ -39,7 +39,7 @@ static const config_param_info_t app_config_params[] = {
     {PREAMBLE_DURATION, "preamble_duration", "Preamble duration", 0, 1, 1, 1, ""},
     {LINK_LAYER_MODE, "link_layer_mode", "Link layer mode", 0, 1, 0, 1, ""},
     {DATA_REPETITION_COUNT, "data_repetition_count", "Data repetition count", 0, 63, 0, 1, ""},
-    {RANGING_TIME_STRUCT, "ranging_time_struct", "Ranging time structure", 0, 3, 0, 1, ""},
+    {RANGING_TIME_STRUCT, "ranging_time_struct", "Ranging time structure", 0, 1, 0, 1, ""},
     {SLOTS_PER_RR, "slots_per_rr", "Slots per ranging round", 0, 0xFF, 1, 1, ""},
     {TX_ADAPTIVE_PAYLOAD_POWER, "tx_adaptive_payload_power", "Transmit adaptive payload power", 0, 1, 0, 1, ""},
     {RNG_DATA_NTF_AOA_BOUND, "rng_data_ntf_aoa_bound", "Ranging data notification AoA bound", 0, 0xFFFF, 0, 2, "degrees"},

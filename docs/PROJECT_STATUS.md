@@ -203,6 +203,9 @@ execution path, and changes are currently limited to:
   constraint the simulator enforces: non-zero stride is rejected until
   block-based, time-scheduled operation is configured, then accepted and
   returned by `get_app_config`.
+  `responder_slot_index` now follows the same model: the TCP path first checks
+  the invalid case where the chosen responder slot falls outside the configured
+  `slots_per_rr`, then verifies the accepted in-range value.
   The same TCP coverage now treats `get_app_config` as a broader retrieval
   command: one requested param, multiple requested params, or no requested
   params meaning "return all stored supported app-config TLVs", with explicit

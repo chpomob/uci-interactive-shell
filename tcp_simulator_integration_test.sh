@@ -94,6 +94,7 @@ set_app_config 305419896 ranging_time_struct 2
 set_app_config 305419896 ranging_time_struct 1
 set_app_config 305419896 slots_per_rr 0
 set_app_config 305419896 slots_per_rr 6
+set_app_config 305419896 responder_slot_index 6
 set_app_config 305419896 tx_adaptive_payload_power 1
 set_app_config 305419896 rng_data_ntf_aoa_bound 45
 set_app_config 305419896 responder_slot_index 5

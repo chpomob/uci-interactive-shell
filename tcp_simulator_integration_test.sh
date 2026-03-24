@@ -82,7 +82,7 @@ set_app_config 305419896 rng_data_ntf_proximity_far 105
 set_app_config 305419896 rframe_config 2
 set_app_config 305419896 rssi_reporting 1
 set_app_config 305419896 preamble_code_index 12
-set_app_config 305419896 sfd_id 1
+set_app_config 305419896 sfd_id 2
 set_app_config 305419896 psdu_data_rate 2
 set_app_config 305419896 preamble_duration 2
 set_app_config 305419896 link_layer_mode 1
@@ -96,6 +96,8 @@ set_app_config 305419896 prf_mode 1
 set_app_config 305419896 prf_mode 3
 set_app_config 305419896 preamble_code_index 24
 set_app_config 305419896 preamble_code_index 25
+set_app_config 305419896 sfd_id 0
+set_app_config 305419896 sfd_id 1
 set_app_config 305419896 cap_size_range 512
 set_app_config 305419896 tx_jitter_window_size 16
 set_app_config 305419896 scheduled_mode scheduled
@@ -334,7 +336,7 @@ require_line "Interpreted: 1 (0x01) [Range: 0-1]"
 require_line "TLV[0]: Config ID=0x14 (preamble_code_index), Length=1 bytes"
 require_line "Interpreted: 25 (0x19) [Range: 0-32]"
 require_line "TLV[0]: Config ID=0x15 (sfd_id), Length=1 bytes"
-require_line "Interpreted: 1 (0x01) [Range: 0-3]"
+require_line "Interpreted: 1 (0x01) [Range: 0-4]"
 require_line "TLV[0]: Config ID=0x16 (psdu_data_rate), Length=1 bytes"
 require_line "Interpreted: 2 (0x02) [Range: 0-3]"
 require_line "TLV[0]: Config ID=0x17 (preamble_duration), Length=1 bytes"

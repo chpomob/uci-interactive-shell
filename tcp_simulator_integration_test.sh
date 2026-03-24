@@ -85,6 +85,7 @@ set_app_config 305419896 preamble_code_index 12
 set_app_config 305419896 sfd_id 2
 set_app_config 305419896 psdu_data_rate 2
 set_app_config 305419896 preamble_duration 2
+set_app_config 305419896 preamble_duration 1
 set_app_config 305419896 link_layer_mode 1
 set_app_config 305419896 data_repetition_count 4
 set_app_config 305419896 ranging_time_struct 3
@@ -340,7 +341,7 @@ require_line "Interpreted: 1 (0x01) [Range: 0-4]"
 require_line "TLV[0]: Config ID=0x16 (psdu_data_rate), Length=1 bytes"
 require_line "Interpreted: 2 (0x02) [Range: 0-3]"
 require_line "TLV[0]: Config ID=0x17 (preamble_duration), Length=1 bytes"
-require_line "Interpreted: 2 (0x02) [Range: 0-3]"
+require_line "Interpreted: 1 (0x01) [Range: 0-1]"
 require_line "TLV[0]: Config ID=0x18 (link_layer_mode), Length=1 bytes"
 require_line "Interpreted: EXTENDED (0x01)"
 require_line "TLV[0]: Config ID=0x19 (data_repetition_count), Length=1 bytes"

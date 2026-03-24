@@ -36,7 +36,7 @@ static const config_param_info_t app_config_params[] = {
     {PREAMBLE_CODE_INDEX, "preamble_code_index", "Preamble code index", 0, 32, 10, 1, ""},
     {SFD_ID, "sfd_id", "Start of frame delimiter ID", 0, 4, 2, 1, ""},
     {PSDU_DATA_RATE, "psdu_data_rate", "PSDU data rate", 0, 3, 0, 1, ""},
-    {PREAMBLE_DURATION, "preamble_duration", "Preamble duration", 0, 3, 1, 1, ""},
+    {PREAMBLE_DURATION, "preamble_duration", "Preamble duration", 0, 1, 1, 1, ""},
     {LINK_LAYER_MODE, "link_layer_mode", "Link layer mode", 0, 1, 0, 1, ""},
     {DATA_REPETITION_COUNT, "data_repetition_count", "Data repetition count", 0, 63, 0, 1, ""},
     {RANGING_TIME_STRUCT, "ranging_time_struct", "Ranging time structure", 0, 3, 0, 1, ""},

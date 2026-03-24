@@ -184,7 +184,10 @@ execution path, and changes are currently limited to:
   case before restoring the valid configured value. `key_rotation_rate` is
   now aligned to the Cherry `0..15` range on both the CLI and simulator
   path, and the TCP integration now exercises the invalid `16` case before
-  restoring the valid configured value.
+  restoring the valid configured value. `number_of_sts_segments` is now
+  conservatively aligned to the locally evidenced `0..4` practical range on
+  both the CLI and simulator path, and the TCP integration now exercises the
+  invalid `5` case before restoring the valid configured value.
   `device_type`
   and `device_role` are also now aligned to
   the FiRa/Cherry controller/controlee and responder/initiator semantics

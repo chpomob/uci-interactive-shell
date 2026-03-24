@@ -54,7 +54,7 @@ static const config_param_info_t app_config_params[] = {
     {MAC_ADDRESS_MODE, "mac_address_mode", "MAC address mode", 0, 1, 0, 1, ""},
     {VENDOR_ID, "vendor_id", "Vendor ID", 0, 0xFFFF, 0, 2, ""},
     {STATIC_STS_IV, "static_sts_iv", "Static STS initialization vector", 0, 0xFFFFFFFFFFFFFFFFULL, 0, 8, ""},
-    {NUMBER_OF_STS_SEGMENTS, "number_of_sts_segments", "Number of STS segments", 0, 0xFF, 1, 1, ""},
+    {NUMBER_OF_STS_SEGMENTS, "number_of_sts_segments", "Number of STS segments", 0, 4, 1, 1, ""},
     {MAX_RR_RETRY, "max_rr_retry", "Maximum ranging round retry", 0, 0xFF, 3, 1, ""},
     {UWB_INITIATION_TIME, "uwb_initiation_time", "UWB initiation time", 0, 0xFFFFFFFF, 0, 4, "ms"},
     {HOPPING_MODE, "hopping_mode", "Hopping mode", 0, 3, 0, 1, ""},

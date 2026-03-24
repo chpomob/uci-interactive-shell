@@ -114,6 +114,7 @@ set_app_config 305419896 key_rotation 2
 set_app_config 305419896 key_rotation 1
 set_app_config 305419896 key_rotation_rate 16
 set_app_config 305419896 key_rotation_rate 15
+set_app_config 305419896 number_of_sts_segments 5
 set_app_config 305419896 session_priority 75
 set_app_config 305419896 vendor_id 0x1234
 set_app_config 305419896 static_sts_iv 0x0102030405060708

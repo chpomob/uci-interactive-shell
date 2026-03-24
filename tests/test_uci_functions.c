@@ -1257,7 +1257,7 @@ int main() {
             "Config ID=0x34 (ul_tdoa_random_window), Length=4 bytes",
             "Interpreted: 250 (0xFA 00 00 00) [Range: 0-4294967295]",
             "Config ID=0x35 (sts_length), Length=1 bytes",
-            "Interpreted: 2 (0x02) [Range: 0-255]",
+            "Interpreted: 2 (0x02) [Range: 0-4]",
             "Config ID=0x36 (suspend_ranging_rounds), Length=1 bytes",
             "Interpreted: 3 (0x03) [Range: 0-255]",
             "Config ID=0x37 (ul_tdoa_ntf_report_config), Length=3 bytes",

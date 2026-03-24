@@ -1192,7 +1192,7 @@ int main() {
             "TLV[19]: Config ID=0x13 (rssi_reporting), Length=1 bytes",
             "Interpreted: 1 (0x01) [Range: 0-1]",
             "TLV[20]: Config ID=0x14 (preamble_code_index), Length=1 bytes",
-            "Interpreted: 12 (0x0C) [Range: 0-31]",
+            "Interpreted: 12 (0x0C) [Range: 0-32]",
             "TLV[21]: Config ID=0x15 (sfd_id), Length=1 bytes",
             "Interpreted: 1 (0x01) [Range: 0-3]",
             "TLV[22]: Config ID=0x16 (psdu_data_rate), Length=1 bytes",

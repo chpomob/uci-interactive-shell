@@ -105,7 +105,8 @@ set_app_config 305419896 preamble_code_index 24
 set_app_config 305419896 preamble_code_index 25
 set_app_config 305419896 sfd_id 0
 set_app_config 305419896 sfd_id 1
-set_app_config 305419896 cap_size_range 512
+set_app_config 305419896 cap_size_range 1296
+set_app_config 305419896 cap_size_range 0
 set_app_config 305419896 tx_jitter_window_size 16
 set_app_config 305419896 scheduled_mode hybrid
 set_app_config 305419896 scheduled_mode scheduled
@@ -367,7 +368,7 @@ require_line "Interpreted: 7 (0x07) [Range: 0-255]"
 require_line "TLV[0]: Config ID=0x1F (prf_mode), Length=1 bytes"
 require_line "Interpreted: HPRF_124_8M (0x01)"
 require_line "TLV[0]: Config ID=0x20 (cap_size_range), Length=2 bytes"
-require_line "Interpreted: 512 (0x00 02) [Range: 0-65535]"
+require_line "Interpreted: 0 (0x00 00) [Range: 0-65535]"
 require_line "TLV[0]: Config ID=0x21 (tx_jitter_window_size), Length=2 bytes"
 require_line "Interpreted: 16 (0x10 00) [Range: 0-65535]"
 require_line "TLV[0]: Config ID=0x22 (scheduled_mode), Length=1 bytes"

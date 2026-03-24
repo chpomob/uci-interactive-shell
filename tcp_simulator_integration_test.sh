@@ -86,6 +86,7 @@ set_app_config 305419896 sfd_id 2
 set_app_config 305419896 psdu_data_rate 2
 set_app_config 305419896 preamble_duration 2
 set_app_config 305419896 preamble_duration 1
+set_app_config 305419896 link_layer_mode 2
 set_app_config 305419896 link_layer_mode 1
 set_app_config 305419896 data_repetition_count 4
 set_app_config 305419896 ranging_time_struct 3

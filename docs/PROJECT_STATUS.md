@@ -188,6 +188,7 @@ execution path, and changes are currently limited to:
   conservatively aligned to the locally evidenced `0..4` practical range on
   both the CLI and simulator path, and the TCP integration now exercises the
   invalid `5` case before restoring the valid configured value.
+  `max_rr_retry` is now aligned to the Cherry/Qorvo `uint16_t` wire contract with default `0`, and the shell TCP path now validates the 2-byte get/set interpretation instead of the older 1-byte shortcut.
   `device_type`
   and `device_role` are also now aligned to
   the FiRa/Cherry controller/controlee and responder/initiator semantics

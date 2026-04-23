@@ -165,7 +165,7 @@ int main() {
     // Test handling of invalid application configuration parameter
     TEST_CASE(invalid_app_config_param);
     {
-        const char* name = uci_config_get_app_param_name(0x31);
+        const char* name = uci_config_get_app_param_name(0x4E);
         ASSERT_TRUE(name == NULL);
         TEST_PASS();
     }

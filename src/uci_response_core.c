@@ -6,6 +6,7 @@
 #include "../include/uci_functions.h"
 #include "../include/uci_config_manager.h"
 #include "../include/uci_packet_utils.h"
+#include "../include/uci_simulator.h"
 
 #define MAX_RESPONSE_PAYLOAD_LEN 255
 
@@ -22,7 +23,6 @@ extern unsigned long long g_fake_timestamp;
 
 // Helper functions from other modules
 extern int is_valid_device_config_id(unsigned char cfg_id);
-extern void enqueue_notification(unsigned char gid, unsigned char oid, unsigned char* payload, int payload_len);
 
 typedef struct {
     uint8_t type;

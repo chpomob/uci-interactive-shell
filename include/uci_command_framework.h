@@ -69,6 +69,29 @@ typedef struct {
     const char* description;    // Description for help
 } uci_param_def_t;
 
+typedef struct {
+    bool present;
+    uci_param_type_t type;
+    const char* raw_value;
+    size_t raw_length;
+    size_t parsed_length;
+    union {
+        unsigned char u8;
+        unsigned short u16;
+        unsigned int u32;
+        unsigned long long u64;
+        unsigned int session_id;
+        unsigned char device_state;
+        unsigned char session_type;
+        unsigned char hex_bytes[UCI_CMD_MAX_HEX_PARAM_LEN];
+    } value;
+} uci_cmd_parsed_param_t;
+
+typedef struct {
+    uci_cmd_parsed_param_t parsed_params[UCI_CMD_MAX_PARAMS];
+    int parsed_param_count;
+} uci_cmd_dispatch_context_t;
+
 // Command definition structure
 typedef struct {
     const char* name;
@@ -78,7 +101,12 @@ typedef struct {
     const char* description;
     const uci_param_def_t* params;  // Array of parameter definitions
     int param_count;               // Number of parameters
-    int (*handler)(const char* cmd_name, int argc, char** argv, const uci_param_def_t* params, int param_count);
+    int (*handler)(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                   const char* cmd_name,
+                   int argc,
+                   char** argv,
+                   const uci_param_def_t* params,
+                   int param_count);
 } uci_command_def_t;
 
 // Command execution context
@@ -111,26 +139,8 @@ int uci_cmd_add_bytes_to_payload(uci_command_context_t* ctx, const unsigned char
 // Unified command execution function
 int uci_cmd_execute_unified(uci_command_context_t* ctx);
 
-typedef struct {
-    bool present;
-    uci_param_type_t type;
-    const char* raw_value;
-    size_t raw_length;
-    size_t parsed_length;
-    union {
-        unsigned char u8;
-        unsigned short u16;
-        unsigned int u32;
-        unsigned long long u64;
-        unsigned int session_id;
-        unsigned char device_state;
-        unsigned char session_type;
-        unsigned char hex_bytes[UCI_CMD_MAX_HEX_PARAM_LEN];
-    } value;
-} uci_cmd_parsed_param_t;
-
-const uci_cmd_parsed_param_t* uci_cmd_get_parsed_param(int index);
-int uci_cmd_get_parsed_param_count(void);
+const uci_cmd_parsed_param_t* uci_cmd_get_parsed_param(const uci_cmd_dispatch_context_t* dispatch_ctx, int index);
+int uci_cmd_get_parsed_param_count(const uci_cmd_dispatch_context_t* dispatch_ctx);
 
 // Command dispatch function
 int uci_cmd_dispatch(const uci_command_def_t* cmd_def, int argc, char** argv);

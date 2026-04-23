@@ -9,11 +9,13 @@
 #include "../include/uci_cli.h"
 #include "../include/uci_ui.h"
 
-static int handle_help_command_typed(const char* cmd_name,
-                                   int argc,
-                                   char** argv,
-                                   const uci_param_def_t* params,
-                                   int param_count) {
+static int handle_help_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                     const char* cmd_name,
+                                     int argc,
+                                     char** argv,
+                                     const uci_param_def_t* params,
+                                     int param_count) {
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -23,11 +25,13 @@ static int handle_help_command_typed(const char* cmd_name,
     return 0;
 }
 
-static int handle_analyze_packet_command_typed(const char* cmd_name,
-                                             int argc,
-                                             char** argv,
-                                             const uci_param_def_t* params,
-                                             int param_count) {
+static int handle_analyze_packet_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                               const char* cmd_name,
+                                               int argc,
+                                               char** argv,
+                                               const uci_param_def_t* params,
+                                               int param_count) {
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)params;
     (void)param_count;

@@ -77,7 +77,8 @@ static int parse_sim_session_reason(const char* reason_str, unsigned char* reaso
     return 0;
 }
 
-int handle_simulate_notification_command_typed(const char* cmd_name,
+int handle_simulate_notification_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                               const char* cmd_name,
                                                int argc,
                                                char** argv,
                                                const uci_param_def_t* params,
@@ -88,8 +89,8 @@ int handle_simulate_notification_command_typed(const char* cmd_name,
     (void)params;
     (void)param_count;
 
-    const uci_cmd_parsed_param_t* type_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* value_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* type_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* value_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
     if (!type_param || !type_param->present || !type_param->raw_value ||
         !value_param || !value_param->present || !value_param->raw_value) {
         print_simulation_usage();
@@ -121,7 +122,8 @@ int handle_simulate_notification_command_typed(const char* cmd_name,
     return -1;
 }
 
-int handle_simulate_session_status_command_typed(const char* cmd_name,
+int handle_simulate_session_status_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                 const char* cmd_name,
                                                  int argc,
                                                  char** argv,
                                                  const uci_param_def_t* params,
@@ -132,9 +134,9 @@ int handle_simulate_session_status_command_typed(const char* cmd_name,
     (void)params;
     (void)param_count;
 
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* state_param = uci_cmd_get_parsed_param(1);
-    const uci_cmd_parsed_param_t* reason_param = uci_cmd_get_parsed_param(2);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* state_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
+    const uci_cmd_parsed_param_t* reason_param = uci_cmd_get_parsed_param(dispatch_ctx, 2);
     if (!session_param || !session_param->present ||
         !state_param || !state_param->present || !state_param->raw_value ||
         !reason_param || !reason_param->present || !reason_param->raw_value) {
@@ -169,11 +171,13 @@ int handle_simulate_session_status_command_typed(const char* cmd_name,
     return 0;
 }
 
-int handle_simulate_data_credit_command_typed(const char* cmd_name,
+int handle_simulate_data_credit_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                              const char* cmd_name,
                                               int argc,
                                               char** argv,
                                               const uci_param_def_t* params,
                                               int param_count) {
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -192,11 +196,13 @@ int handle_simulate_data_credit_command_typed(const char* cmd_name,
     return 0;
 }
 
-int handle_demo_session_flow_command_typed(const char* cmd_name,
+int handle_demo_session_flow_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                           const char* cmd_name,
                                            int argc,
                                            char** argv,
                                            const uci_param_def_t* params,
                                            int param_count) {
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -247,11 +253,13 @@ int handle_demo_session_flow_command_typed(const char* cmd_name,
     return 0;
 }
 
-int handle_simulate_ranging_command_typed(const char* cmd_name,
+int handle_simulate_ranging_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                          const char* cmd_name,
                                           int argc,
                                           char** argv,
                                           const uci_param_def_t* params,
                                           int param_count) {
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -308,11 +316,13 @@ int handle_simulate_ranging_command_typed(const char* cmd_name,
     return 0;
 }
 
-int handle_simulate_multi_target_ranging_command_typed(const char* cmd_name,
+int handle_simulate_multi_target_ranging_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                       const char* cmd_name,
                                                        int argc,
                                                        char** argv,
                                                        const uci_param_def_t* params,
                                                        int param_count) {
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -374,7 +384,8 @@ int handle_simulate_multi_target_ranging_command_typed(const char* cmd_name,
     return 0;
 }
 
-int handle_simulate_qm_sdk_vendor_command_typed(const char* cmd_name,
+int handle_simulate_qm_sdk_vendor_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                const char* cmd_name,
                                                 int argc,
                                                 char** argv,
                                                 const uci_param_def_t* params,
@@ -385,7 +396,7 @@ int handle_simulate_qm_sdk_vendor_command_typed(const char* cmd_name,
     (void)params;
     (void)param_count;
 
-    const uci_cmd_parsed_param_t* opcode_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* opcode_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
     if (!opcode_param || !opcode_param->present) {
         if (ui_color_enabled) {
             printf("%s%sUsage:%s simulate_qm_sdk_vendor_command <opcode> [params...]\n", 

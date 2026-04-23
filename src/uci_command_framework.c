@@ -4,12 +4,13 @@
 #include "../include/uci_functions.h"
 #include "../include/uci_pdl.h"
 
-static uci_cmd_parsed_param_t g_parsed_params[UCI_CMD_MAX_PARAMS];
-static int g_parsed_param_count = 0;
+static void uci_cmd_reset_dispatch_context(uci_cmd_dispatch_context_t* dispatch_ctx) {
+    if (!dispatch_ctx) {
+        return;
+    }
 
-static void uci_cmd_reset_parsed_params(void) {
-    memset(g_parsed_params, 0, sizeof(g_parsed_params));
-    g_parsed_param_count = 0;
+    memset(dispatch_ctx->parsed_params, 0, sizeof(dispatch_ctx->parsed_params));
+    dispatch_ctx->parsed_param_count = 0;
 }
 
 // Helper function to convert string to unsigned char (uint8_t)
@@ -244,8 +245,11 @@ int uci_cmd_execute_unified(uci_command_context_t* ctx) {
 }
 
 // Validate parameters based on command definition
-int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** argv) {
-    if (!cmd_def || !argv) {
+static int uci_cmd_validate_params(uci_cmd_dispatch_context_t* dispatch_ctx,
+                                   const uci_command_def_t* cmd_def,
+                                   int argc,
+                                   char** argv) {
+    if (!dispatch_ctx || !cmd_def || !argv) {
         return -1;
     }
 
@@ -257,8 +261,8 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
         return -1;
     }
 
-    uci_cmd_reset_parsed_params();
-    g_parsed_param_count = cmd_def->param_count;
+    uci_cmd_reset_dispatch_context(dispatch_ctx);
+    dispatch_ctx->parsed_param_count = cmd_def->param_count;
 
     // Check if required number of arguments matches
     int required_params = 0;
@@ -290,7 +294,7 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
         const uci_param_def_t* param = &cmd_def->params[i];
         const char* param_str = (i + 1 < argc) ? argv[i + 1] : NULL; // Skip command name
         size_t param_len = param_str ? strlen(param_str) : 0;
-        uci_cmd_parsed_param_t* parsed = &g_parsed_params[i];
+        uci_cmd_parsed_param_t* parsed = &dispatch_ctx->parsed_params[i];
         parsed->type = param->type;
         parsed->raw_value = param_str;
         parsed->raw_length = param_len;
@@ -469,6 +473,8 @@ int uci_cmd_validate_params(const uci_command_def_t* cmd_def, int argc, char** a
 
 // Main command dispatch function
 int uci_cmd_dispatch(const uci_command_def_t* cmd_def, int argc, char** argv) {
+    uci_cmd_dispatch_context_t dispatch_ctx;
+
     if (!cmd_def || !argv) {
         return -1;
     }
@@ -480,27 +486,37 @@ int uci_cmd_dispatch(const uci_command_def_t* cmd_def, int argc, char** argv) {
     }
 
     // Validate parameters
-    if (uci_cmd_validate_params(cmd_def, argc, argv) != 0) {
+    if (uci_cmd_validate_params(&dispatch_ctx, cmd_def, argc, argv) != 0) {
         return -1;
     }
 
     // Call the command handler
     if (cmd_def->handler) {
-        return cmd_def->handler(cmd_def->name, argc, argv, cmd_def->params, cmd_def->param_count);
+        return cmd_def->handler(&dispatch_ctx,
+                                cmd_def->name,
+                                argc,
+                                argv,
+                                cmd_def->params,
+                                cmd_def->param_count);
     }
 
     return 0;
 }
 
-const uci_cmd_parsed_param_t* uci_cmd_get_parsed_param(int index) {
-    if (index < 0 || index >= g_parsed_param_count) {
+const uci_cmd_parsed_param_t* uci_cmd_get_parsed_param(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                       int index) {
+    if (!dispatch_ctx || index < 0 || index >= dispatch_ctx->parsed_param_count) {
         return NULL;
     }
-    return &g_parsed_params[index];
+    return &dispatch_ctx->parsed_params[index];
 }
 
-int uci_cmd_get_parsed_param_count(void) {
-    return g_parsed_param_count;
+int uci_cmd_get_parsed_param_count(const uci_cmd_dispatch_context_t* dispatch_ctx) {
+    if (!dispatch_ctx) {
+        return 0;
+    }
+
+    return dispatch_ctx->parsed_param_count;
 }
 int uci_cmd_validate_uint64(const char* str, unsigned long long* value, unsigned long long min_val, unsigned long long max_val) {
     if (!str || !value) {

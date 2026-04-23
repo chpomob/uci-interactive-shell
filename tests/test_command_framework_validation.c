@@ -21,11 +21,13 @@
 
 static int g_handler_calls = 0;
 
-static int dummy_handler(const char* cmd_name,
+static int dummy_handler(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                         const char* cmd_name,
                          int argc,
                          char** argv,
                          const uci_param_def_t* params,
                          int param_count) {
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -43,7 +45,8 @@ static int g_capture_handler_calls = 0;
 static pid_t g_tcp_server_pid = 0;
 static uint16_t g_tcp_server_port = 0;
 
-static int capture_handler(const char* cmd_name,
+static int capture_handler(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                           const char* cmd_name,
                            int argc,
                            char** argv,
                            const uci_param_def_t* params,
@@ -54,9 +57,9 @@ static int capture_handler(const char* cmd_name,
     (void)params;
     (void)param_count;
 
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* type_param = uci_cmd_get_parsed_param(1);
-    const uci_cmd_parsed_param_t* hex_param = uci_cmd_get_parsed_param(2);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* type_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
+    const uci_cmd_parsed_param_t* hex_param = uci_cmd_get_parsed_param(dispatch_ctx, 2);
 
     if (session_param && session_param->present) {
         g_captured_session_id = session_param->value.session_id;

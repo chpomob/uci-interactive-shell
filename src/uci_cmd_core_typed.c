@@ -8,18 +8,19 @@
 #include "../include/uci_command_utils.h"
 #include "../include/uci_ui.h"
 
-static const char* get_raw_param_value(int index) {
-    const uci_cmd_parsed_param_t* param = uci_cmd_get_parsed_param(index);
+static const char* get_raw_param_value(const uci_cmd_dispatch_context_t* dispatch_ctx, int index) {
+    const uci_cmd_parsed_param_t* param = uci_cmd_get_parsed_param(dispatch_ctx, index);
     if (!param || !param->present || !param->raw_value || param->raw_value[0] == '\0') {
         return NULL;
     }
     return param->raw_value;
 }
 
-static int require_param_value(int index,
+static int require_param_value(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                               int index,
                                const char* param_name,
                                const char** out_value) {
-    const char* value = get_raw_param_value(index);
+    const char* value = get_raw_param_value(dispatch_ctx, index);
     if (!value) {
         char buffer[128];
         snprintf(buffer, sizeof(buffer), "Missing required parameter: %s", param_name);
@@ -46,12 +47,13 @@ static int parse_detail_option(const char* value, int* detail_full) {
     return -1;
 }
 
-static int parse_config_list_options(int param_count,
+static int parse_config_list_options(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                     int param_count,
                                      const char** id_filter,
                                      const char** name_filter,
                                      int* detail_full) {
     for (int i = 0; i < param_count; i++) {
-        const uci_cmd_parsed_param_t* param = uci_cmd_get_parsed_param(i);
+        const uci_cmd_parsed_param_t* param = uci_cmd_get_parsed_param(dispatch_ctx, i);
         if (!param || !param->present || !param->raw_value) {
             continue;
         }
@@ -72,7 +74,7 @@ static int parse_config_list_options(int param_count,
         }
 
         if (strcmp(raw, "--filter") == 0) {
-            const char* value = get_raw_param_value(i + 1);
+            const char* value = get_raw_param_value(dispatch_ctx, i + 1);
             if (!value) {
                 ui_print_error("Missing value for --filter");
                 return -1;
@@ -83,7 +85,7 @@ static int parse_config_list_options(int param_count,
         }
 
         if (strcmp(raw, "--id") == 0) {
-            const char* value = get_raw_param_value(i + 1);
+            const char* value = get_raw_param_value(dispatch_ctx, i + 1);
             if (!value) {
                 ui_print_error("Missing value for --id");
                 return -1;
@@ -149,9 +151,11 @@ static int parse_config_list_options(int param_count,
 }
 
 // Handler for get_device_info command using framework
-int handle_get_device_info_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_get_device_info_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                       const char* cmd_name, int argc, char** argv, 
                                        const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -163,9 +167,11 @@ int handle_get_device_info_command_typed(const char* cmd_name, int argc, char** 
 }
 
 // Handler for device_reset command using framework
-int handle_device_reset_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_device_reset_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                    const char* cmd_name, int argc, char** argv, 
                                     const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -177,7 +183,8 @@ int handle_device_reset_command_typed(const char* cmd_name, int argc, char** arg
 }
 
 // Handler for set_power command using framework
-int handle_set_power_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_set_power_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                 const char* cmd_name, int argc, char** argv, 
                                  const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -186,7 +193,7 @@ int handle_set_power_command_typed(const char* cmd_name, int argc, char** argv,
     (void)params;
     (void)param_count;
     
-    const uci_cmd_parsed_param_t* state_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* state_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
     if (!state_param || !state_param->present || state_param->type != PARAM_TYPE_DEVICE_STATE) {
         ui_print_error("Missing required parameter: state");
         return -1;
@@ -203,9 +210,11 @@ int handle_set_power_command_typed(const char* cmd_name, int argc, char** argv,
 }
 
 // Handler for device_on command using framework
-int handle_device_on_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_device_on_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                 const char* cmd_name, int argc, char** argv, 
                                  const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -216,9 +225,11 @@ int handle_device_on_command_typed(const char* cmd_name, int argc, char** argv,
 }
 
 // Handler for device_off command using framework
-int handle_device_off_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_device_off_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                  const char* cmd_name, int argc, char** argv, 
                                   const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -229,7 +240,8 @@ int handle_device_off_command_typed(const char* cmd_name, int argc, char** argv,
 }
 
 // Handler for get_config command using framework
-int handle_get_config_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_get_config_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                  const char* cmd_name, int argc, char** argv, 
                                   const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -239,15 +251,17 @@ int handle_get_config_command_typed(const char* cmd_name, int argc, char** argv,
     (void)param_count;
     
     const char* config_name = NULL;
-    if (require_param_value(0, "config_name", &config_name) != 0) {
+    if (require_param_value(dispatch_ctx, 0, "config_name", &config_name) != 0) {
         return -1;
     }
 
     return handle_get_config_command((char*)config_name);
 }
 
-int handle_get_caps_info_command_typed(const char* cmd_name, int argc, char** argv,
+int handle_get_caps_info_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                     const char* cmd_name, int argc, char** argv,
                                      const uci_param_def_t* params, int param_count) {
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -258,9 +272,11 @@ int handle_get_caps_info_command_typed(const char* cmd_name, int argc, char** ar
 }
 
 // Handler for get_device_state command using framework
-int handle_get_device_state_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_get_device_state_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                        const char* cmd_name, int argc, char** argv, 
                                         const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -271,9 +287,11 @@ int handle_get_device_state_command_typed(const char* cmd_name, int argc, char**
 }
 
 // Handler for set_device_active command using framework
-int handle_set_device_active_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_set_device_active_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                         const char* cmd_name, int argc, char** argv, 
                                          const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -284,9 +302,11 @@ int handle_set_device_active_command_typed(const char* cmd_name, int argc, char*
 }
 
 // Handler for set_device_ready command using framework
-int handle_set_device_ready_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_set_device_ready_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                        const char* cmd_name, int argc, char** argv, 
                                         const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -297,7 +317,8 @@ int handle_set_device_ready_command_typed(const char* cmd_name, int argc, char**
 }
 
 // Handler for set_config command using framework
-int handle_set_config_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_set_config_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                  const char* cmd_name, int argc, char** argv, 
                                   const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -308,8 +329,8 @@ int handle_set_config_command_typed(const char* cmd_name, int argc, char** argv,
     
     const char* config_name = NULL;
     const char* value = NULL;
-    if (require_param_value(0, "config_name", &config_name) != 0 ||
-        require_param_value(1, "value", &value) != 0) {
+    if (require_param_value(dispatch_ctx, 0, "config_name", &config_name) != 0 ||
+        require_param_value(dispatch_ctx, 1, "value", &value) != 0) {
         return -1;
     }
 
@@ -317,9 +338,11 @@ int handle_set_config_command_typed(const char* cmd_name, int argc, char** argv,
 }
 
 // Handler for device_suspend command using framework
-int handle_device_suspend_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_device_suspend_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                      const char* cmd_name, int argc, char** argv, 
                                       const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -330,9 +353,11 @@ int handle_device_suspend_command_typed(const char* cmd_name, int argc, char** a
 }
 
 // Handler for query_timestamp command using framework
-int handle_query_timestamp_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_query_timestamp_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                       const char* cmd_name, int argc, char** argv, 
                                        const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
+    (void)dispatch_ctx;
     (void)cmd_name;
     (void)argc;
     (void)argv;
@@ -355,7 +380,8 @@ int handle_query_timestamp_command_typed(const char* cmd_name, int argc, char** 
  * @param param_count Number of parameters
  * @return 0 on success, -1 on error
  */
-int handle_validate_arguments_command_typed(const char* cmd_name, int argc, char** argv, 
+int handle_validate_arguments_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                          const char* cmd_name, int argc, char** argv, 
                                           const uci_param_def_t* params, int param_count) {
     // Unused parameters - prevent compiler warnings
     (void)cmd_name;
@@ -366,9 +392,9 @@ int handle_validate_arguments_command_typed(const char* cmd_name, int argc, char
 
     const char* integer_str = NULL;
     const char* hex_str = NULL;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(2);
-    if (require_param_value(0, "integer_value", &integer_str) != 0 ||
-        require_param_value(1, "hex_payload", &hex_str) != 0 ||
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 2);
+    if (require_param_value(dispatch_ctx, 0, "integer_value", &integer_str) != 0 ||
+        require_param_value(dispatch_ctx, 1, "hex_payload", &hex_str) != 0 ||
         !session_param || !session_param->present) {
         ui_print_error("Missing required parameter: session_id");
         return -1;
@@ -395,7 +421,8 @@ int handle_validate_arguments_command_typed(const char* cmd_name, int argc, char
     return 0;
 }
 
-int handle_show_device_configs_command_typed(const char* cmd_name,
+int handle_show_device_configs_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                           const char* cmd_name,
                                            int argc,
                                            char** argv,
                                            const uci_param_def_t* params,
@@ -409,13 +436,14 @@ int handle_show_device_configs_command_typed(const char* cmd_name,
     const char* name_filter = NULL;
     int full = 0;
 
-    if (parse_config_list_options(param_count, &id_filter, &name_filter, &full) != 0) {
+    if (parse_config_list_options(dispatch_ctx, param_count, &id_filter, &name_filter, &full) != 0) {
         return -1;
     }
     return show_device_configs_with_filters(id_filter, name_filter, full);
 }
 
-int handle_show_app_configs_command_typed(const char* cmd_name,
+int handle_show_app_configs_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                        const char* cmd_name,
                                         int argc,
                                         char** argv,
                                         const uci_param_def_t* params,
@@ -429,7 +457,7 @@ int handle_show_app_configs_command_typed(const char* cmd_name,
     const char* name_filter = NULL;
     int full = 0;
 
-    if (parse_config_list_options(param_count, &id_filter, &name_filter, &full) != 0) {
+    if (parse_config_list_options(dispatch_ctx, param_count, &id_filter, &name_filter, &full) != 0) {
         return -1;
     }
     return show_app_configs_with_filters(id_filter, name_filter, full);

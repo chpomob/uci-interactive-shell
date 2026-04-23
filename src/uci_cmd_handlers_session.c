@@ -15,7 +15,8 @@ static int report_missing_param(const char* cmd_name, const char* requirement) {
     return -1;
 }
 
-int handle_session_init_command_typed(const char* cmd_name,
+int handle_session_init_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                      const char* cmd_name,
                                       int argc,
                                       char** argv,
                                       const uci_param_def_t* params,
@@ -25,8 +26,8 @@ int handle_session_init_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* type_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* type_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
 
     if (session_param && session_param->present &&
         type_param && type_param->present &&
@@ -37,7 +38,8 @@ int handle_session_init_command_typed(const char* cmd_name,
     return report_missing_param("session_init", "session_id and session_type");
 }
 
-int handle_session_deinit_command_typed(const char* cmd_name,
+int handle_session_deinit_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                        const char* cmd_name,
                                         int argc,
                                         char** argv,
                                         const uci_param_def_t* params,
@@ -47,14 +49,15 @@ int handle_session_deinit_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
     if (session_param && session_param->present) {
         return handle_session_deinit_command_value(session_param->value.session_id);
     }
     return report_missing_param("session_deinit", "session_id");
 }
 
-int handle_session_start_command_typed(const char* cmd_name,
+int handle_session_start_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                       const char* cmd_name,
                                        int argc,
                                        char** argv,
                                        const uci_param_def_t* params,
@@ -64,14 +67,15 @@ int handle_session_start_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
     if (session_param && session_param->present) {
         return handle_session_start_command_value(session_param->value.session_id);
     }
     return report_missing_param("session_start", "session_id");
 }
 
-int handle_session_stop_command_typed(const char* cmd_name,
+int handle_session_stop_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                      const char* cmd_name,
                                       int argc,
                                       char** argv,
                                       const uci_param_def_t* params,
@@ -81,14 +85,15 @@ int handle_session_stop_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
     if (session_param && session_param->present) {
         return handle_session_stop_command_value(session_param->value.session_id);
     }
     return report_missing_param("session_stop", "session_id");
 }
 
-int handle_session_send_data_command_typed(const char* cmd_name,
+int handle_session_send_data_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                           const char* cmd_name,
                                            int argc,
                                            char** argv,
                                            const uci_param_def_t* params,
@@ -98,10 +103,10 @@ int handle_session_send_data_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* dest_param = uci_cmd_get_parsed_param(1);
-    const uci_cmd_parsed_param_t* seq_param = uci_cmd_get_parsed_param(2);
-    const uci_cmd_parsed_param_t* payload_param = uci_cmd_get_parsed_param(3);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* dest_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
+    const uci_cmd_parsed_param_t* seq_param = uci_cmd_get_parsed_param(dispatch_ctx, 2);
+    const uci_cmd_parsed_param_t* payload_param = uci_cmd_get_parsed_param(dispatch_ctx, 3);
     if (session_param && session_param->present &&
         dest_param && dest_param->present &&
         seq_param && seq_param->present &&
@@ -117,7 +122,8 @@ int handle_session_send_data_command_typed(const char* cmd_name,
                                 "session_id, destination, sequence, and payload bytes");
 }
 
-int handle_session_logical_link_create_command_typed(const char* cmd_name,
+int handle_session_logical_link_create_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                     const char* cmd_name,
                                                      int argc,
                                                      char** argv,
                                                      const uci_param_def_t* params,
@@ -127,10 +133,10 @@ int handle_session_logical_link_create_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* link_param = uci_cmd_get_parsed_param(1);
-    const uci_cmd_parsed_param_t* mode_param = uci_cmd_get_parsed_param(2);
-    const uci_cmd_parsed_param_t* credit_param = uci_cmd_get_parsed_param(3);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* link_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
+    const uci_cmd_parsed_param_t* mode_param = uci_cmd_get_parsed_param(dispatch_ctx, 2);
+    const uci_cmd_parsed_param_t* credit_param = uci_cmd_get_parsed_param(dispatch_ctx, 3);
     if (session_param && session_param->present && link_param && link_param->present) {
         bool mode_present = (mode_param && mode_param->present);
         bool credit_present = (credit_param && credit_param->present);
@@ -147,7 +153,8 @@ int handle_session_logical_link_create_command_typed(const char* cmd_name,
     return report_missing_param("session_logical_link_create", "session_id and link_id");
 }
 
-int handle_session_logical_link_close_command_typed(const char* cmd_name,
+int handle_session_logical_link_close_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                    const char* cmd_name,
                                                     int argc,
                                                     char** argv,
                                                     const uci_param_def_t* params,
@@ -157,8 +164,8 @@ int handle_session_logical_link_close_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* link_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* link_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
     if (session_param && session_param->present && link_param && link_param->present) {
         return handle_session_logical_link_close_command_value(session_param->value.session_id,
                                                                link_param->value.u8);
@@ -166,7 +173,8 @@ int handle_session_logical_link_close_command_typed(const char* cmd_name,
     return report_missing_param("session_logical_link_close", "session_id and link_id");
 }
 
-int handle_session_logical_link_get_param_command_typed(const char* cmd_name,
+int handle_session_logical_link_get_param_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                        const char* cmd_name,
                                                         int argc,
                                                         char** argv,
                                                         const uci_param_def_t* params,
@@ -176,8 +184,8 @@ int handle_session_logical_link_get_param_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* link_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* link_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
     if (session_param && session_param->present && link_param && link_param->present) {
         return handle_session_logical_link_get_param_command_value(session_param->value.session_id,
                                                                    link_param->value.u8);
@@ -185,7 +193,8 @@ int handle_session_logical_link_get_param_command_typed(const char* cmd_name,
     return report_missing_param("session_logical_link_get_param", "session_id and link_id");
 }
 
-int handle_get_session_state_command_typed(const char* cmd_name,
+int handle_get_session_state_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                           const char* cmd_name,
                                            int argc,
                                            char** argv,
                                            const uci_param_def_t* params,
@@ -195,14 +204,15 @@ int handle_get_session_state_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
     if (session_param && session_param->present) {
         return handle_get_session_state_command_value(session_param->value.session_id);
     }
     return report_missing_param("get_session_state", "session_id");
 }
 
-int handle_set_app_config_command_typed(const char* cmd_name,
+int handle_set_app_config_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                        const char* cmd_name,
                                         int argc,
                                         char** argv,
                                         const uci_param_def_t* params,
@@ -212,9 +222,9 @@ int handle_set_app_config_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* name_param = uci_cmd_get_parsed_param(1);
-    const uci_cmd_parsed_param_t* value_param = uci_cmd_get_parsed_param(2);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* name_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
+    const uci_cmd_parsed_param_t* value_param = uci_cmd_get_parsed_param(dispatch_ctx, 2);
     if (session_param && session_param->present &&
         name_param && name_param->present && name_param->raw_value &&
         value_param && value_param->present && value_param->raw_value) {
@@ -225,7 +235,8 @@ int handle_set_app_config_command_typed(const char* cmd_name,
     return report_missing_param("set_app_config", "session_id, config name, and value");
 }
 
-int handle_get_app_config_command_typed(const char* cmd_name,
+int handle_get_app_config_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                        const char* cmd_name,
                                         int argc,
                                         char** argv,
                                         const uci_param_def_t* params,
@@ -235,7 +246,7 @@ int handle_get_app_config_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
     if (session_param && session_param->present) {
         int config_count = (argc > 2) ? (argc - 2) : 0;
         const char* const* config_names = (argc > 2) ? (const char* const*)&argv[2] : NULL;
@@ -246,7 +257,8 @@ int handle_get_app_config_command_typed(const char* cmd_name,
     return report_missing_param("get_app_config", "session_id");
 }
 
-int handle_session_update_multicast_list_command_typed(const char* cmd_name,
+int handle_session_update_multicast_list_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                       const char* cmd_name,
                                                        int argc,
                                                        char** argv,
                                                        const uci_param_def_t* params,
@@ -256,10 +268,10 @@ int handle_session_update_multicast_list_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* action_param = uci_cmd_get_parsed_param(1);
-    const uci_cmd_parsed_param_t* short_param = uci_cmd_get_parsed_param(2);
-    const uci_cmd_parsed_param_t* subsession_param = uci_cmd_get_parsed_param(3);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* action_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
+    const uci_cmd_parsed_param_t* short_param = uci_cmd_get_parsed_param(dispatch_ctx, 2);
+    const uci_cmd_parsed_param_t* subsession_param = uci_cmd_get_parsed_param(dispatch_ctx, 3);
     if (session_param && session_param->present &&
         action_param && action_param->present && action_param->raw_value &&
         short_param && short_param->present &&
@@ -273,7 +285,8 @@ int handle_session_update_multicast_list_command_typed(const char* cmd_name,
                                 "session_id, action, short address, subsession_id");
 }
 
-int handle_session_update_dt_tag_rounds_command_typed(const char* cmd_name,
+int handle_session_update_dt_tag_rounds_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                      const char* cmd_name,
                                                       int argc,
                                                       char** argv,
                                                       const uci_param_def_t* params,
@@ -283,8 +296,8 @@ int handle_session_update_dt_tag_rounds_command_typed(const char* cmd_name,
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* rounds_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* rounds_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
     if (session_param && session_param->present && rounds_param && rounds_param->present) {
         const unsigned char* round_bytes =
             (rounds_param->parsed_length > 0) ? rounds_param->value.hex_bytes : NULL;
@@ -296,7 +309,8 @@ int handle_session_update_dt_tag_rounds_command_typed(const char* cmd_name,
     return report_missing_param("session_update_dt_tag_rounds", "session_id and round bytes");
 }
 
-int handle_session_data_transfer_phase_config_command_typed(const char* cmd_name,
+int handle_session_data_transfer_phase_config_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                            const char* cmd_name,
                                                             int argc,
                                                             char** argv,
                                                             const uci_param_def_t* params,
@@ -306,11 +320,11 @@ int handle_session_data_transfer_phase_config_command_typed(const char* cmd_name
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* repetition_param = uci_cmd_get_parsed_param(1);
-    const uci_cmd_parsed_param_t* control_param = uci_cmd_get_parsed_param(2);
-    const uci_cmd_parsed_param_t* size_param = uci_cmd_get_parsed_param(3);
-    const uci_cmd_parsed_param_t* payload_param = uci_cmd_get_parsed_param(4);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* repetition_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
+    const uci_cmd_parsed_param_t* control_param = uci_cmd_get_parsed_param(dispatch_ctx, 2);
+    const uci_cmd_parsed_param_t* size_param = uci_cmd_get_parsed_param(dispatch_ctx, 3);
+    const uci_cmd_parsed_param_t* payload_param = uci_cmd_get_parsed_param(dispatch_ctx, 4);
 
     if (session_param && session_param->present &&
         repetition_param && repetition_param->present &&
@@ -334,7 +348,8 @@ int handle_session_data_transfer_phase_config_command_typed(const char* cmd_name
                                 "session_id, repetition, control, size, payload bytes");
 }
 
-int handle_session_set_hybrid_controller_config_command_typed(const char* cmd_name,
+int handle_session_set_hybrid_controller_config_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                              const char* cmd_name,
                                                               int argc,
                                                               char** argv,
                                                               const uci_param_def_t* params,
@@ -344,8 +359,8 @@ int handle_session_set_hybrid_controller_config_command_typed(const char* cmd_na
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* data_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* data_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
     if (session_param && session_param->present && data_param && data_param->present) {
         return handle_session_set_hybrid_controller_config_command_value(
             session_param->value.session_id,
@@ -356,7 +371,8 @@ int handle_session_set_hybrid_controller_config_command_typed(const char* cmd_na
                                 "session_id and hex config data");
 }
 
-int handle_session_set_hybrid_controlee_config_command_typed(const char* cmd_name,
+int handle_session_set_hybrid_controlee_config_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                             const char* cmd_name,
                                                              int argc,
                                                              char** argv,
                                                              const uci_param_def_t* params,
@@ -366,8 +382,8 @@ int handle_session_set_hybrid_controlee_config_command_typed(const char* cmd_nam
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
-    const uci_cmd_parsed_param_t* data_param = uci_cmd_get_parsed_param(1);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
+    const uci_cmd_parsed_param_t* data_param = uci_cmd_get_parsed_param(dispatch_ctx, 1);
     if (session_param && session_param->present && data_param && data_param->present) {
         return handle_session_set_hybrid_controlee_config_command_value(
             session_param->value.session_id,
@@ -378,7 +394,8 @@ int handle_session_set_hybrid_controlee_config_command_typed(const char* cmd_nam
                                 "session_id and hex config data");
 }
 
-int handle_session_query_data_size_in_ranging_command_typed(const char* cmd_name,
+int handle_session_query_data_size_in_ranging_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                                            const char* cmd_name,
                                                             int argc,
                                                             char** argv,
                                                             const uci_param_def_t* params,
@@ -388,7 +405,7 @@ int handle_session_query_data_size_in_ranging_command_typed(const char* cmd_name
     (void)argv;
     (void)params;
     (void)param_count;
-    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(0);
+    const uci_cmd_parsed_param_t* session_param = uci_cmd_get_parsed_param(dispatch_ctx, 0);
     if (session_param && session_param->present) {
         return handle_session_query_data_size_in_ranging_command_value(session_param->value.session_id);
     }

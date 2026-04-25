@@ -11,14 +11,12 @@ SRC=$(wildcard src/*.c)
 OBJ=$(SRC:.c=.o)
 
 TARGET=uci-shell
-TEST_TARGET=test_chardev
-MUTUALIZATION_TEST_TARGET=test_mutualization
 UNIT_TEST_TARGET=test_uci_functions
 CONFIG_TEST_TARGET=test_config_manager
 SESSION_MANAGER_TEST_TARGET=test_session_manager
 SECURITY_TEST_TARGET=test_uci_security
 COMMAND_GENERATION_TEST_TARGET=test_command_generation
-VALIDATION_DEMO_TARGET=demo_validation
+
 COMMAND_HANDLER_TEST_TARGET=test_command_handlers
 COMMAND_FRAMEWORK_VALIDATION_TEST_TARGET=test_command_framework_validation
 HARDWARE_INTEGRATION_TEST_TARGET=test_hardware_integration
@@ -28,19 +26,15 @@ PROTOCOL_FIXTURES_TEST_TARGET=test_protocol_fixtures
 TRANSPORT_PARITY_TEST_TARGET=test_transport_parity
 ANALYZER_DISPATCH_TEST_TARGET=test_analyzer_dispatch
 CHERRY_ALIGNMENT_TEST_TARGET=test_cherry_alignment
+PACKET_STRUCTURES_TEST_TARGET=test_packet_structures
 
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hw-fragmentation-test hardware-acceptance-smoke tcp-simulator-integration-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test coverage
+.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hw-fragmentation-test hardware-acceptance-smoke tcp-simulator-integration-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test packet-structures-test coverage
 
-all: $(TARGET) unit-test config-test session-manager-test security-test test-mutualization command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
+all: $(TARGET) unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test packet-structures-test
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
 
-test-mutualization: $(MUTUALIZATION_TEST_TARGET)
-	./$(MUTUALIZATION_TEST_TARGET)
-
-$(MUTUALIZATION_TEST_TARGET): test_mutualization.c $(filter-out src/main.o,$(OBJ))
-	$(CC) $(CFLAGS) -o $(MUTUALIZATION_TEST_TARGET) test_mutualization.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
 
 src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -51,7 +45,7 @@ src/uci_ui_packet_decoder.o: src/uci_ui_packet_decoder.c include/uci_ui_packet_d
 src/uci_cmd_session_config_ext.o: src/uci_cmd_session_config_ext.c include/uci_cmd_session_config_ext.h include/uci.h include/uci_functions.h
 
 clean:
-	rm -f $(OBJ) $(TARGET) $(TEST_TARGET) $(UNIT_TEST_TARGET) $(CONFIG_TEST_TARGET) $(SESSION_MANAGER_TEST_TARGET) $(SECURITY_TEST_TARGET) $(HARDWARE_INTEGRATION_TEST_TARGET) $(HW_FRAGMENTATION_TEST_TARGET) $(CHERRY_ALIGNMENT_TEST_TARGET) tests/*.o tests/*.d
+	rm -f $(OBJ) $(TARGET) $(UNIT_TEST_TARGET) $(CONFIG_TEST_TARGET) $(SESSION_MANAGER_TEST_TARGET) $(SECURITY_TEST_TARGET) $(HARDWARE_INTEGRATION_TEST_TARGET) $(HW_FRAGMENTATION_TEST_TARGET) $(CHERRY_ALIGNMENT_TEST_TARGET) tests/*.o tests/*.d
 	rm -f src/*.gcno src/*.gcda tests/*.gcno tests/*.gcda *.gcov *.gcda *.gcno
 	rm -rf coverage
 
@@ -61,10 +55,8 @@ install: $(TARGET)
 	mkdir -p /usr/local/share/doc/uci-shell/uci_analysis
 	cp -r uci_analysis/* /usr/local/share/doc/uci-shell/uci_analysis/
 
-test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
+test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test packet-structures-test
 
-$(TEST_TARGET): src/uci_hw_chardev.o
-	$(CC) $(CFLAGS) -o $(TEST_TARGET) test_chardev.c src/uci_hw_chardev.o
 
 unit-test: $(UNIT_TEST_TARGET)
 	./$(UNIT_TEST_TARGET)
@@ -93,11 +85,6 @@ $(SECURITY_TEST_TARGET): tests/test_uci_security.o
 command-generation-test: $(COMMAND_GENERATION_TEST_TARGET)
 	./$(COMMAND_GENERATION_TEST_TARGET)
 
-validation-demo: $(VALIDATION_DEMO_TARGET)
-	./$(VALIDATION_DEMO_TARGET)
-
-$(VALIDATION_DEMO_TARGET): demo_validation.c src/uci_command_utils.o
-	$(CC) $(CFLAGS) -o $(VALIDATION_DEMO_TARGET) demo_validation.c src/uci_command_utils.o $(LIBS)
 
 $(COMMAND_GENERATION_TEST_TARGET): tests/test_command_generation.c tests/test_helpers.c $(filter-out src/main.o,$(OBJ))
 	$(CC) $(CFLAGS) -o $(COMMAND_GENERATION_TEST_TARGET) tests/test_command_generation.c tests/test_helpers.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
@@ -162,6 +149,12 @@ cherry-alignment-test: $(CHERRY_ALIGNMENT_TEST_TARGET)
 $(CHERRY_ALIGNMENT_TEST_TARGET): tests/test_cherry_alignment.c $(filter-out src/main.o,$(OBJ))
 	$(CC) $(CFLAGS) -o $(CHERRY_ALIGNMENT_TEST_TARGET) tests/test_cherry_alignment.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
 
+packet-structures-test: $(PACKET_STRUCTURES_TEST_TARGET)
+	./$(PACKET_STRUCTURES_TEST_TARGET)
+
+$(PACKET_STRUCTURES_TEST_TARGET): tests/test_packet_structures.c $(filter-out src/main.o,$(OBJ))
+	$(CC) $(CFLAGS) -o $(PACKET_STRUCTURES_TEST_TARGET) tests/test_packet_structures.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
+
 
 
 tests/test_uci_functions.o: tests/test_uci_functions.c tests/test_runner.h include/uci.h include/uci_functions.h
@@ -169,6 +162,7 @@ tests/test_config_manager.o: tests/test_config_manager.c tests/test_runner.h inc
 tests/test_session_manager.o: tests/test_session_manager.c tests/test_runner.h include/uci.h include/uci_functions.h
 tests/test_uci_security.o: tests/test_uci_security.c include/uci_security.h
 tests/uci_globals_test.o: tests/uci_globals_test.c include/uci_globals.h
+tests/test_packet_structures.o: tests/test_packet_structures.c tests/test_runner.h include/uci_packet_structures.h include/uci.h
 
 coverage: clean
 	$(MAKE) CFLAGS="$(CFLAGS) --coverage" LIBS="$(LIBS) --coverage" unit-test config-test session-manager-test security-test

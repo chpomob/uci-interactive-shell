@@ -1,34 +1,37 @@
+# Build outputs
 *.o
-*.out
-
-# Executables
-uci-shell
-demo_*
-qm_sdk_*
-final_*
-test_*
-!test_*.c
-!test_*.h
-!test_commands.sh
-
-# Coverage and profiling
-*.gcda
 *.gcno
+*.gcda
 *.gcov
 coverage/
 
-# Build logs and temporary files
+# Binaries
+uci-shell
+test_*
+demo_*
+qm_sdk_*
+final_*
+
+# Logs
 *.log
 build_*
-final_*.log
-*.tmp
-*.bak
-*.backup
-*.before_fix
+
+# Archives
+*.tar.gz
+
+# Dist
+dist/
+
+# External reference docs (locally valuable but not part of the repo)
+uci_analysis/
+uci_analysis/uwb/
 
 # Generated files
 final_status.json
 build_output.txt
-dist/
-uci_analysis/
+
+# Logs
 logs/
+
+# Local test fixtures (local reference docs)
+local-docs/

@@ -28,13 +28,15 @@ ANALYZER_DISPATCH_TEST_TARGET=test_analyzer_dispatch
 CHERRY_ALIGNMENT_TEST_TARGET=test_cherry_alignment
 PACKET_STRUCTURES_TEST_TARGET=test_packet_structures
 
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hw-fragmentation-test hardware-acceptance-smoke tcp-simulator-integration-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test packet-structures-test coverage
+# ────────────────────────────────────────────────────────────────────────────────
+# Default first target: show help instead of building everything              #
+# ────────────────────────────────────────────────────────────────────────────────
+.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hw-fragmentation-test hardware-acceptance-smoke tcp-simulator-integration-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test packet-structures-test coverage help
 
 all: $(TARGET) unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test packet-structures-test
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
-
 
 src/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
@@ -43,6 +45,40 @@ src/main.o: src/main.c include/uci.h include/uci_functions.h
 src/uci.o: src/uci.c include/uci.h include/uci_functions.h
 src/uci_ui_packet_decoder.o: src/uci_ui_packet_decoder.c include/uci_ui_packet_decoder.h
 src/uci_cmd_session_config_ext.o: src/uci_cmd_session_config_ext.c include/uci_cmd_session_config_ext.h include/uci.h include/uci_functions.h
+
+# Help screen
+help:
+	@echo 'UCI Interactive Shell — build & test commands'
+	@echo ''
+	@echo 'Build & install:'
+	@echo '  make                Build project and run all tests'
+	@echo '  help                Show this help message'
+	@echo '  uci-shell           Build the interactive shell binary'
+	@echo '  install             Install uci-shell to /usr/local/bin'
+	@echo '  clean               Remove object files, binaries, and coverage data'
+	@echo ''
+	@echo 'Run tests (can also be run individually after building):'
+	@echo '  test                Build and run all tests'
+	@echo '  unit-test           Run uci_functions unit tests'
+	@echo '  config-test         Run config_manager unit tests'
+	@echo '  session-manager-test   Run session_manager unit tests'
+	@echo '  security-test       Run uci_security unit tests'
+	@echo '  command-generation-test   Run command_generation unit tests'
+	@echo '  command-handler-test    Run command_handlers unit tests'
+	@echo '  command-framework-validation-test   Run command_framework_validation unit tests'
+	@echo '  hardware-integration-test     Run hardware_integration unit tests'
+	@echo '  hw-fragmentation-test     Run hw_fragmentation unit tests'
+	@echo '  protocol-definitions-test     Run protocol_definitions tests'
+	@echo '  protocol-fixtures-test    Run protocol_fixtures tests'
+	@echo '  transport-parity-test     Run transport_parity tests'
+	@echo '  analyzer-dispatch-test  Run analyzer_dispatch tests'
+	@echo '  cherry-alignment-test       Run cherry_alignment tests'
+	@echo '  packet-structures-test    Run packet_structures tests'
+	@echo ''
+	@echo 'Other:'
+	@echo '  coverage            Build with --coverage and produce coverage reports'
+	@echo '  hardware-acceptance-smoke   Run hardware acceptance smoke test'
+	@echo '  tcp-simulator-integration-test   Run shell ↔ simulator integration test'
 
 clean:
 	rm -f $(OBJ) $(TARGET) $(UNIT_TEST_TARGET) $(CONFIG_TEST_TARGET) $(SESSION_MANAGER_TEST_TARGET) $(SECURITY_TEST_TARGET) $(HARDWARE_INTEGRATION_TEST_TARGET) $(HW_FRAGMENTATION_TEST_TARGET) $(CHERRY_ALIGNMENT_TEST_TARGET) tests/*.o tests/*.d

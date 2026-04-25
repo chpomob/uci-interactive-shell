@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install readline (needed by uci-shell)
+        run: sudo apt-get update && sudo apt-get install -y libreadline-dev
+
+      - name: Build
+        run: make
+
+      - name: Test
+        run: make test
+
+      - name: Build shell binary
+        run: make uci-shell
+
+      - name: Verify binary
+        run: test -f uci-shell && echo "✅ uci-shell built successfully"

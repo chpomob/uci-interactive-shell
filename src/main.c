@@ -7,6 +7,7 @@
 #include "../include/uci_logging.h"
 #include "../include/uci_shell_runtime.h"
 #include "../include/uci_ui.h"
+#include "../include/uci_ui_main_patch.h"
 
 int main(int argc, char** argv) {
     // Initialize logging system with info level and color output

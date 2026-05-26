@@ -17,5 +17,7 @@ int handle_simulate_multi_target_ranging_command_typed(const uci_cmd_dispatch_co
                                                        const uci_param_def_t* params, int param_count);
 int handle_simulate_qm_sdk_vendor_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx, const char* cmd_name, int argc, char** argv,
                                                 const uci_param_def_t* params, int param_count);
+int handle_get_calibration_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx, const char* cmd_name, int argc, char** argv,
+                                         const uci_param_def_t* params, int param_count);
 
 #endif

@@ -144,6 +144,16 @@ const uci_command_def_t g_uci_simulation_command_defs[] = {
         .param_count = ARRAY_SIZE(k_vendor_command_params),
         .handler = handle_simulate_qm_sdk_vendor_command_typed,
     },
+    {
+        .name = "get_calibration",
+        .aliases = { "get_calib", NULL },
+        .group = CLI_GROUP_SIMULATION,
+        .flags = CLI_CMD_FLAG_NONE,
+        .description = "Query Qorvo calibration parameters (GID 0x0E OID 0x2B)",
+        .params = NULL,
+        .param_count = 0,
+        .handler = handle_get_calibration_command_typed,
+    },
 };
 
 const int g_uci_simulation_command_defs_count =

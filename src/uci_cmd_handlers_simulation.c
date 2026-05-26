@@ -506,3 +506,43 @@ int handle_simulate_qm_sdk_vendor_command_typed(const uci_cmd_dispatch_context_t
     
     return 0;
 }
+
+int handle_get_calibration_command_typed(const uci_cmd_dispatch_context_t* dispatch_ctx,
+                                         const char* cmd_name,
+                                         int argc,
+                                         char** argv,
+                                         const uci_param_def_t* params,
+                                         int param_count) {
+    (void)dispatch_ctx;
+    (void)cmd_name;
+    (void)params;
+    (void)param_count;
+
+    int num_params = argc - 1;
+    if (num_params <= 0) {
+        printf("Usage: get_calibration <param_name> [param_name ...]\n");
+        printf("Example: get_calibration ant0.port ant_set0.nb_rx_ants\n");
+        return -1;
+    }
+    if (num_params > 255) {
+        printf("Error: too many parameters (max 255)\n");
+        return -1;
+    }
+
+    unsigned char payload[1024];
+    size_t offset = 0;
+    payload[offset++] = (unsigned char)num_params;
+    for (int i = 1; i < argc; i++) {
+        size_t name_len = strlen(argv[i]);
+        if (name_len == 0 || name_len > 255) {
+            printf("Error: invalid param name length\n");
+            return -1;
+        }
+        payload[offset++] = (unsigned char)name_len;
+        memcpy(&payload[offset], argv[i], name_len);
+        offset += name_len;
+    }
+
+    send_uci_command(COMMAND, 0, 0x0E, 0x2B, payload, (int)offset);
+    return 0;
+}

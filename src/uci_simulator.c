@@ -643,10 +643,10 @@ static int handle_session_init(unsigned char *response_payload, size_t max_len,
     unsigned int session_id = read_u32_le(payload);
     SessionType session_type = (SessionType)payload[4];
 
-    // Validate session type is valid
-    if (session_type > 0x05) {
-        UCI_LOG_ERROR("Invalid session_type %d in SESSION_INIT command", session_type);
-        response_payload[0] = UCI_STATUS_INVALID_PARAM;
+    // Reject unsupported session types — only RANGING (0x00) is supported
+    if (session_type != FIRA_RANGING_SESSION) {
+        UCI_LOG_ERROR("Unsupported session_type 0x%02X in SESSION_INIT command", session_type);
+        response_payload[0] = UCI_STATUS_INVALID_RANGE;
         return 1;
     }
 

@@ -251,6 +251,10 @@ const char* uci_session_type_to_string(unsigned char session_type) {
             return "CCC_RANGING_SESSION";
         case DEVICE_TEST_MODE:
             return "DEVICE_TEST_MODE";
+        case RADAR_SESSION:
+            return "RADAR_SESSION";
+        case ALIRO_SESSION:
+            return "ALIRO_SESSION";
         default:
             return "UNKNOWN";
     }

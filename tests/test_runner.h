@@ -22,6 +22,10 @@
     printf(" FAILED (%s)\n", msg); \
     total_tests_failed++;
 
+#define TEST_SKIP(msg) \
+    printf(" SKIPPED (%s)\n", msg); \
+    goto test_case_end;
+
 #define ASSERT_TRUE(condition) \
     do { \
         if (!(condition)) { \

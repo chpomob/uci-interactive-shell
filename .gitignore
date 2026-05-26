@@ -8,6 +8,8 @@ coverage/
 # Binaries
 uci-shell
 test_*
+!test_*.c
+!test_*.h
 demo_*
 qm_sdk_*
 final_*

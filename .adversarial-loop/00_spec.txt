@@ -1,31 +1,32 @@
-# Phase 2.3 — Delete dead uci_security module
+# Phase 2.4 — Merge small files, remove dead types, deduplicate
 
 In /media/chpo/HDD-papa/gemini_test/uci_interactive_shell
 
 ## Goal
 
-Remove the `uci_security` module (~805 lines). Zero production callers.
+- Merge `cmd_session_config_ext.c` (~103 lines, only 2 functions) into `cmd_session_config.c`
+- Merge `uci_ui_main_patch.c` (~39 lines, 1 function of 8 lines) into `uci_ui.c` or `uci_ui_main.c`
+- Clean up `uci_types.h` — remove barely-used type aliases and dead converter declarations
+- Remove duplicate `safe_*` wrappers (keep only the copy in `uci_utils.h`)
+- Remove duplicate `ARRAY_SIZE` defines (keep only one)
+- Remove unused ANSI color macros
 
 ## Approach
 
-1. Find the security files:
-```bash
-find . -name "*security*" -type f
-```
+1. For `cmd_session_config_ext.c`: move its 2 functions into `cmd_session_config.c`, delete the ext file, update Makefile.
 
-2. Verify zero callers:
-```bash
-grep -r "security_init\|security_auth\|security_encrypt\|security_decrypt\|#include.*security" src/ --include="*.c" --include="*.h"
-```
+2. For `uci_ui_main_patch.c`: move its single function into `uci_ui.c`, delete the patch file, update Makefile.
 
-3. Delete the security .c and .h files.
+3. For `uci_types.h`: identify typedefs used in 0-1 places and inline them at the call site.
 
-4. Remove `#include` references from other files if any.
+4. For `safe_*` wrappers: find all copies and remove duplicates.
 
-5. Remove Makefile references to security .o files.
+5. For `ARRAY_SIZE`: find all `#define ARRAY_SIZE` and keep only one.
 
 ## DO NOT
-- Remove any function that IS called from other modules
+- Change any function behavior
+- Remove types that ARE used in multiple files
+- Break the build
 
 ## Verify
 - `make` — builds successfully

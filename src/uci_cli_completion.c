@@ -1,4 +1,5 @@
 #include "../include/uci_cli_completion.h"
+#include "../include/uci_command_framework.h"
 #include "../include/uci_cli.h"
 #include "../include/uci_globals.h"
 #include "../include/uci_cmd_framework_bridge.h"
@@ -12,7 +13,6 @@
 #include <readline/history.h>
 #endif
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 typedef struct {
     const uci_command_def_t** entries;

@@ -1,11 +1,11 @@
 #include <stdio.h>
+#include "../include/uci_command_framework.h"
 #include <string.h>
 #include <stdbool.h>
 #include "../include/uci.h"
 #include "../include/uci_cli.h"
 #include "../include/uci_ui.h"
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 #include "../include/uci_globals.h"
 

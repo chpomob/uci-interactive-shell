@@ -72,4 +72,7 @@ extern int ui_color_enabled;
 // Enable/disable color output
 void ui_enable_color(int enable);
 
+// Welcome message
+void ui_print_welcome_message(void);
+
 #endif // UCI_UI_H

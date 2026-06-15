@@ -251,6 +251,28 @@ void ui_print_hardware_mode_not_initialized() {
     }
 }
 
+void ui_print_welcome_message(void) {
+    if (ui_color_enabled) {
+        printf("%s%s%s", ANSI_BG_BLUE, ANSI_COLOR_BRIGHT_WHITE, ANSI_BOLD);
+        printf("==========================================\n");
+        printf("  UCI Interactive Shell - Enhanced UI     \n");
+        printf("==========================================%s\n", ANSI_RESET);
+    } else {
+        printf("==========================================\n");
+        printf("  UCI Interactive Shell                  \n");
+        printf("==========================================\n");
+    }
+    
+    if (ui_color_enabled) {
+        printf("%s%s", ANSI_COLOR_BRIGHT_CYAN, ANSI_BOLD);
+        printf("Welcome to the UCI (Ultra-Wideband Control Interface) Shell\n");
+        printf("Type 'help' for available commands or 'quit' to exit%s\n\n", ANSI_RESET);
+    } else {
+        printf("Welcome to the UCI (Ultra-Wideband Control Interface) Shell\n");
+        printf("Type 'help' for available commands or 'quit' to exit\n\n");
+    }
+}
+
 void ui_print_command_not_found(const char* command) {
     if (ui_color_enabled) {
         printf("%s%s✗ Unknown command: %s%s\n", 

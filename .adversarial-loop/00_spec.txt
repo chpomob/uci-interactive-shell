@@ -1,34 +1,31 @@
-# Phase 2.2 — Delete dead decoder functions
+# Phase 2.3 — Delete dead uci_security module
 
 In /media/chpo/HDD-papa/gemini_test/uci_interactive_shell
 
 ## Goal
 
-Remove ~41 dead decoder functions: 25 in `uci_plain_decoders.c` (~875 lines) and 16 `ui_decode_*` functions (~450 lines) that are never called anywhere.
+Remove the `uci_security` module (~805 lines). Zero production callers.
 
 ## Approach
 
-1. Identify dead decoder functions in `uci_plain_decoders.c`:
+1. Find the security files:
 ```bash
-cd src
-# For each function definition, check if it has callers outside its own file
-grep -n "^.*decode_.*(.*)" uci_plain_decoders.c | grep -v "static"
+find . -name "*security*" -type f
 ```
-For each non-static function, verify zero callers elsewhere.
 
-2. Identify dead `ui_decode_*` functions — same approach in the UI decoder files.
+2. Verify zero callers:
+```bash
+grep -r "security_init\|security_auth\|security_encrypt\|security_decrypt\|#include.*security" src/ --include="*.c" --include="*.h"
+```
 
-3. For confirmed-dead functions:
-   - Remove the function body from the `.c` file
-   - Remove its declaration from the corresponding `.h` file
-   - Remove any `#include` that was only needed by these functions
+3. Delete the security .c and .h files.
 
-4. Keep functions that ARE actually called somewhere.
+4. Remove `#include` references from other files if any.
+
+5. Remove Makefile references to security .o files.
 
 ## DO NOT
-- Remove functions that have callers
-- Break the build
-- Remove `include/` entries that are used by other functions
+- Remove any function that IS called from other modules
 
 ## Verify
 - `make` — builds successfully

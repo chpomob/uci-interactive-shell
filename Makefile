@@ -14,7 +14,6 @@ TARGET=uci-shell
 UNIT_TEST_TARGET=test_uci_functions
 CONFIG_TEST_TARGET=test_config_manager
 SESSION_MANAGER_TEST_TARGET=test_session_manager
-SECURITY_TEST_TARGET=test_uci_security
 COMMAND_GENERATION_TEST_TARGET=test_command_generation
 
 COMMAND_HANDLER_TEST_TARGET=test_command_handlers
@@ -30,9 +29,9 @@ CHERRY_ALIGNMENT_TEST_TARGET=test_cherry_alignment
 # ────────────────────────────────────────────────────────────────────────────────
 # Default first target: show help instead of building everything              #
 # ────────────────────────────────────────────────────────────────────────────────
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hw-fragmentation-test hardware-acceptance-smoke tcp-simulator-integration-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test coverage help
+.PHONY: all clean install test unit-test config-test session-manager-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hw-fragmentation-test hardware-acceptance-smoke tcp-simulator-integration-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test coverage help
 
-all: $(TARGET) unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
+all: $(TARGET) unit-test config-test session-manager-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
@@ -61,7 +60,6 @@ help:
 	@echo '  unit-test           Run uci_functions unit tests'
 	@echo '  config-test         Run config_manager unit tests'
 	@echo '  session-manager-test   Run session_manager unit tests'
-	@echo '  security-test       Run uci_security unit tests'
 	@echo '  command-generation-test   Run command_generation unit tests'
 	@echo '  command-handler-test    Run command_handlers unit tests'
 	@echo '  command-framework-validation-test   Run command_framework_validation unit tests'
@@ -79,7 +77,7 @@ help:
 	@echo '  tcp-simulator-integration-test   Run shell ↔ simulator integration test'
 
 clean:
-	rm -f $(OBJ) $(TARGET) $(UNIT_TEST_TARGET) $(CONFIG_TEST_TARGET) $(SESSION_MANAGER_TEST_TARGET) $(SECURITY_TEST_TARGET) $(HARDWARE_INTEGRATION_TEST_TARGET) $(HW_FRAGMENTATION_TEST_TARGET) $(CHERRY_ALIGNMENT_TEST_TARGET) tests/*.o tests/*.d
+	rm -f $(OBJ) $(TARGET) $(UNIT_TEST_TARGET) $(CONFIG_TEST_TARGET) $(SESSION_MANAGER_TEST_TARGET) $(HARDWARE_INTEGRATION_TEST_TARGET) $(HW_FRAGMENTATION_TEST_TARGET) $(CHERRY_ALIGNMENT_TEST_TARGET) tests/*.o tests/*.d
 	rm -f src/*.gcno src/*.gcda tests/*.gcno tests/*.gcda *.gcov *.gcda *.gcno
 	rm -rf coverage
 
@@ -89,7 +87,7 @@ install: $(TARGET)
 	mkdir -p /usr/local/share/doc/uci-shell/uci_analysis
 	cp -r uci_analysis/* /usr/local/share/doc/uci-shell/uci_analysis/
 
-test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
+test: unit-test config-test session-manager-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
 
 
 unit-test: $(UNIT_TEST_TARGET)
@@ -109,12 +107,6 @@ session-manager-test: $(SESSION_MANAGER_TEST_TARGET)
 
 $(SESSION_MANAGER_TEST_TARGET): tests/test_session_manager.o $(filter-out src/main.o,$(OBJ))
 	$(CC) $(CFLAGS) -o $(SESSION_MANAGER_TEST_TARGET) tests/test_session_manager.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
-
-security-test: $(SECURITY_TEST_TARGET)
-	./$(SECURITY_TEST_TARGET)
-
-$(SECURITY_TEST_TARGET): tests/test_uci_security.o
-	$(CC) $(CFLAGS) -o $(SECURITY_TEST_TARGET) tests/test_uci_security.c $(LIBS)
 
 command-generation-test: $(COMMAND_GENERATION_TEST_TARGET)
 	./$(COMMAND_GENERATION_TEST_TARGET)
@@ -186,11 +178,10 @@ $(CHERRY_ALIGNMENT_TEST_TARGET): tests/test_cherry_alignment.c $(filter-out src/
 tests/test_uci_functions.o: tests/test_uci_functions.c tests/test_runner.h include/uci.h include/uci_functions.h
 tests/test_config_manager.o: tests/test_config_manager.c tests/test_runner.h include/uci.h include/uci_config_manager.h
 tests/test_session_manager.o: tests/test_session_manager.c tests/test_runner.h include/uci.h include/uci_functions.h
-tests/test_uci_security.o: tests/test_uci_security.c include/uci_security.h
 tests/uci_globals_test.o: tests/uci_globals_test.c include/uci_globals.h
 
 coverage: clean
-	$(MAKE) CFLAGS="$(CFLAGS) --coverage" LIBS="$(LIBS) --coverage" unit-test config-test session-manager-test security-test
+	$(MAKE) CFLAGS="$(CFLAGS) --coverage" LIBS="$(LIBS) --coverage" unit-test config-test session-manager-test
 	mkdir -p coverage
 	gcov -o src src/*.gcno > coverage/src_coverage.txt
 	gcov -o tests tests/*.gcno > coverage/tests_coverage.txt

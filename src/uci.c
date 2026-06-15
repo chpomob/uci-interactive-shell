@@ -13,7 +13,6 @@
 #include "../include/uci_hw_chardev.h"
 #include "../include/uci_tcp_transport.h"
 #include "../include/uci_ui.h"
-#include "../include/uci_ui_main_patch.h"
 #include "../include/uci_response_core.h"
 #include "../include/uci_decode_utils.h"
 #include "../include/uci_packet_analyzer.h"

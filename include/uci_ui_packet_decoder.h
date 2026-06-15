@@ -16,18 +16,6 @@ void ui_decode_core_device_reset_rsp(const unsigned char* payload, int payload_l
 void ui_decode_core_device_suspend_rsp(const unsigned char* payload, int payload_len);
 void ui_decode_core_query_uwbs_timestamp_rsp(const unsigned char* payload, int payload_len);
 
-// Additional core response decoders (previously implemented but not declared)
-void ui_decode_core_get_state_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_core_set_active_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_core_set_ready_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_core_device_ready_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_core_get_caps_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_core_set_power_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_core_get_power_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_core_device_on_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_core_device_off_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_core_device_suspend_cmd_rsp(const unsigned char* payload, int payload_len);
-
 void ui_decode_session_init_rsp(const unsigned char* payload, int payload_len);
 void ui_decode_session_init_cmd(const unsigned char* payload, int payload_len);
 void ui_decode_session_deinit_rsp(const unsigned char* payload, int payload_len);
@@ -56,15 +44,8 @@ void ui_decode_session_data_credit_ntf(const unsigned char* payload, int payload
 void ui_decode_session_data_transfer_status_ntf(const unsigned char* payload, int payload_len);
 void ui_decode_session_info_ntf(const unsigned char* payload, int payload_len);
 void ui_decode_range_data_ntf(const unsigned char* payload, int payload_len);
-void ui_decode_android_range_diagnostics_ntf(const unsigned char* payload, int payload_len);
 void ui_decode_session_logical_link_uwbs_create_ntf(const unsigned char* payload, int payload_len);
 void ui_decode_session_logical_link_uwbs_close_ntf(const unsigned char* payload, int payload_len);
-
-// Android vendor command response decoders
-void ui_decode_android_get_power_stats_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_android_set_country_code_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_android_radar_set_app_config_rsp(const unsigned char* payload, int payload_len);
-void ui_decode_android_radar_get_app_config_rsp(const unsigned char* payload, int payload_len);
 
 // Shared lookup helpers exposed for enhanced analysis overlays
 void ui_print_status_lookup_line(const char* label, unsigned char status_code);

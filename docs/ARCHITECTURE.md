@@ -113,20 +113,14 @@ Source of truth for all UCI wire protocol values:
 
 All code **must** reference `UciPdl*` / `UciOpcode*` constants from this header.
 
-### 3.2 Packet Building (`include/uci_packet_structures.h`)
+### 3.2 Packet Building (`include/uci_packet_utils.h`)
 
-```c
-typedef struct { UciPdlHdr hdr; UciPdlMsg msg; UciPdlData data; } UciPdlPacket;
-typedef struct { UciPdlSessionHdr hdr; SessionPayload payload; } UciPdlSessionMsg;
-```
-
-- `UciPdlHdr` — the UCI wire header (msg type, payload size, group ID, opcode).
-- `UciPdlData` — variable-length payload; struct size = fixed header portion.
-
-Packet helpers in `src/uci_packet_structures.c` and `src/uci_packet_utils.c` fill
-the fixed header and compute wire length. Outbound `DATA` packets use a 16-bit
-little-endian length (bytes 2-3); control/response/notification packets use an
-8-bit length (byte 2).
+Command handlers build command payload bytes inline next to their validation and
+dispatch logic. Shared helpers in `include/uci_packet_utils.h` provide
+little-endian integer writes, bounded payload builders, TLV readers, and
+`create_uci_packet()` for composing the UCI wire header. Outbound `DATA` packets
+use a 16-bit little-endian length (bytes 2-3); control, response, and
+notification packets use an 8-bit length (byte 2).
 
 ### 3.3 Packet Decoding
 
@@ -198,7 +192,7 @@ wrappers.
 | CLI framework       | `uci_command_framework.c`, `uci_command_utils.c` |
 | Command tables      | `uci_cmd_framework_bridge.c`, `uci_cmd_framework_device.c`, `uci_cmd_framework_session.c`, `uci_cmd_framework_simulation.c` |
 | Command handlers    | `uci_cmd_core.c`, `uci_cmd_core_typed.c`, `uci_cmd_session.c`, `uci_cmd_session_config.c`, `uci_cmd_session_config_ext.c`, `uci_cmd_analysis.c`, `uci_cmd_hardware.c`, `uci_cmd_hardware_typed.c`, `uci_cmd_handlers_session.c`, `uci_cmd_handlers_simulation.c` |
-| Protocol / packets  | `uci_packet_structures.c`, `uci_packet_utils.c`, `uci_decode_utils.c`, `uci_plain_decoders.c`, `uci_qorvo_utils.c` |
+| Protocol / packets  | `uci_packet_utils.c`, `uci_decode_utils.c`, `uci_plain_decoders.c`, `uci_qorvo_utils.c` |
 | Transport           | `uci_hw_interface.c`, `uci_hw.c`, `uci_hw_chardev.c`, `uci_tcp_transport.c`, `uci_simulator.c` |
 | Storage             | `uci_session_store.c`, `uci_config_manager.c`, `uci_config_metadata.c` |
 | UI                  | `uci_ui.c`, `uci_ui_main_patch.c`, `uci_ui_packet_decoder.c`, `uci_ui_range_decoder.c` |

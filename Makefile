@@ -26,14 +26,13 @@ PROTOCOL_FIXTURES_TEST_TARGET=test_protocol_fixtures
 TRANSPORT_PARITY_TEST_TARGET=test_transport_parity
 ANALYZER_DISPATCH_TEST_TARGET=test_analyzer_dispatch
 CHERRY_ALIGNMENT_TEST_TARGET=test_cherry_alignment
-PACKET_STRUCTURES_TEST_TARGET=test_packet_structures
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Default first target: show help instead of building everything              #
 # ────────────────────────────────────────────────────────────────────────────────
-.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hw-fragmentation-test hardware-acceptance-smoke tcp-simulator-integration-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test packet-structures-test coverage help
+.PHONY: all clean install test unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hardware-integration-test hw-fragmentation-test hardware-acceptance-smoke tcp-simulator-integration-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test coverage help
 
-all: $(TARGET) unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test packet-structures-test
+all: $(TARGET) unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
@@ -73,7 +72,6 @@ help:
 	@echo '  transport-parity-test     Run transport_parity tests'
 	@echo '  analyzer-dispatch-test  Run analyzer_dispatch tests'
 	@echo '  cherry-alignment-test       Run cherry_alignment tests'
-	@echo '  packet-structures-test    Run packet_structures tests'
 	@echo ''
 	@echo 'Other:'
 	@echo '  coverage            Build with --coverage and produce coverage reports'
@@ -91,7 +89,7 @@ install: $(TARGET)
 	mkdir -p /usr/local/share/doc/uci-shell/uci_analysis
 	cp -r uci_analysis/* /usr/local/share/doc/uci-shell/uci_analysis/
 
-test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test packet-structures-test
+test: unit-test config-test session-manager-test security-test command-generation-test command-handler-test command-framework-validation-test hw-fragmentation-test protocol-definitions-test protocol-fixtures-test transport-parity-test analyzer-dispatch-test cherry-alignment-test
 
 
 unit-test: $(UNIT_TEST_TARGET)
@@ -185,20 +183,11 @@ cherry-alignment-test: $(CHERRY_ALIGNMENT_TEST_TARGET)
 $(CHERRY_ALIGNMENT_TEST_TARGET): tests/test_cherry_alignment.c $(filter-out src/main.o,$(OBJ))
 	$(CC) $(CFLAGS) -o $(CHERRY_ALIGNMENT_TEST_TARGET) tests/test_cherry_alignment.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
 
-packet-structures-test: $(PACKET_STRUCTURES_TEST_TARGET)
-	./$(PACKET_STRUCTURES_TEST_TARGET)
-
-$(PACKET_STRUCTURES_TEST_TARGET): tests/test_packet_structures.c $(filter-out src/main.o,$(OBJ))
-	$(CC) $(CFLAGS) -o $(PACKET_STRUCTURES_TEST_TARGET) tests/test_packet_structures.c $(filter-out src/main.o,$(OBJ)) $(LIBS)
-
-
-
 tests/test_uci_functions.o: tests/test_uci_functions.c tests/test_runner.h include/uci.h include/uci_functions.h
 tests/test_config_manager.o: tests/test_config_manager.c tests/test_runner.h include/uci.h include/uci_config_manager.h
 tests/test_session_manager.o: tests/test_session_manager.c tests/test_runner.h include/uci.h include/uci_functions.h
 tests/test_uci_security.o: tests/test_uci_security.c include/uci_security.h
 tests/uci_globals_test.o: tests/uci_globals_test.c include/uci_globals.h
-tests/test_packet_structures.o: tests/test_packet_structures.c tests/test_runner.h include/uci_packet_structures.h include/uci.h
 
 coverage: clean
 	$(MAKE) CFLAGS="$(CFLAGS) --coverage" LIBS="$(LIBS) --coverage" unit-test config-test session-manager-test security-test

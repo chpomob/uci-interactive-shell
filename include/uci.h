@@ -239,48 +239,6 @@ const char* uci_get_tcp_endpoint(void);
 uci_transport_mode_t uci_get_transport_mode(void);
 int uci_is_external_transport_enabled(void);
 
-// Payload decoding functions
-// CORE group decoders
-void decode_core_device_info_rsp(unsigned char* payload, int payload_len);
-void decode_core_get_caps_info_rsp(unsigned char* payload, int payload_len);
-void decode_core_set_config_rsp(unsigned char* payload, int payload_len);
-void decode_core_get_config_rsp(unsigned char* payload, int payload_len);
-void decode_core_device_reset_rsp(unsigned char* payload, int payload_len);
-void decode_core_device_suspend_rsp(unsigned char* payload, int payload_len);
-void decode_core_query_uwbs_timestamp_rsp(unsigned char* payload, int payload_len);
-
-// SESSION_CONFIG group decoders
-void decode_session_init_cmd(unsigned char* payload, int payload_len);
-void decode_session_init_rsp(unsigned char* payload, int payload_len);
-void decode_session_deinit_rsp(unsigned char* payload, int payload_len);
-void decode_session_set_app_config_rsp(unsigned char* payload, int payload_len);
-void decode_session_get_app_config_rsp(unsigned char* payload, int payload_len);
-void decode_session_get_count_rsp(unsigned char* payload, int payload_len);
-void decode_session_get_state_rsp(unsigned char* payload, int payload_len);
-
-// SESSION_CONTROL group decoders
-void decode_session_start_rsp(unsigned char* payload, int payload_len);
-void decode_session_stop_rsp(unsigned char* payload, int payload_len);
-void decode_session_get_ranging_count_rsp(unsigned char* payload, int payload_len);
-
-// CORE notification decoders
-void decode_core_device_status_ntf(unsigned char* payload, int payload_len);
-void decode_core_generic_error_ntf(unsigned char* payload, int payload_len);
-
-// SESSION_CONFIG notification decoders
-void decode_session_status_ntf(unsigned char* payload, int payload_len);
-
-// SESSION_CONTROL notification decoders
-void decode_session_info_ntf(unsigned char* payload, int payload_len);
-void decode_session_data_credit_ntf(unsigned char* payload, int payload_len);
-void decode_session_data_transfer_status_ntf(unsigned char* payload, int payload_len);
-
-// VENDOR_ANDROID notification decoders
-void decode_android_range_diagnostics_ntf(unsigned char* payload, int payload_len);
-
-// RANGING_DATA notification decoders
-void decode_range_data_ntf(unsigned char* payload, int payload_len);
-
 void uci_send_data_message(uint32_t identifier,
                            uint64_t destination_address,
                            uint16_t sequence_number,

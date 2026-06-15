@@ -1,0 +1,37 @@
+# Phase 2.2 — Delete dead decoder functions
+
+In /media/chpo/HDD-papa/gemini_test/uci_interactive_shell
+
+## Goal
+
+Remove ~41 dead decoder functions: 25 in `uci_plain_decoders.c` (~875 lines) and 16 `ui_decode_*` functions (~450 lines) that are never called anywhere.
+
+## Approach
+
+1. Identify dead decoder functions in `uci_plain_decoders.c`:
+```bash
+cd src
+# For each function definition, check if it has callers outside its own file
+grep -n "^.*decode_.*(.*)" uci_plain_decoders.c | grep -v "static"
+```
+For each non-static function, verify zero callers elsewhere.
+
+2. Identify dead `ui_decode_*` functions — same approach in the UI decoder files.
+
+3. For confirmed-dead functions:
+   - Remove the function body from the `.c` file
+   - Remove its declaration from the corresponding `.h` file
+   - Remove any `#include` that was only needed by these functions
+
+4. Keep functions that ARE actually called somewhere.
+
+## DO NOT
+- Remove functions that have callers
+- Break the build
+- Remove `include/` entries that are used by other functions
+
+## Verify
+- `make` — builds successfully
+- `make unit-test` — passes
+- `make command-handler-test` — passes
+- `make command-framework-validation-test` — passes

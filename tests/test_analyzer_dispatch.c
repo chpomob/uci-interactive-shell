@@ -5,6 +5,7 @@
 #include "../include/uci_packet_analyzer.h"
 #include "../include/uci_packet_utils.h"
 #include "../include/uci_ui.h"
+#include "../include/uci_ui_packet_decoder.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -148,6 +149,18 @@ static void emit_captured_packet(void) {
 static void emit_captured_packet_via_parser(void) {
     ui_color_enabled = 0;
     parse_uci_packet(g_capture_ctx.packet, g_capture_ctx.packet_len);
+    ui_color_enabled = g_capture_ctx.saved_color;
+}
+
+static void emit_session_status_ui_decoder(void) {
+    static const unsigned char k_payload[] = {
+        0x78, 0x56, 0x34, 0x12,
+        SESSION_STATE_ACTIVE,
+        STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS
+    };
+
+    ui_color_enabled = 0;
+    ui_decode_session_status_ntf(k_payload, sizeof(k_payload));
     ui_color_enabled = g_capture_ctx.saved_color;
 }
 
@@ -342,6 +355,32 @@ int main(void) {
         TEST_PASS();
     }
     test_case_end_table_driven_dispatch:;
+#undef test_case_end
+
+#define test_case_end test_case_end_session_status_ui_decoder_smoke
+    TEST_CASE(session_status_ui_decoder_smoke);
+    {
+        char output[1024];
+        g_capture_ctx.saved_color = ui_color_enabled;
+
+        if (capture_stdout(emit_session_status_ui_decoder, output, sizeof(output)) == 0) {
+            TEST_FAIL("capture_session_status_ui_decoder");
+            goto test_case_end_session_status_ui_decoder_smoke;
+        }
+
+        if (strstr(output, "SESSION_STATUS_NTF:") == NULL ||
+            strstr(output, "Session Token: 0x12345678") == NULL ||
+            strstr(output, "Session State: 0x02 (ACTIVE)") == NULL ||
+            strstr(output, "Session State Description: Session is actively ranging") == NULL ||
+            strstr(output, "Reason: 0x00 (STATE_CHANGE_WITH_SESSION_MANAGEMENT_COMMANDS)") == NULL ||
+            strstr(output, "Reason Description: State change triggered by management command") == NULL) {
+            TEST_FAIL("session_status_ui_decoder_output");
+            goto test_case_end_session_status_ui_decoder_smoke;
+        }
+
+        TEST_PASS();
+    }
+    test_case_end_session_status_ui_decoder_smoke:;
 #undef test_case_end
 
 #define test_case_end test_case_end_table_driven_fallbacks

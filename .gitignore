@@ -37,3 +37,6 @@ logs/
 
 # Local test fixtures (local reference docs)
 local-docs/
+.adversarial-loop*
+.adversarial-review*
+findings.json
